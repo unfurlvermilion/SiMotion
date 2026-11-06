@@ -2,7 +2,50 @@
 
 import React, { useState } from "react";
 
-interface SinsayMatchItem {
+export interface SinsayMarket {
+  code: string;
+  name: string;
+  flag: string;
+  region: "CEE" | "SEE / Bałkany" | "Zachód & Południe" | "Kraje Bałtyckie" | "Wschód & Azja";
+}
+
+export const SINSAY_MARKETS: SinsayMarket[] = [
+  // CEE
+  { code: "PL", name: "Polska", flag: "🇵🇱", region: "CEE" },
+  { code: "RO", name: "Rumunia", flag: "🇷🇴", region: "CEE" },
+  { code: "CZ", name: "Czechy", flag: "🇨🇿", region: "CEE" },
+  { code: "SK", name: "Słowacja", flag: "🇸🇰", region: "CEE" },
+  { code: "HU", name: "Węgry", flag: "🇭🇺", region: "CEE" },
+  // Zachód & Południe
+  { code: "DE", name: "Niemcy", flag: "🇩🇪", region: "Zachód & Południe" },
+  { code: "IT", name: "Włochy", flag: "🇮🇹", region: "Zachód & Południe" },
+  { code: "GR", name: "Grecja", flag: "🇬🇷", region: "Zachód & Południe" },
+  { code: "ENG", name: "Angielski (Global)", flag: "🇬🇧", region: "Zachód & Południe" },
+  // SEE / Bałkany
+  { code: "HR", name: "Chorwacja", flag: "🇭🇷", region: "SEE / Bałkany" },
+  { code: "BG", name: "Bułgaria", flag: "🇧🇬", region: "SEE / Bałkany" },
+  { code: "SI", name: "Słowenia", flag: "🇸🇮", region: "SEE / Bałkany" },
+  { code: "RS", name: "Serbia", flag: "🇷🇸", region: "SEE / Bałkany" },
+  { code: "BA", name: "Bośnia i Hercegowina", flag: "🇧🇦", region: "SEE / Bałkany" },
+  { code: "MK", name: "Macedonia Płn.", flag: "🇲🇰", region: "SEE / Bałkany" },
+  { code: "AL", name: "Albania", flag: "🇦🇱", region: "SEE / Bałkany" },
+  { code: "XK", name: "Kosowo", flag: "🇽🇰", region: "SEE / Bałkany" },
+  // Kraje Bałtyckie
+  { code: "LT", name: "Litwa", flag: "🇱🇹", region: "Kraje Bałtyckie" },
+  { code: "LV", name: "Łotwa", flag: "🇱🇻", region: "Kraje Bałtyckie" },
+  { code: "EE", name: "Estonia", flag: "🇪🇪", region: "Kraje Bałtyckie" },
+  { code: "FI", name: "Finlandia", flag: "🇫🇮", region: "Kraje Bałtyckie" },
+  // Wschód & Azja
+  { code: "UA", name: "Ukraina", flag: "🇺🇦", region: "Wschód & Azja" },
+  { code: "KZ", name: "Kazachstan", flag: "🇰🇿", region: "Wschód & Azja" },
+  { code: "UZ", name: "Uzbekistan", flag: "🇺🇿", region: "Wschód & Azja" },
+  { code: "AZ", name: "Azerbejdżan", flag: "🇦🇿", region: "Wschód & Azja" },
+  { code: "MD", name: "Mołdawia", flag: "🇲🇩", region: "Wschód & Azja" },
+  { code: "GE", name: "Gruzja", flag: "🇬🇪", region: "Wschód & Azja" },
+  { code: "BY", name: "Białoruś", flag: "🇧🇾", region: "Wschód & Azja" },
+];
+
+export interface SinsayMatchItem {
   id: string;
   pl: string;
   en: string;
@@ -28,7 +71,9 @@ export default function SinsayPhraseAssistant({
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [results, setResults] = useState<SinsayMatchItem[]>([]);
   const [selectedItem, setSelectedItem] = useState<SinsayMatchItem | null>(null);
-  const [previewLang, setPreviewLang] = useState<string>("RO");
+  const [selectedMarketCode, setSelectedMarketCode] = useState<string>("RO");
+  const [isFullMatrixOpen, setIsFullMatrixOpen] = useState<boolean>(false);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   const handleSearch = async (searchQuery?: string) => {
     setIsSearching(true);
@@ -64,7 +109,6 @@ export default function SinsayPhraseAssistant({
     };
     reader.readAsDataURL(file);
 
-    // Extract tags from filename or trigger intelligent search
     const cleanName = file.name
       .replace(/\.[^/.]+$/, "")
       .replace(/[-_]/g, " ")
@@ -73,6 +117,21 @@ export default function SinsayPhraseAssistant({
     const inferredQuery = `${cleanName} nowości trendy moda sinsay`;
     setQuery(inferredQuery);
     handleSearch(inferredQuery);
+  };
+
+  const activeMarket =
+    SINSAY_MARKETS.find((m) => m.code === selectedMarketCode) || SINSAY_MARKETS[1];
+
+  const activeTranslation = selectedItem
+    ? selectedItem.translations[selectedMarketCode] ||
+      selectedItem.translations["ENG"] ||
+      selectedItem.pl
+    : "";
+
+  const copyToClipboard = (text: string, key: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 2000);
   };
 
   return (
@@ -89,11 +148,11 @@ export default function SinsayPhraseAssistant({
                 Asystent Haseł Sinsay (Top 20 Rekomendacji AI)
               </h3>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#e6f4ed] dark:bg-[#193328] text-[#1d6346] dark:text-[#75d9ae]">
-                4 524 haseł LPP
+                4 524 haseł · 28 rynków
               </span>
             </div>
             <p className="text-xs text-[#655a53] dark:text-[#b8aea4]">
-              Wpisz prompt wideo lub wgraj packshot produktu – algorytm dopasuje 20 najbardziej trafnych, zatwierdzonych haseł z matrycy Sinsay.
+              Wpisz prompt wideo lub wgraj packshot produktu – algorytm dopasuje 20 najbardziej trafnych haseł z matrycy Sinsay.
             </p>
           </div>
         </div>
@@ -192,18 +251,18 @@ export default function SinsayPhraseAssistant({
       {/* Results View: Left Top 20 list, Right Details Preview */}
       {results.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-2 border-t border-[#dfd5c6] dark:border-[#38302b]">
-          {/* Top 20 List (7 columns) */}
-          <div className="lg:col-span-7 space-y-2">
+          {/* Top 20 List (6 columns) */}
+          <div className="lg:col-span-6 space-y-2">
             <div className="flex items-center justify-between pb-1">
               <span className="text-xs font-semibold uppercase tracking-wider text-[#877b72] dark:text-[#8e8379]">
                 Top 20 rekomendacji dopasowanych do promptu:
               </span>
               <span className="text-xs text-[#655a53] dark:text-[#b8aea4]">
-                Kliknij hasło, aby podejrzeć tłumaczenia
+                Wybierz hasło
               </span>
             </div>
 
-            <div className="space-y-1.5 max-h-[380px] overflow-y-auto pr-1">
+            <div className="space-y-1.5 max-h-[420px] overflow-y-auto pr-1">
               {results.map((item, index) => {
                 const isSelected = selectedItem?.id === item.id;
                 return (
@@ -234,7 +293,7 @@ export default function SinsayPhraseAssistant({
 
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-[#e6f4ed] dark:bg-[#193328] text-[#1d6346] dark:text-[#75d9ae]">
-                        {item.score}% dopasowania
+                        {item.score}% Match
                       </span>
                     </div>
                   </div>
@@ -243,20 +302,21 @@ export default function SinsayPhraseAssistant({
             </div>
           </div>
 
-          {/* Details & Translation Matrix Preview (5 columns) */}
-          <div className="lg:col-span-5 p-5 rounded-xl border border-[#dfd5c6] dark:border-[#38302b] bg-[#faf7f2] dark:bg-[#1a1714] space-y-4">
+          {/* Details & Clean Market Selector (6 columns) */}
+          <div className="lg:col-span-6 p-5 rounded-xl border border-[#dfd5c6] dark:border-[#38302b] bg-[#faf7f2] dark:bg-[#1a1714] space-y-4 flex flex-col justify-between">
             {selectedItem ? (
-              <>
+              <div className="space-y-4">
+                {/* Header of selected item */}
                 <div className="border-b border-[#dfd5c6] dark:border-[#38302b] pb-3">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] uppercase font-bold tracking-wider text-[#c84b31] dark:text-[#e56b4e]">
                       Wybrane hasło z matrycy Sinsay
                     </span>
                     <span className="text-xs font-bold text-[#1d6346] dark:text-[#75d9ae]">
-                      {selectedItem.score}% Match
+                      {selectedItem.score}% Dopasowania
                     </span>
                   </div>
-                  <h4 className="font-serif text-lg text-[#1c1816] dark:text-[#f7f3ec] mt-1 font-semibold">
+                  <h4 className="font-serif text-lg text-[#1c1816] dark:text-[#f7f3ec] mt-1 font-semibold leading-snug">
                     „{selectedItem.pl}”
                   </h4>
                   {selectedItem.en && (
@@ -266,56 +326,174 @@ export default function SinsayPhraseAssistant({
                   )}
                 </div>
 
-                {/* Quick Multi-Market Translations Preview */}
-                <div className="space-y-2">
+                {/* Sane Market Selection Area */}
+                <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-[#1c1816] dark:text-[#f7f3ec]">
-                      Tłumaczenia na rynki Sinsay:
-                    </span>
-                    <div className="flex gap-1 text-[10px]">
-                      {["RO", "DE", "CZ", "HU", "IT", "HR"].map((m) => (
-                        <button
-                          key={m}
-                          onClick={() => setPreviewLang(m)}
-                          className={`px-1.5 py-0.5 rounded transition-colors ${
-                            previewLang === m
-                              ? "bg-[#c84b31] text-white font-bold"
-                              : "bg-[#f2ece1] dark:bg-[#292420] text-[#655a53] dark:text-[#b8aea4]"
-                          }`}
-                        >
-                          {m}
-                        </button>
-                      ))}
-                    </div>
+                    <label className="text-xs font-semibold text-[#1c1816] dark:text-[#f7f3ec]">
+                      Wybierz rynek docelowy (28 dostępnych):
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setIsFullMatrixOpen((prev) => !prev)}
+                      className="text-[11px] font-semibold text-[#c84b31] dark:text-[#e56b4e] hover:underline flex items-center gap-1"
+                    >
+                      <span>{isFullMatrixOpen ? "Zwiń matrycę ▲" : "Pokaż wszystkie 28 rynków ⊞"}</span>
+                    </button>
                   </div>
 
-                  <div className="p-3 rounded-lg border border-[#dfd5c6] dark:border-[#38302b] bg-white dark:bg-[#211d1a] text-xs">
-                    <span className="font-mono font-bold text-[#c84b31] dark:text-[#e56b4e] block text-[10px] uppercase">
-                      Rynek {previewLang}:
+                  {/* Clean Dropdown with Optgroups */}
+                  <div className="relative">
+                    <select
+                      value={selectedMarketCode}
+                      onChange={(e) => setSelectedMarketCode(e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-xl border border-[#dfd5c6] dark:border-[#38302b] bg-white dark:bg-[#211d1a] text-xs font-medium text-[#1c1816] dark:text-[#f7f3ec] focus:outline-none focus:border-[#c84b31] shadow-sm cursor-pointer"
+                    >
+                      {["CEE", "SEE / Bałkany", "Zachód & Południe", "Kraje Bałtyckie", "Wschód & Azja"].map(
+                        (region) => (
+                          <optgroup key={region} label={`─── ${region} ───`}>
+                            {SINSAY_MARKETS.filter((m) => m.region === region).map((m) => (
+                              <option key={m.code} value={m.code}>
+                                {m.flag} {m.name} ({m.code})
+                              </option>
+                            ))}
+                          </optgroup>
+                        )
+                      )}
+                    </select>
+                  </div>
+
+                  {/* Quick Shortcut Pills for Top Sinsay Markets */}
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                    <span className="text-[10px] text-[#877b72] dark:text-[#8e8379] mr-1">
+                      Szybki skrót:
                     </span>
-                    <p className="font-medium text-[#1c1816] dark:text-[#f7f3ec] mt-0.5">
-                      {selectedItem.translations[previewLang] || selectedItem.translations["ENG"] || "Tłumaczenie zatwierdzone"}
+                    {["RO", "DE", "CZ", "SK", "HU", "IT", "HR", "GR"].map((code) => {
+                      const m = SINSAY_MARKETS.find((item) => item.code === code);
+                      const isActive = selectedMarketCode === code;
+                      return (
+                        <button
+                          key={code}
+                          type="button"
+                          onClick={() => setSelectedMarketCode(code)}
+                          className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition-all flex items-center gap-1 ${
+                            isActive
+                              ? "bg-[#c84b31] text-white shadow-sm"
+                              : "bg-white dark:bg-[#211d1a] border border-[#dfd5c6] dark:border-[#38302b] text-[#655a53] dark:text-[#b8aea4] hover:border-[#c84b31]"
+                          }`}
+                        >
+                          <span>{m?.flag}</span>
+                          <span>{code}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Translation Card for the Selected Market */}
+                  <div className="p-4 rounded-xl border border-[#dfd5c6] dark:border-[#38302b] bg-white dark:bg-[#211d1a] space-y-2 shadow-sm">
+                    <div className="flex items-center justify-between border-b border-[#dfd5c6]/60 dark:border-[#38302b]/60 pb-1.5">
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-[#1c1816] dark:text-[#f7f3ec]">
+                        <span className="text-base">{activeMarket.flag}</span>
+                        <span>{activeMarket.name}</span>
+                        <span className="font-mono text-[11px] text-[#877b72] dark:text-[#8e8379]">
+                          ({activeMarket.code})
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-[#877b72] dark:text-[#8e8379]">
+                          Długość: <strong>{activeTranslation.length}</strong> znaków
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(activeTranslation, "single")}
+                          className="text-[10px] text-[#c84b31] dark:text-[#e56b4e] hover:underline font-medium"
+                        >
+                          {copiedKey === "single" ? "✓ Skopiowano" : "Kopiuj"}
+                        </button>
+                      </div>
+                    </div>
+
+                    <p className="font-serif text-sm text-[#1c1816] dark:text-[#f7f3ec] leading-relaxed pt-1">
+                      {activeTranslation}
                     </p>
                   </div>
                 </div>
 
                 {/* Apply Button */}
                 <button
+                  type="button"
                   onClick={() => {
                     if (onSelectPhrase && selectedItem) {
                       onSelectPhrase(selectedItem);
                     }
                   }}
-                  className="w-full py-2.5 rounded-xl text-xs font-semibold bg-[#1d6346] hover:bg-[#164e37] text-white shadow-sm transition-colors flex items-center justify-center gap-2"
+                  className="w-full py-2.5 rounded-xl text-xs font-semibold bg-[#1d6346] hover:bg-[#164e37] text-white shadow-sm transition-colors flex items-center justify-center gap-2 mt-4"
                 >
                   <span>✓ Zastosuj to hasło we wszystkich językach kreacji</span>
                 </button>
-              </>
+              </div>
             ) : (
-              <div className="h-full flex items-center justify-center text-xs text-[#877b72] dark:text-[#8e8379] italic py-8">
+              <div className="h-full flex items-center justify-center text-xs text-[#877b72] dark:text-[#8e8379] italic py-12">
                 Wybierz hasło z listy po lewej stronie
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Full 28 Markets Grid Modal / Accordion */}
+      {selectedItem && isFullMatrixOpen && (
+        <div className="mt-4 p-5 rounded-xl border border-[#c84b31]/40 dark:border-[#e56b4e]/40 bg-[#faf7f2] dark:bg-[#1a1714] space-y-4">
+          <div className="flex items-center justify-between border-b border-[#dfd5c6] dark:border-[#38302b] pb-2">
+            <div>
+              <h4 className="font-serif text-base font-semibold text-[#1c1816] dark:text-[#f7f3ec]">
+                Pełna matryca 28 rynków Sinsay dla hasła: „{selectedItem.pl}”
+              </h4>
+              <p className="text-xs text-[#655a53] dark:text-[#b8aea4]">
+                Zatwierdzone oficjalne tłumaczenia LPP SA na wszystkie rynki eksportowe
+              </p>
+            </div>
+            <button
+              onClick={() => setIsFullMatrixOpen(false)}
+              className="text-xs font-semibold text-[#877b72] hover:text-[#1c1816] dark:hover:text-[#f7f3ec]"
+            >
+              Zamknij widok matrycy ✕
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-[360px] overflow-y-auto pr-1">
+            {SINSAY_MARKETS.map((m) => {
+              const text =
+                selectedItem.translations[m.code] ||
+                selectedItem.translations["ENG"] ||
+                selectedItem.pl;
+              const isCopied = copiedKey === m.code;
+
+              return (
+                <div
+                  key={m.code}
+                  className="p-3 rounded-xl border border-[#dfd5c6] dark:border-[#38302b] bg-white dark:bg-[#211d1a] space-y-1.5 shadow-xs"
+                >
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="font-semibold text-[#1c1816] dark:text-[#f7f3ec] flex items-center gap-1">
+                      <span>{m.flag}</span>
+                      <span>{m.code} · {m.name}</span>
+                    </span>
+                    <button
+                      onClick={() => copyToClipboard(text, m.code)}
+                      className="text-[10px] text-[#c84b31] dark:text-[#e56b4e] hover:underline"
+                    >
+                      {isCopied ? "✓" : "Kopiuj"}
+                    </button>
+                  </div>
+                  <p className="text-xs text-[#1c1816] dark:text-[#f7f3ec] line-clamp-2 font-medium">
+                    {text}
+                  </p>
+                  <span className="text-[10px] text-[#877b72] dark:text-[#8e8379] block">
+                    {text.length} zn.
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
