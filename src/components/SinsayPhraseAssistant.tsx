@@ -122,11 +122,19 @@ export default function SinsayPhraseAssistant({
   const activeMarket =
     SINSAY_MARKETS.find((m) => m.code === selectedMarketCode) || SINSAY_MARKETS[1];
 
-  const activeTranslation = selectedItem
-    ? selectedItem.translations[selectedMarketCode] ||
-      selectedItem.translations["ENG"] ||
-      selectedItem.pl
-    : "";
+  const hasOfficialTranslation = Boolean(
+    selectedItem && selectedItem.translations[selectedMarketCode]
+  );
+
+  const officialText = selectedItem?.translations[selectedMarketCode] || "";
+  const fallbackText =
+    selectedItem?.translations["ENG"] || selectedItem?.pl || "";
+
+  const activeTranslation = hasOfficialTranslation ? officialText : fallbackText;
+
+  const countAvailableMarkets = (translations: Record<string, string>) => {
+    return SINSAY_MARKETS.filter((m) => Boolean(translations[m.code])).length;
+  };
 
   const copyToClipboard = (text: string, key: string) => {
     navigator.clipboard.writeText(text);
@@ -291,10 +299,25 @@ export default function SinsayPhraseAssistant({
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
                       <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-[#e6f4ed] dark:bg-[#193328] text-[#1d6346] dark:text-[#75d9ae]">
                         {item.score}% Match
                       </span>
+                      {(() => {
+                        const count = countAvailableMarkets(item.translations);
+                        return (
+                          <span
+                            className={`text-[9px] font-medium px-1.5 py-0.5 rounded ${
+                              count >= 20
+                                ? "bg-[#1d6346]/10 text-[#1d6346] dark:text-[#75d9ae]"
+                                : "bg-[#8f4f0e]/10 text-[#8f4f0e] dark:text-[#f5bc7a]"
+                            }`}
+                            title={`Dostępne na ${count} z 28 rynków`}
+                          >
+                            {count}/28 rynków
+                          </span>
+                        );
+                      })()}
                     </div>
                   </div>
                 );
@@ -341,7 +364,7 @@ export default function SinsayPhraseAssistant({
                     </button>
                   </div>
 
-                  {/* Clean Dropdown with Optgroups */}
+                  {/* Clean Dropdown with Optgroups & Translation Availability Dots */}
                   <div className="relative">
                     <select
                       value={selectedMarketCode}
@@ -351,11 +374,14 @@ export default function SinsayPhraseAssistant({
                       {["CEE", "SEE / Bałkany", "Zachód & Południe", "Kraje Bałtyckie", "Wschód & Azja"].map(
                         (region) => (
                           <optgroup key={region} label={`─── ${region} ───`}>
-                            {SINSAY_MARKETS.filter((m) => m.region === region).map((m) => (
-                              <option key={m.code} value={m.code}>
-                                {m.flag} {m.name} ({m.code})
-                              </option>
-                            ))}
+                            {SINSAY_MARKETS.filter((m) => m.region === region).map((m) => {
+                              const isAvailable = Boolean(selectedItem?.translations[m.code]);
+                              return (
+                                <option key={m.code} value={m.code}>
+                                  {m.flag} {m.name} ({m.code}) — {isAvailable ? "✓ Gotowe w SharePoint" : "⚠ Brak w arkuszu (Fallback)"}
+                                </option>
+                              );
+                            })}
                           </optgroup>
                         )
                       )}
@@ -370,12 +396,13 @@ export default function SinsayPhraseAssistant({
                     {["RO", "DE", "CZ", "SK", "HU", "IT", "HR", "GR"].map((code) => {
                       const m = SINSAY_MARKETS.find((item) => item.code === code);
                       const isActive = selectedMarketCode === code;
+                      const isAvailable = Boolean(selectedItem?.translations[code]);
                       return (
                         <button
                           key={code}
                           type="button"
                           onClick={() => setSelectedMarketCode(code)}
-                          className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition-all flex items-center gap-1 ${
+                          className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition-all flex items-center gap-1.5 ${
                             isActive
                               ? "bg-[#c84b31] text-white shadow-sm"
                               : "bg-white dark:bg-[#211d1a] border border-[#dfd5c6] dark:border-[#38302b] text-[#655a53] dark:text-[#b8aea4] hover:border-[#c84b31]"
@@ -383,13 +410,19 @@ export default function SinsayPhraseAssistant({
                         >
                           <span>{m?.flag}</span>
                           <span>{code}</span>
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              isAvailable ? "bg-[#1d6346] dark:bg-[#75d9ae]" : "bg-[#8f4f0e] dark:bg-[#f5bc7a]"
+                            }`}
+                            title={isAvailable ? "Tłumaczenie zatwierdzone" : "Brak oficjalnego tłumaczenia"}
+                          />
                         </button>
                       );
                     })}
                   </div>
 
                   {/* Translation Card for the Selected Market */}
-                  <div className="p-4 rounded-xl border border-[#dfd5c6] dark:border-[#38302b] bg-white dark:bg-[#211d1a] space-y-2 shadow-sm">
+                  <div className="p-4 rounded-xl border border-[#dfd5c6] dark:border-[#38302b] bg-white dark:bg-[#211d1a] space-y-2.5 shadow-sm">
                     <div className="flex items-center justify-between border-b border-[#dfd5c6]/60 dark:border-[#38302b]/60 pb-1.5">
                       <div className="flex items-center gap-1.5 text-xs font-semibold text-[#1c1816] dark:text-[#f7f3ec]">
                         <span className="text-base">{activeMarket.flag}</span>
@@ -412,7 +445,23 @@ export default function SinsayPhraseAssistant({
                       </div>
                     </div>
 
-                    <p className="font-serif text-sm text-[#1c1816] dark:text-[#f7f3ec] leading-relaxed pt-1">
+                    {/* Official vs Fallback Status Alert */}
+                    {hasOfficialTranslation ? (
+                      <div className="flex items-center gap-1.5 text-[10px] text-[#1d6346] dark:text-[#75d9ae] bg-[#e6f4ed] dark:bg-[#193328] px-2 py-0.5 rounded-md font-medium w-fit">
+                        <span>✓</span>
+                        <span>Oficjalne tłumaczenie z matrycy SharePoint Sinsay</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between gap-2 text-[10px] text-[#8f4f0e] dark:text-[#f5bc7a] bg-[#fdf1e1] dark:bg-[#382916] p-2 rounded-md font-medium">
+                        <div className="flex items-center gap-1.5">
+                          <span>⚠</span>
+                          <span>Brak w SharePoint (użyto wersji {selectedItem?.translations["ENG"] ? "ENG" : "PL"})</span>
+                        </div>
+                        <span className="text-[9px] underline">Czeka na tłumacza</span>
+                      </div>
+                    )}
+
+                    <p className="font-serif text-sm text-[#1c1816] dark:text-[#f7f3ec] leading-relaxed pt-0.5">
                       {activeTranslation}
                     </p>
                   </div>
