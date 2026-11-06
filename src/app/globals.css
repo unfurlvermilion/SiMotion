@@ -1,26 +1,159 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  /* Light Mode (Atelier Warm Ivory) */
+  --bg-canvas-light: #faf7f2;
+  --bg-elevated-light: #f2ece1;
+  --bg-card-light: #ffffff;
+  --bg-subtle-light: #f6f1e8;
+  --bg-glass-light: rgba(250, 247, 242, 0.88);
+  --ink-primary-light: #1c1816;
+  --ink-secondary-light: #655a53;
+  --ink-muted-light: #877b72;
+  --border-subtle-light: #dfd5c6;
+  --border-strong-light: #bfa890;
+  --accent-light: #c84b31;
+  --accent-hover-light: #ab3921;
+  --accent-soft-light: #fceee9;
+  --burgundy-light: #6e1d2f;
+  --champagne-light: #e8dccb;
+  --status-ok-bg-light: #e6f4ed;
+  --status-ok-ink-light: #1d6346;
+  --status-warn-bg-light: #fdf1e1;
+  --status-warn-ink-light: #8f4f0e;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Dark Mode (Obsidian Velvet Studio) */
+  --bg-canvas-dark: #12100e;
+  --bg-elevated-dark: #1a1714;
+  --bg-card-dark: #211d1a;
+  --bg-subtle-dark: #292420;
+  --bg-glass-dark: rgba(18, 16, 14, 0.88);
+  --ink-primary-dark: #f7f3ec;
+  --ink-secondary-dark: #b8aea4;
+  --ink-muted-dark: #8e8379;
+  --border-subtle-dark: #38302b;
+  --border-strong-dark: #5c4d42;
+  --accent-dark: #e56b4e;
+  --accent-hover-dark: #f08267;
+  --accent-soft-dark: #38211c;
+  --burgundy-dark: #b84a62;
+  --champagne-dark: #3a3129;
+  --status-ok-bg-dark: #193328;
+  --status-ok-ink-dark: #75d9ae;
+  --status-warn-bg-dark: #382916;
+  --status-warn-ink-dark: #f5bc7a;
+
+  /* Default assignments */
+  --bg-canvas: var(--bg-canvas-light);
+  --bg-elevated: var(--bg-elevated-light);
+  --bg-card: var(--bg-card-light);
+  --bg-subtle: var(--bg-subtle-light);
+  --bg-glass: var(--bg-glass-light);
+  --ink-primary: var(--ink-primary-light);
+  --ink-secondary: var(--ink-secondary-light);
+  --ink-muted: var(--ink-muted-light);
+  --border-subtle: var(--border-subtle-light);
+  --border-strong: var(--border-strong-light);
+  --accent: var(--accent-light);
+  --accent-hover: var(--accent-hover-light);
+  --accent-soft: var(--accent-soft-light);
+  --burgundy: var(--burgundy-light);
+  --champagne: var(--champagne-light);
+  --status-ok-bg: var(--status-ok-bg-light);
+  --status-ok-ink: var(--status-ok-ink-light);
+  --status-warn-bg: var(--status-warn-bg-light);
+  --status-warn-ink: var(--status-warn-ink-light);
+  --shadow-card: 0 2px 6px rgba(28, 24, 22, 0.03), 0 14px 34px rgba(28, 24, 22, 0.055);
+  --shadow-pop: 0 10px 28px rgba(200, 75, 49, 0.22);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --bg-canvas: var(--bg-canvas-dark);
+    --bg-elevated: var(--bg-elevated-dark);
+    --bg-card: var(--bg-card-dark);
+    --bg-subtle: var(--bg-subtle-dark);
+    --bg-glass: var(--bg-glass-dark);
+    --ink-primary: var(--ink-primary-dark);
+    --ink-secondary: var(--ink-secondary-dark);
+    --ink-muted: var(--ink-muted-dark);
+    --border-subtle: var(--border-subtle-dark);
+    --border-strong: var(--border-strong-dark);
+    --accent: var(--accent-dark);
+    --accent-hover: var(--accent-hover-dark);
+    --accent-soft: var(--accent-soft-dark);
+    --burgundy: var(--burgundy-dark);
+    --champagne: var(--champagne-dark);
+    --status-ok-bg: var(--status-ok-bg-dark);
+    --status-ok-ink: var(--status-ok-ink-dark);
+    --status-warn-bg: var(--status-warn-bg-dark);
+    --status-warn-ink: var(--status-warn-ink-dark);
+    --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.28), 0 18px 42px rgba(0, 0, 0, 0.36);
+    --shadow-pop: 0 10px 28px rgba(229, 107, 78, 0.25);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+:root[data-theme="dark"] {
+  --bg-canvas: var(--bg-canvas-dark);
+  --bg-elevated: var(--bg-elevated-dark);
+  --bg-card: var(--bg-card-dark);
+  --bg-subtle: var(--bg-subtle-dark);
+  --bg-glass: var(--bg-glass-dark);
+  --ink-primary: var(--ink-primary-dark);
+  --ink-secondary: var(--ink-secondary-dark);
+  --ink-muted: var(--ink-muted-dark);
+  --border-subtle: var(--border-subtle-dark);
+  --border-strong: var(--border-strong-dark);
+  --accent: var(--accent-dark);
+  --accent-hover: var(--accent-hover-dark);
+  --accent-soft: var(--accent-soft-dark);
+  --burgundy: var(--burgundy-dark);
+  --champagne: var(--champagne-dark);
+  --status-ok-bg: var(--status-ok-bg-dark);
+  --status-ok-ink: var(--status-ok-ink-dark);
+  --status-warn-bg: var(--status-warn-bg-dark);
+  --status-warn-ink: var(--status-warn-ink-dark);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.28), 0 18px 42px rgba(0, 0, 0, 0.36);
+  --shadow-pop: 0 10px 28px rgba(229, 107, 78, 0.25);
 }
+
+:root[data-theme="light"] {
+  --bg-canvas: var(--bg-canvas-light);
+  --bg-elevated: var(--bg-elevated-light);
+  --bg-card: var(--bg-card-light);
+  --bg-subtle: var(--bg-subtle-light);
+  --bg-glass: var(--bg-glass-light);
+  --ink-primary: var(--ink-primary-light);
+  --ink-secondary: var(--ink-secondary-light);
+  --ink-muted: var(--ink-muted-light);
+  --border-subtle: var(--border-subtle-light);
+  --border-strong: var(--border-strong-light);
+  --accent: var(--accent-light);
+  --accent-hover: var(--accent-hover-light);
+  --accent-soft: var(--accent-soft-light);
+  --burgundy: var(--burgundy-light);
+  --champagne: var(--champagne-light);
+  --status-ok-bg: var(--status-ok-bg-light);
+  --status-ok-ink: var(--status-ok-ink-light);
+  --status-warn-bg: var(--status-warn-bg-light);
+  --status-warn-ink: var(--status-warn-ink-light);
+  --shadow-card: 0 2px 6px rgba(28, 24, 22, 0.03), 0 14px 34px rgba(28, 24, 22, 0.055);
+  --shadow-pop: 0 10px 28px rgba(200, 75, 49, 0.22);
+}
+
+body {
+  background-color: var(--bg-canvas);
+  color: var(--ink-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  min-height: 100vh;
+  margin: 0;
+}
+
+/* Animations */
+@keyframes logoFade { from { opacity: 0.3; } to { opacity: 1; } }
+@keyframes logoSlide { from { transform: translateY(14px); opacity: 0.35; } to { transform: translateY(0); opacity: 1; } }
+@keyframes logoPop { from { transform: scale(0.84); opacity: 0.55; } to { transform: scale(1); opacity: 1; } }
+
+.animate-logo-fade { animation: logoFade 2.2s ease-in-out infinite alternate; }
+.animate-logo-slide { animation: logoSlide 2.6s ease-in-out infinite alternate; }
+.animate-logo-pop { animation: logoPop 2s ease-in-out infinite alternate; }
