@@ -71,9 +71,10 @@ export default function BatchProductionView() {
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [filterMarket, setFilterMarket] = useState<string>("ALL");
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const [lastSharePointSync, setLastSharePointSync] = useState<string>("");
   const [logMessages, setLogMessages] = useState<string[]>([
     "[10:00:12] Zainicjalizowano kolejkę wsadową SiMotion",
-    "[10:00:15] Zaimportowano 4 pozycje MDK z arkusza Excel Online",
+    "[10:00:15] Zaimportowano 4 pozycje MDK ze skoroszytu SharePoint Excel Online",
     "[10:01:02] Zakończono generowanie 15 wariantów dla MDK: 001KR-83X",
   ]);
 
@@ -81,6 +82,44 @@ export default function BatchProductionView() {
     const time = new Date().toLocaleTimeString("pl-PL");
     setLogMessages((prev) => [`[${time}] ${msg}`, ...prev.slice(0, 19)]);
   };
+
+  const fetchSharepointRows = async () => {
+    try {
+      const res = await fetch("/api/spreadsheet");
+      const data = await res.json();
+      if (data && Array.isArray(data.rows)) {
+        setItems(
+          data.rows.map((row: any) => ({
+            id: `sp-${row.mdk}`,
+            mdk: row.mdk,
+            name: row.name,
+            category: row.category,
+            markets: row.markets || ["PL", "DE"],
+            formats: row.formats || ["9:16", "4:5"],
+            pcmStatus: row.pcmStatus || "ready",
+            qaStatus: "passed",
+            progress: row.status === "completed" ? 100 : row.status === "rendering" ? 50 : 0,
+            status: row.status || "queued",
+          }))
+        );
+        setLastSharePointSync(data.displayTime || new Date().toLocaleTimeString("pl-PL"));
+        addLog(`Pobrano ${data.totalRows} aktualnych pozycji ze skoroszytu SharePoint Excel.`);
+      }
+    } catch (err) {
+      console.error("Fetch sharepoint rows error:", err);
+    }
+  };
+
+  // Auto-sync with SharePoint on mount and every 30 seconds
+  React.useEffect(() => {
+    fetchSharepointRows();
+    const interval = setInterval(() => {
+      if (!isProcessing) {
+        fetchSharepointRows();
+      }
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [isProcessing]);
 
   const handleStartBatch = () => {
     setIsProcessing(true);
@@ -99,6 +138,17 @@ export default function BatchProductionView() {
           if (item.status === "rendering") {
             const nextProgress = Math.min(100, item.progress + 25);
             if (nextProgress >= 100) {
+              // Push completed status back to SharePoint Excel
+              fetch("/api/spreadsheet", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  action: "update_status",
+                  mdk: item.mdk,
+                  newStatus: "completed",
+                  videoUrl: `https://si-motion.vercel.app/preview/${item.mdk}_master.mp4`,
+                }),
+              }).catch(() => {});
               return { ...item, status: "completed" as const, progress: 100 };
             }
             return { ...item, progress: nextProgress };
@@ -223,7 +273,15 @@ export default function BatchProductionView() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={fetchSharepointRows}
+            className="px-3.5 py-2 text-xs font-medium rounded-lg border border-[#193328] bg-[#e6f4ed] dark:bg-[#193328] text-[#1d6346] dark:text-[#75d9ae] hover:opacity-90 transition-all flex items-center gap-1.5 shadow-sm"
+            title="Wymuś synchronizację z arkuszem SharePoint teraz"
+          >
+            <span>↻</span>
+            <span>SharePoint Auto-Sync {lastSharePointSync ? `(${lastSharePointSync})` : ""}</span>
+          </button>
           <label className="cursor-pointer px-4 py-2 text-xs font-medium rounded-lg border border-[#dfd5c6] dark:border-[#38302b] bg-white dark:bg-[#211d1a] hover:bg-[#faf7f2] dark:hover:bg-[#292420] text-[#1c1816] dark:text-[#f7f3ec] transition-colors flex items-center gap-2 shadow-sm">
             <span>↑ Wgraj plik CSV / Excel</span>
             <input

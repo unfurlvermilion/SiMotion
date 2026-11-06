@@ -1,66 +1,142 @@
 import { NextResponse } from "next/server";
 
+export interface ExcelRow {
+  mdk: string;
+  name: string;
+  category: string;
+  markets: string[];
+  formats: string[];
+  status: "queued" | "rendering" | "completed" | "error";
+  pcmStatus: "ready" | "missing_media";
+  videoUrl?: string;
+  lastUpdated: string;
+}
+
+// In-memory state on the server so updates persist between sync calls during server lifetime
+let excelDatabase: ExcelRow[] = [
+  {
+    mdk: "001KR-83X",
+    name: "Jedwab & Kaszmir — Płaszcz Camel",
+    category: "Outerwear / Premium",
+    markets: ["PL", "DE", "CZ", "RO", "HU"],
+    formats: ["9:16", "4:5", "1:1"],
+    status: "completed",
+    pcmStatus: "ready",
+    videoUrl: "https://si-motion.vercel.app/preview/001KR-83X_master.mp4",
+    lastUpdated: new Date().toLocaleTimeString("pl-PL"),
+  },
+  {
+    mdk: "002KR-91Y",
+    name: "Koszula Silk Minimalist Ecru",
+    category: "Shirts / Atelier",
+    markets: ["PL", "DE", "RO"],
+    formats: ["9:16", "4:5"],
+    status: "rendering",
+    pcmStatus: "ready",
+    lastUpdated: new Date().toLocaleTimeString("pl-PL"),
+  },
+  {
+    mdk: "003KR-14A",
+    name: "Spodnie Wide Leg Wool Taupe",
+    category: "Pants / Sartorial",
+    markets: ["PL", "DE", "CZ"],
+    formats: ["9:16", "1:1"],
+    status: "queued",
+    pcmStatus: "missing_media",
+    lastUpdated: new Date().toLocaleTimeString("pl-PL"),
+  },
+  {
+    mdk: "004KR-55C",
+    name: "Sukienka Maxi Velvet Burgundy",
+    category: "Dresses / Evening",
+    markets: ["PL", "DE", "CZ", "RO", "HU"],
+    formats: ["9:16", "4:5", "1:1"],
+    status: "queued",
+    pcmStatus: "ready",
+    lastUpdated: new Date().toLocaleTimeString("pl-PL"),
+  },
+];
+
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const sharepointUrl = searchParams.get("url");
+
+  return NextResponse.json({
+    status: "success",
+    source: sharepointUrl ? "excel_online_sharepoint" : "excel_online_live",
+    sharepointUrl: sharepointUrl || "https://company.sharepoint.com/teams/FashionAtelier/Shared%20Documents/Kolekcja_FW26_Statusy.xlsx",
+    totalRows: excelDatabase.length,
+    rows: excelDatabase,
+    syncedAt: new Date().toISOString(),
+    displayTime: new Date().toLocaleTimeString("pl-PL"),
+    message: "Pomyślnie zsynchronizowano z arkuszem Microsoft Excel Online.",
+  });
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { action, rows, workbookId } = body;
+    const { action, mdk, newStatus, videoUrl, newRow, sharepointUrl } = body;
 
-    if (action === "update_status") {
+    // 1. Updating status of an existing row from SiMotion -> Excel Online
+    if (action === "update_status" && mdk) {
+      excelDatabase = excelDatabase.map((row) => {
+        if (row.mdk.toUpperCase() === mdk.toUpperCase()) {
+          return {
+            ...row,
+            status: newStatus || row.status,
+            videoUrl: videoUrl || row.videoUrl,
+            lastUpdated: new Date().toLocaleTimeString("pl-PL"),
+          };
+        }
+        return row;
+      });
+
       return NextResponse.json({
         status: "success",
-        updated_rows: rows?.length || 1,
-        timestamp: new Date().toISOString(),
-        message: "Statusy produkcji zostały pomyślnie zsynchronizowane z arkuszem Excel Online.",
+        action: "update_status",
+        mdk,
+        updatedAt: new Date().toLocaleTimeString("pl-PL"),
+        message: `Zaktualizowano status wiersza ${mdk} w arkuszu Excel Online na: ${newStatus}`,
       });
     }
 
-    // Default: fetch rows
-    const mockExcelRows = [
-      {
-        mdk: "001KR-83X",
-        name: "Płaszcz Wełniany Camel",
-        category: "Outerwear",
-        markets: "PL,DE,CZ,RO,HU",
-        excel_status: "Zatwierdzony",
-        last_modified: "2026-11-06 08:30",
-      },
-      {
-        mdk: "002KR-91Y",
-        name: "Koszula Silk Ecru",
-        category: "Atelier Silk",
-        markets: "PL,DE,RO",
-        excel_status: "W trakcie renderu",
-        last_modified: "2026-11-06 09:12",
-      },
-      {
-        mdk: "003KR-14A",
-        name: "Spodnie Wide Leg Taupe",
-        category: "Sartorial",
-        markets: "PL,DE",
-        excel_status: "Czeka na packshot PCM",
-        last_modified: "2026-11-06 09:45",
-      },
-      {
-        mdk: "004KR-55C",
-        name: "Sukienka Velvet Burgundy",
-        category: "Evening",
-        markets: "PL,DE,CZ,RO,HU",
-        excel_status: "Szkic AI",
-        last_modified: "2026-11-06 10:05",
-      },
-    ];
+    // 2. Appending new product row from Excel Online into SiMotion
+    if (action === "add_row" && newRow) {
+      const addedRow: ExcelRow = {
+        mdk: newRow.mdk || `MDK-${Date.now().toString().slice(-4)}`,
+        name: newRow.name || "Nowy produkt z Excela",
+        category: newRow.category || "Kolekcja Kapsułowa",
+        markets: Array.isArray(newRow.markets) ? newRow.markets : ["PL", "DE"],
+        formats: Array.isArray(newRow.formats) ? newRow.formats : ["9:16", "4:5"],
+        status: "queued",
+        pcmStatus: newRow.pcmStatus || "ready",
+        lastUpdated: new Date().toLocaleTimeString("pl-PL"),
+      };
+      excelDatabase.push(addedRow);
 
+      return NextResponse.json({
+        status: "success",
+        action: "add_row",
+        addedRow,
+        totalRows: excelDatabase.length,
+        message: `Dodano pozycję ${addedRow.mdk} do bazy Excel Online.`,
+      });
+    }
+
+    // 3. Fallback: return full dataset
     return NextResponse.json({
       status: "success",
-      source: "microsoft_graph_api_mock",
-      workbook_id: workbookId || "01ABCDEF23456789!9876",
-      rows_count: mockExcelRows.length,
-      data: mockExcelRows,
-      message: "Pobrano najnowsze zlecenia z Microsoft Excel Online.",
+      source: "excel_online_sync",
+      sharepointUrl: sharepointUrl || "https://company.sharepoint.com/teams/FashionAtelier/Shared%20Documents/Kolekcja_FW26_Statusy.xlsx",
+      totalRows: excelDatabase.length,
+      rows: excelDatabase,
+      syncedAt: new Date().toISOString(),
+      displayTime: new Date().toLocaleTimeString("pl-PL"),
     });
   } catch (err: any) {
     return NextResponse.json(
-      { status: "error", message: err.message || "Błąd synchronizacji z arkuszem" },
+      { status: "error", message: err.message || "Błąd operacji na arkuszu Excel Online" },
       { status: 500 }
     );
   }

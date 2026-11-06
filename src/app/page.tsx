@@ -10,6 +10,7 @@ import BatchProductionView from "@/components/BatchProductionView";
 import ExportView from "@/components/ExportView";
 import IntegrationsView from "@/components/IntegrationsView";
 import AccessGate from "@/components/AccessGate";
+import SharePointSyncBar from "@/components/SharePointSyncBar";
 
 export type ViewTab =
   | "vision"
@@ -208,10 +209,11 @@ export default function SiMotionApp() {
 
         {/* Actions & Theme toggle */}
         <div className="flex items-center gap-2.5">
-          <span className="hidden md:inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full bg-[var(--bg-card)] border border-[var(--border-subtle)] text-[var(--ink-secondary)]">
-            <span className="w-2 h-2 rounded-full bg-[var(--status-ok-ink)]" />
-            PCM + Excel Online
-          </span>
+          <SharePointSyncBar
+            onSyncComplete={(data) => {
+              // optional live notification
+            }}
+          />
           <button
             onClick={toggleTheme}
             className="px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 bg-[var(--bg-card)] border-[var(--border-subtle)] hover:border-[var(--accent)] transition-colors text-[var(--ink-primary)]"
