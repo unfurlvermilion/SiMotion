@@ -9,6 +9,7 @@ import { LocalizationView } from "@/components/LocalizationView";
 import BatchProductionView from "@/components/BatchProductionView";
 import ExportView from "@/components/ExportView";
 import IntegrationsView from "@/components/IntegrationsView";
+import AccessGate from "@/components/AccessGate";
 
 export type ViewTab =
   | "vision"
@@ -154,7 +155,8 @@ export default function SiMotionApp() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col transition-colors duration-200">
+    <AccessGate>
+      <div className="min-h-screen flex flex-col transition-colors duration-200">
       {/* TOPBAR */}
       <header className="sticky top-0 z-30 px-6 py-3 border-b flex items-center justify-between gap-4 flex-wrap backdrop-blur-md bg-[var(--bg-glass)] border-[var(--border-subtle)]">
         <div className="flex items-center gap-3">
@@ -407,5 +409,6 @@ export default function SiMotionApp() {
         </div>
       )}
     </div>
+  </AccessGate>
   );
 }

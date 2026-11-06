@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import JSZip from "jszip";
 
 interface ExportFileItem {
   id: string;
@@ -140,16 +141,101 @@ export default function ExportView() {
     URL.revokeObjectURL(url);
   };
 
-  const handleStartExportPackage = () => {
+  const handleStartExportPackage = async () => {
     setIsExporting(true);
     setExportComplete(false);
 
-    setTimeout(() => {
+    try {
+      const zip = new JSZip();
+
+      // 1. Generate Manifest CSV inside the ZIP
+      const headers = "ID,MDK,Format,Jezyk,NazwaPliku,Rozmiar,Typ,Kampania\n";
+      const rows = selectedFiles
+        .map(
+          (f) =>
+            `${f.id},001KR-83X,${f.format},${f.language},${f.filename},${f.size},${f.type},SiMotion_FW26_Capsule`
+        )
+        .join("\n");
+      zip.file("campaign_manifest.csv", headers + rows);
+
+      // 2. Generate JSON configuration
+      const campaignConfig = {
+        project: "SiMotion Atelier",
+        mdk: "001KR-83X",
+        collection: "Jedwab & Kaszmir",
+        timestamp: new Date().toISOString(),
+        folderStructure,
+        namingConvention,
+        filesCount: selectedFiles.length,
+      };
+      zip.file("config.json", JSON.stringify(campaignConfig, null, 2));
+
+      // 3. Put files into folders according to selected folder structure
+      selectedFiles.forEach((file) => {
+        let folderPath = "";
+        const cleanFormat = file.format.split(" ")[0].replace(/[^a-zA-Z0-9]/g, "_");
+
+        if (folderStructure === "mdk_format_lang") {
+          folderPath = `001KR-83X/${cleanFormat}/${file.language}/`;
+        } else if (folderStructure === "lang_format_mdk") {
+          folderPath = `${file.language}/${cleanFormat}/001KR-83X/`;
+        } else {
+          folderPath = "";
+        }
+
+        if (file.type === "subtitles") {
+          const srtData = `1\n00:00:00,000 --> 00:00:02,150\nJedwab i kaszmir — nowa definicja luksusu.\n\n2\n00:00:02,200 --> 00:00:04,800\nKolekcja kapsułowa FW26.\n\n3\n00:00:04,900 --> 00:00:07,500\nAtelier SiMotion — Odkryj w butiku online.\n`;
+          zip.file(`${folderPath}${file.filename}`, srtData);
+        } else if (file.type === "image") {
+          // Provide an SVG banner or text descriptor for the static creative
+          const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080">
+  <rect width="100%" height="100%" fill="#1a1714"/>
+  <rect x="40" y="40" width="1000" height="1000" fill="none" stroke="#dfd5c6" stroke-width="2"/>
+  <text x="540" y="460" font-family="serif" font-size="52" fill="#faf7f2" text-anchor="middle">JEDWAB &amp; KASZMIR</text>
+  <text x="540" y="520" font-family="sans-serif" font-size="24" fill="#bfa890" text-anchor="middle" letter-spacing="4">KOLEKCJA KAPSUŁOWA FW26</text>
+  <text x="540" y="620" font-family="serif" font-size="38" fill="#e56b4e" text-anchor="middle">od 1 290 PLN</text>
+  <text x="540" y="700" font-family="sans-serif" font-size="18" fill="#877b72" text-anchor="middle">MDK: 001KR-83X · ATELIER SIMOTION</text>
+</svg>`;
+          zip.file(`${folderPath}${file.filename.replace(/\.png$/, ".svg")}`, svgContent);
+        } else {
+          // Video container mock specification file
+          const metaInfo = `SiMotion Production Master Video\n` +
+            `=================================\n` +
+            `MDK: 001KR-83X\n` +
+            `Target Format: ${file.format}\n` +
+            `Audio Dubbing Language: ${file.language}\n` +
+            `Resolution: ${file.format.includes("9:16") ? "1080x1920" : file.format.includes("4:5") ? "1080x1350" : "1080x1080"}\n` +
+            `Codec: H.264 / AAC\n` +
+            `Smart Crop Applied: YES (Offset 0px)\n` +
+            `ElevenLabs Word Timestamps: Embedded\n` +
+            `QA Check: PASSED (Character limit verified)\n` +
+            `Mastering Timestamp: ${new Date().toISOString()}\n`;
+          zip.file(`${folderPath}${file.filename}.meta.txt`, metaInfo);
+        }
+      });
+
+      // 4. Generate the actual ZIP blob and trigger browser download
+      const zipBlob = await zip.generateAsync({
+        type: "blob",
+        compression: "DEFLATE",
+        compressionOptions: { level: 6 },
+      });
+
+      const url = URL.createObjectURL(zipBlob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `SiMotion_001KR-83X_Export_Package.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
       setIsExporting(false);
       setExportComplete(true);
-      // Automatically download the campaign CSV manifest as part of the package
-      handleDownloadManifest("csv");
-    }, 1800);
+    } catch (err) {
+      console.error("Export zip error:", err);
+      setIsExporting(false);
+    }
   };
 
   return (

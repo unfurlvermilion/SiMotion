@@ -62,11 +62,47 @@ export default function IntegrationsView() {
     setTimeout(() => setSaveSuccess(false), 3000);
   };
 
-  const handleTestConnection = (key: "video" | "audio" | "pcm" | "excel") => {
+  const handleTestConnection = async (key: "video" | "audio" | "pcm" | "excel") => {
     setTestStatus((prev) => ({ ...prev, [key]: "testing" }));
-    setTimeout(() => {
+    try {
+      if (key === "video") {
+        await fetch("/api/video", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt: "Fashion dress test",
+            model: config.seedanceModel,
+            duration: 10,
+            aspectRatio: "9:16",
+            apiKey: config.seedanceApiKey,
+          }),
+        });
+      } else if (key === "audio") {
+        await fetch("/api/tts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            text: "Test lektora SiMotion z ElevenLabs",
+            voiceId: config.elevenLabsVoiceId,
+            apiKey: config.elevenLabsApiKey,
+          }),
+        });
+      } else if (key === "pcm") {
+        await fetch("/api/pcm?mdk=001KR-83X");
+      } else if (key === "excel") {
+        await fetch("/api/spreadsheet", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "fetch_rows",
+            workbookId: config.excelWorkbookId,
+          }),
+        });
+      }
       setTestStatus((prev) => ({ ...prev, [key]: "success" }));
-    }, 1200);
+    } catch {
+      setTestStatus((prev) => ({ ...prev, [key]: "error" }));
+    }
   };
 
   return (
