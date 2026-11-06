@@ -261,6 +261,120 @@ export const BrandKitView: React.FC<BrandKitViewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Sinsay Brand Typography Section */}
+      <div className="p-6 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-5 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--border-subtle)] pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#c84b31] to-[#6e1d2f] text-white font-serif font-bold text-lg grid place-items-center shadow-md">
+              Aa
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-extrabold text-[var(--ink-primary)]">
+                  Oficjalna Typografia Marki: Euclid Circular B
+                </h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#193328] text-[#75d9ae]">
+                  Brand Kit LPP SA
+                </span>
+              </div>
+              <p className="text-xs text-[var(--ink-secondary)]">
+                Wdrożono 10 odmian fontu (Light, Regular, Medium, Semibold, Bold + kursywy) do napisów wideo, belek i plansz.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs font-mono text-[var(--ink-muted)]">
+            <span className="px-2.5 py-1 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-subtle)]">
+              format: OTF / TTF
+            </span>
+            <span className="px-2.5 py-1 rounded-lg bg-[#e6f4ed] dark:bg-[#193328] text-[#1d6346] dark:text-[#75d9ae] font-bold">
+              ✓ Zainstalowany
+            </span>
+          </div>
+        </div>
+
+        {/* Specimen Weights Showcase */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 font-sinsay">
+          <div className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] space-y-1.5">
+            <div className="flex justify-between items-center text-[11px] text-[var(--ink-muted)] font-mono">
+              <span>Euclid Circular B Light</span>
+              <span>Weight 300</span>
+            </div>
+            <p className="text-xl font-light text-[var(--ink-primary)] leading-snug">
+              Nowa kolekcja jedwabna na Twój sposób
+            </p>
+            <span className="text-[10px] text-[var(--ink-secondary)] block">
+              Do subtelnych opisów, podpisów produktów i parametrów
+            </span>
+          </div>
+
+          <div className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] space-y-1.5">
+            <div className="flex justify-between items-center text-[11px] text-[var(--ink-muted)] font-mono">
+              <span>Euclid Circular B Regular</span>
+              <span>Weight 400</span>
+            </div>
+            <p className="text-xl font-normal text-[var(--ink-primary)] leading-snug">
+              Zatwierdzone hasła marketingowe Sinsay
+            </p>
+            <span className="text-[10px] text-[var(--ink-secondary)] block">
+              Domyślny krój dla dłuższych fraz i dialogów lektora
+            </span>
+          </div>
+
+          <div className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] space-y-1.5">
+            <div className="flex justify-between items-center text-[11px] text-[var(--ink-muted)] font-mono">
+              <span>Euclid Circular B Medium</span>
+              <span>Weight 500</span>
+            </div>
+            <p className="text-xl font-medium text-[var(--ink-primary)] leading-snug">
+              Styl na każdą okazję · Jesień 2026
+            </p>
+            <span className="text-[10px] text-[var(--ink-secondary)] block">
+              Optymalny balans czytelności na urządzeniach mobilnych
+            </span>
+          </div>
+
+          <div className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] space-y-1.5">
+            <div className="flex justify-between items-center text-[11px] text-[var(--ink-muted)] font-mono">
+              <span>Euclid Circular B Semibold</span>
+              <span>Weight 600</span>
+            </div>
+            <p className="text-xl font-semibold text-[var(--ink-primary)] leading-snug">
+              Wyjątkowe ceny i najnowsze trendy
+            </p>
+            <span className="text-[10px] text-[var(--ink-secondary)] block">
+              Dedykowany do belek cenowych i wyróżników promocji
+            </span>
+          </div>
+
+          <div className="p-4 rounded-xl border border-[#c84b31]/40 dark:border-[#e56b4e]/40 bg-[var(--accent-soft)] space-y-1.5">
+            <div className="flex justify-between items-center text-[11px] text-[#c84b31] dark:text-[#e56b4e] font-mono font-bold">
+              <span>Euclid Circular B Bold (Główny)</span>
+              <span>Weight 700 ★</span>
+            </div>
+            <p className="text-xl font-bold text-[var(--ink-primary)] leading-snug">
+              SINSAY · Dynamiczne Napisy Karaoke
+            </p>
+            <span className="text-[10px] text-[var(--ink-secondary)] block">
+              Główny font stosowany w animacjach wideo, Stories i TikTok
+            </span>
+          </div>
+
+          <div className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] space-y-1.5">
+            <div className="flex justify-between items-center text-[11px] text-[var(--ink-muted)] font-mono">
+              <span>Euclid Circular B Bold Italic</span>
+              <span>Weight 700 Italic</span>
+            </div>
+            <p className="text-xl font-bold italic text-[var(--ink-primary)] leading-snug">
+              Limited Edition · Tylko Online
+            </p>
+            <span className="text-[10px] text-[var(--ink-secondary)] block">
+              Do dynamicznych akcentów i haseł o wysokiej energii
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

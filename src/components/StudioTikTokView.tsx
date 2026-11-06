@@ -691,7 +691,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                 )}
 
                 <div className="relative z-10">
-                  <p className="text-[10px] font-extrabold text-white leading-tight drop-shadow-md">
+                  <p className="text-[10px] font-bold text-white leading-tight drop-shadow-md font-sinsay tracking-wide">
                     Nowa kolekcja<br />na Twój sposób
                   </p>
                 </div>
@@ -745,7 +745,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                 )}
 
                 <div className="relative z-10">
-                  <p className="text-[10px] font-extrabold text-white leading-tight drop-shadow-md">
+                  <p className="text-[10px] font-bold text-white leading-tight drop-shadow-md font-sinsay tracking-wide">
                     Nowa kolekcja<br />na Twój sposób
                   </p>
                 </div>
@@ -799,7 +799,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                 )}
 
                 <div className="relative z-10">
-                  <p className="text-[10px] font-extrabold text-white leading-tight drop-shadow-md">
+                  <p className="text-[10px] font-bold text-white leading-tight drop-shadow-md font-sinsay tracking-wide">
                     Nowa kolekcja<br />na Twój sposób
                   </p>
                 </div>

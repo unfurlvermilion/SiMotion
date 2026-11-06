@@ -1,5 +1,103 @@
 @import "tailwindcss";
 
+/* ==========================================================================
+   Euclid Circular B — Official Sinsay / LPP SA Brand Kit Typography
+   ========================================================================== */
+@font-face {
+  font-family: 'Euclid Circular B';
+  src: url('/fonts/euclid/EuclidCircularB-Light.ttf') format('truetype'),
+       url('/fonts/euclid/EuclidCircularB-Light.otf') format('opentype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Euclid Circular B';
+  src: url('/fonts/euclid/EuclidCircularB-LightItalic.ttf') format('truetype'),
+       url('/fonts/euclid/EuclidCircularB-LightItalic.otf') format('opentype');
+  font-weight: 300;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Euclid Circular B';
+  src: url('/fonts/euclid/EuclidCircularB-Regular.ttf') format('truetype'),
+       url('/fonts/euclid/EuclidCircularB-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Euclid Circular B';
+  src: url('/fonts/euclid/EuclidCircularB-RegularItalic.ttf') format('truetype'),
+       url('/fonts/euclid/EuclidCircularB-RegularItalic.otf') format('opentype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Euclid Circular B';
+  src: url('/fonts/euclid/EuclidCircularB-Medium.ttf') format('truetype'),
+       url('/fonts/euclid/EuclidCircularB-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Euclid Circular B';
+  src: url('/fonts/euclid/EuclidCircularB-MediumItalic.ttf') format('truetype'),
+       url('/fonts/euclid/EuclidCircularB-MediumItalic.otf') format('opentype');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Euclid Circular B';
+  src: url('/fonts/euclid/EuclidCircularB-Semibold.ttf') format('truetype'),
+       url('/fonts/euclid/EuclidCircularB-Semibold.otf') format('opentype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Euclid Circular B';
+  src: url('/fonts/euclid/EuclidCircularB-SemiboldItalic.ttf') format('truetype'),
+       url('/fonts/euclid/EuclidCircularB-SemiboldItalic.otf') format('opentype');
+  font-weight: 600;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Euclid Circular B';
+  src: url('/fonts/euclid/EuclidCircularB-Bold.ttf') format('truetype'),
+       url('/fonts/euclid/EuclidCircularB-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Euclid Circular B';
+  src: url('/fonts/euclid/EuclidCircularB-BoldItalic.ttf') format('truetype'),
+       url('/fonts/euclid/EuclidCircularB-BoldItalic.otf') format('opentype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+.font-sinsay,
+.font-euclid {
+  font-family: 'Euclid Circular B', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+}
+
 :root {
   /* Light Mode (Atelier Warm Ivory) */
   --bg-canvas-light: #faf7f2;

@@ -33,6 +33,8 @@ export const PostproductionView: React.FC<PostproductionViewProps> = ({
   onGoToAssets,
 }) => {
   const [captionMode, setCaptionMode] = useState<"karaoke" | "scene">("karaoke");
+  const [captionFont, setCaptionFont] = useState<"euclid" | "system" | "serif">("euclid");
+  const [captionWeight, setCaptionWeight] = useState<"normal" | "medium" | "semibold" | "bold">("bold");
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackTime, setPlaybackTime] = useState(0);
   const [logoPosition, setLogoPosition] = useState<"top-left" | "top-right" | "bottom-center">("top-left");
@@ -49,6 +51,22 @@ export const PostproductionView: React.FC<PostproductionViewProps> = ({
     words.length - 1,
     Math.floor((playbackTime / duration) * words.length)
   );
+
+  const fontClass =
+    captionFont === "euclid"
+      ? "font-sinsay"
+      : captionFont === "serif"
+      ? "font-serif"
+      : "font-sans";
+
+  const weightClass =
+    captionWeight === "normal"
+      ? "font-normal"
+      : captionWeight === "medium"
+      ? "font-medium"
+      : captionWeight === "semibold"
+      ? "font-semibold"
+      : "font-bold";
 
   useEffect(() => {
     let timer: any;
@@ -157,6 +175,41 @@ export const PostproductionView: React.FC<PostproductionViewProps> = ({
                   <option value="bold">Editorial Bold (Duży tekst)</option>
                   <option value="pill">Ciemna kapsuła (TikTok/Reels)</option>
                   <option value="minimal">Subtelny Lookbook</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Brand Font & Weight Configuration */}
+            <div className="grid grid-cols-2 gap-3 p-3 rounded-xl border border-[#c84b31]/40 dark:border-[#e56b4e]/40 bg-[var(--accent-soft)]">
+              <div>
+                <label className="text-xs font-bold text-[var(--ink-primary)] flex items-center justify-between mb-1">
+                  <span>Krój pisma (Font)</span>
+                  <span className="text-[9px] font-bold text-[#c84b31] dark:text-[#e56b4e]">Brand Kit LPP</span>
+                </label>
+                <select
+                  value={captionFont}
+                  onChange={(e) => setCaptionFont(e.target.value as any)}
+                  className="w-full px-3 py-2 rounded-xl text-xs border bg-white dark:bg-[#211d1a] border-[var(--border-strong)] text-[var(--ink-primary)] font-semibold"
+                >
+                  <option value="euclid">✦ Euclid Circular B (Oficjalny Sinsay)</option>
+                  <option value="system">Inter / System Sans</option>
+                  <option value="serif">Playfair / Editorial Serif</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[var(--ink-primary)] block mb-1">
+                  Grubość (Weight)
+                </label>
+                <select
+                  value={captionWeight}
+                  onChange={(e) => setCaptionWeight(e.target.value as any)}
+                  className="w-full px-3 py-2 rounded-xl text-xs border bg-white dark:bg-[#211d1a] border-[var(--border-strong)] text-[var(--ink-primary)]"
+                >
+                  <option value="normal">Regular (400)</option>
+                  <option value="medium">Medium (500)</option>
+                  <option value="semibold">Semibold (600)</option>
+                  <option value="bold">Bold (700 - Rekomendowany)</option>
                 </select>
               </div>
             </div>
@@ -318,22 +371,22 @@ export const PostproductionView: React.FC<PostproductionViewProps> = ({
             )}
 
             {/* Captions Layer */}
-            <div className="relative z-10 pb-4">
+            <div className={`relative z-10 pb-4 ${fontClass}`}>
               {captionMode === "karaoke" ? (
                 <div
-                  className={`flex flex-wrap justify-center gap-1 text-sm font-extrabold ${
+                  className={`flex flex-wrap justify-center gap-1.5 text-base ${weightClass} ${
                     postCaptionStyle === "pill"
-                      ? "bg-black/80 px-3 py-2 rounded-xl shadow-lg"
-                      : "drop-shadow-md"
+                      ? "bg-black/85 px-4 py-2.5 rounded-xl shadow-lg border border-white/10"
+                      : "drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]"
                   }`}
                 >
                   {words.map((w, idx) => (
                     <span
                       key={idx}
-                      className={`transition-all duration-150 ${
+                      className={`transition-all duration-150 tracking-wide ${
                         idx === activeWordIdx
-                          ? "text-amber-300 scale-110 underline decoration-amber-400 font-black"
-                          : "text-white opacity-85"
+                          ? "text-amber-300 scale-110 underline decoration-amber-400 font-black drop-shadow-md"
+                          : "text-white opacity-90"
                       }`}
                     >
                       {w}
@@ -342,10 +395,10 @@ export const PostproductionView: React.FC<PostproductionViewProps> = ({
                 </div>
               ) : (
                 <div
-                  className={`text-sm font-extrabold text-white ${
+                  className={`text-base ${weightClass} tracking-wide text-white text-center ${
                     postCaptionStyle === "pill"
-                      ? "bg-black/80 px-3 py-2 rounded-xl shadow-lg"
-                      : "drop-shadow-md"
+                      ? "bg-black/85 px-4 py-2.5 rounded-xl shadow-lg border border-white/10 inline-block"
+                      : "drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]"
                   }`}
                 >
                   {activeText}
