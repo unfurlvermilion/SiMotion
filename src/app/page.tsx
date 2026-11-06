@@ -2,6 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import { StudioTikTokView } from "@/components/StudioTikTokView";
+import { PostproductionView } from "@/components/PostproductionView";
+import { BrandKitView } from "@/components/BrandKitView";
+import { StaticGraphicsView } from "@/components/StaticGraphicsView";
+import { LocalizationView } from "@/components/LocalizationView";
 
 export type ViewTab =
   | "vision"
@@ -454,342 +458,53 @@ export default function SiMotionApp() {
 
         {/* VIEW 4: NAPISY I LOGO */}
         {activeTab === "post" && (
-          <div className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-              <div>
-                <span className="text-xs uppercase tracking-widest font-extrabold text-[var(--accent)]">
-                  03 / POSTPRODUKCJA &amp; WARSTWY
-                </span>
-                <h1 className="text-3xl font-extrabold tracking-tight mt-1 text-[var(--ink-primary)]">
-                  Dynamiczne napisy i animacja logo.
-                </h1>
-                <p className="text-sm text-[var(--ink-secondary)]">
-                  Składanie warstw tekstowych i brandowych odbywa się bezpośrednio w przeglądarce bez kosztów API.
-                </p>
-              </div>
-              <button
-                onClick={() => showToast("Zsynchronizowano napisy z arkuszem Microsoft Excel Online.")}
-                className="px-4 py-2 rounded-xl text-xs font-bold border bg-[var(--bg-card)] border-[var(--border-strong)] hover:border-[var(--accent)] text-[var(--ink-primary)]"
-              >
-                Pobierz teksty z Excel Online ↻
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              <div className="lg:col-span-5 space-y-4">
-                <div className="p-5 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-3">
-                  <h2 className="text-sm font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
-                    Napisy i lektor
-                  </h2>
-                  <div>
-                    <label className="text-xs font-bold text-[var(--ink-primary)] block mb-1">
-                      Styl napisów
-                    </label>
-                    <select
-                      value={postCaptionStyle}
-                      onChange={(e) => setPostCaptionStyle(e.target.value as any)}
-                      className="w-full px-3 py-2 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)]"
-                    >
-                      <option value="bold">Editorial Bold (Duży tekst)</option>
-                      <option value="pill">Ciemna kapsuła (TikTok/Reels)</option>
-                      <option value="minimal">Subtelny Lookbook</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold text-[var(--ink-primary)] block mb-1">
-                      Język podglądu
-                    </label>
-                    <select
-                      value={postPreviewLang}
-                      onChange={(e) => setPostPreviewLang(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)]"
-                    >
-                      <option value="pl-PL">🇵🇱 Polski · PL</option>
-                      <option value="en-US">🇬🇧 English · EN</option>
-                      <option value="de-DE">🇩🇪 Deutsch · DE</option>
-                      <option value="cs-CZ">🇨🇿 Čeština · CZ</option>
-                      <option value="ro-RO">🇷🇴 Română · RO</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold text-[var(--ink-primary)] block mb-1">
-                      Tekst w tym języku
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={postCaptions[postPreviewLang] || ""}
-                      onChange={(e) =>
-                        setPostCaptions({ ...postCaptions, [postPreviewLang]: e.target.value })
-                      }
-                      className="w-full px-3 py-2 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold text-[var(--ink-primary)] block mb-1">
-                      Animacja Logo
-                    </label>
-                    <select
-                      value={postLogoAnim}
-                      onChange={(e) => setPostLogoAnim(e.target.value as any)}
-                      className="w-full px-3 py-2 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)]"
-                    >
-                      <option value="fade">Subtelne pojawienie (Fade)</option>
-                      <option value="slide">Wjazd od dołu (Slide)</option>
-                      <option value="pop">Sprężysty akcent (Pop)</option>
-                      <option value="none">Bez logotypu</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Preview Phone */}
-              <div className="lg:col-span-7 flex justify-center">
-                <div className="p-8 rounded-3xl bg-gradient-to-b from-[var(--champagne)] to-[var(--bg-elevated)] border border-[var(--border-subtle)] flex items-center justify-center min-w-[320px]">
-                  <div className="w-[220px] aspect-[9/16] rounded-3xl border-4 border-black bg-gradient-to-tr from-[#3a151e] to-[#c84b31] p-4 flex flex-col justify-between text-center relative overflow-hidden shadow-2xl">
-                    <div
-                      className={`text-xs font-extrabold text-white self-start px-2 py-0.5 rounded bg-black/60 ${
-                        postLogoAnim === "fade"
-                          ? "animate-logo-fade"
-                          : postLogoAnim === "slide"
-                          ? "animate-logo-slide"
-                          : postLogoAnim === "pop"
-                          ? "animate-logo-pop"
-                          : ""
-                      }`}
-                    >
-                      SiMotion
-                    </div>
-
-                    <div
-                      className={`text-sm font-extrabold text-white ${
-                        postCaptionStyle === "pill"
-                          ? "bg-black/80 px-3 py-2 rounded-xl shadow-lg"
-                          : postCaptionStyle === "minimal"
-                          ? "text-xs font-semibold"
-                          : "drop-shadow-md text-base"
-                      }`}
-                    >
-                      {postCaptions[postPreviewLang]}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <PostproductionView
+            postCaptions={postCaptions}
+            setPostCaptions={setPostCaptions}
+            postPreviewLang={postPreviewLang}
+            setPostPreviewLang={setPostPreviewLang}
+            postCaptionStyle={postCaptionStyle}
+            setPostCaptionStyle={setPostCaptionStyle}
+            postLogoAnim={postLogoAnim}
+            setPostLogoAnim={setPostLogoAnim}
+            selectedVideoAssetId={selectedVideoAssetId}
+            assets={assets}
+            showToast={showToast}
+            onGoToAssets={() => setActiveTab("assets")}
+          />
         )}
 
         {/* VIEW 5: MATERIAŁY (BRAND KIT) */}
         {activeTab === "assets" && (
-          <div className="space-y-6">
-            <div>
-              <span className="text-xs uppercase tracking-widest font-extrabold text-[var(--accent)]">
-                04 / BRAND KIT &amp; ZASOBY MARKI
-              </span>
-              <h1 className="text-3xl font-extrabold tracking-tight mt-1 text-[var(--ink-primary)]">
-                Współdzielona biblioteka zasobów.
-              </h1>
-              <p className="text-sm text-[var(--ink-secondary)]">
-                Trzymaj logotypy, nakładki graficzne, badge i podkłady muzyczne w jednym miejscu dla całego zespołu.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {assets.map((asset) => (
-                <div
-                  key={asset.id}
-                  className="p-5 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] flex flex-col justify-between space-y-4 shadow-sm"
-                >
-                  <div className="h-28 rounded-xl bg-[var(--bg-elevated)] grid place-items-center text-center p-2">
-                    <span className="text-lg font-extrabold text-[var(--accent)]">
-                      {asset.text || "★"}
-                    </span>
-                  </div>
-                  <div>
-                    <b className="text-xs block text-[var(--ink-primary)]">{asset.name}</b>
-                    <small className="text-[10px] text-[var(--ink-muted)]">
-                      {asset.kind === "both" ? "Wideo & Grafiki" : asset.kind}
-                    </small>
-                  </div>
-                  <button
-                    onClick={() => showToast(`Wybrano zasób ${asset.name} do projektu.`)}
-                    className="w-full px-3 py-1.5 rounded-lg text-xs font-bold border bg-[var(--bg-subtle)] border-[var(--border-strong)] hover:border-[var(--accent)] text-[var(--ink-primary)]"
-                  >
-                    Przypnij do wideo
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
+          <BrandKitView
+            assets={assets}
+            setAssets={setAssets}
+            selectedVideoAssetId={selectedVideoAssetId}
+            setSelectedVideoAssetId={setSelectedVideoAssetId}
+            selectedStaticAssetId={selectedStaticAssetId}
+            setSelectedStaticAssetId={setSelectedStaticAssetId}
+            showToast={showToast}
+          />
         )}
 
         {/* VIEW 6: GRAFIKI STATYCZNE */}
         {activeTab === "static" && (
-          <div className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-              <div>
-                <span className="text-xs uppercase tracking-widest font-extrabold text-[var(--accent)]">
-                  05 / GRAFIKI STATYCZNE &amp; LOOKBOOK
-                </span>
-                <h1 className="text-3xl font-extrabold tracking-tight mt-1 text-[var(--ink-primary)]">
-                  Jedna kreacja statyczna. Wszystkie formaty.
-                </h1>
-                <p className="text-sm text-[var(--ink-secondary)]">
-                  Adaptuj zdjęcia na formaty 1:1, 4:5 i 9:16 i pobierz paczkę ZIP ze wszystkimi wersjami językowymi.
-                </p>
-              </div>
-              <button
-                onClick={() => showToast("Wyeksportowano paczkę ZIP (12 grafik statycznych).")}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[var(--accent)] shadow-[var(--shadow-pop)] hover:opacity-95"
-              >
-                ✦ Eksportuj wszystkie języki (ZIP) ↓
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              <div className="lg:col-span-5 space-y-4">
-                <div className="p-5 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-3">
-                  <h2 className="text-sm font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
-                    Teksty na rynki
-                  </h2>
-                  <div className="flex gap-1.5">
-                    {["pl-PL", "en-US", "de-DE", "cs-CZ"].map((lang) => (
-                      <button
-                        key={lang}
-                        onClick={() => setActiveStaticLang(lang)}
-                        className={`px-3 py-1 rounded-full text-xs font-bold border ${
-                          activeStaticLang === lang
-                            ? "bg-[var(--accent-soft)] border-[var(--accent)] text-[var(--accent)]"
-                            : "bg-[var(--bg-subtle)] border-[var(--border-subtle)] text-[var(--ink-secondary)]"
-                        }`}
-                      >
-                        {lang.split("-")[0].toUpperCase()}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold text-[var(--ink-primary)] block mb-1">
-                      Nagłówek
-                    </label>
-                    <input
-                      type="text"
-                      value={staticTexts[activeStaticLang]?.headline || ""}
-                      onChange={(e) =>
-                        setStaticTexts({
-                          ...staticTexts,
-                          [activeStaticLang]: {
-                            ...staticTexts[activeStaticLang],
-                            headline: e.target.value,
-                          },
-                        })
-                      }
-                      className="w-full px-3 py-2 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold text-[var(--ink-primary)] block mb-1">
-                      Podpis
-                    </label>
-                    <input
-                      type="text"
-                      value={staticTexts[activeStaticLang]?.subline || ""}
-                      onChange={(e) =>
-                        setStaticTexts({
-                          ...staticTexts,
-                          [activeStaticLang]: {
-                            ...staticTexts[activeStaticLang],
-                            subline: e.target.value,
-                          },
-                        })
-                      }
-                      className="w-full px-3 py-2 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)]"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Preview canvas */}
-              <div className="lg:col-span-7 flex justify-center">
-                <div className="w-[340px] aspect-square rounded-3xl bg-gradient-to-br from-[#c84b31] via-[#6e1d2f] to-[#1a1714] p-6 flex flex-col justify-between text-white relative shadow-2xl overflow-hidden">
-                  <div className="text-xs font-extrabold tracking-widest">SIMOTION / AUTUMN 2026</div>
-                  <div>
-                    <h3 className="text-2xl font-extrabold leading-tight">
-                      {staticTexts[activeStaticLang]?.headline}
-                    </h3>
-                    <p className="text-sm opacity-90 mt-1">
-                      {staticTexts[activeStaticLang]?.subline}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <StaticGraphicsView
+            staticTexts={staticTexts}
+            setStaticTexts={setStaticTexts}
+            activeStaticLang={activeStaticLang}
+            setActiveStaticLang={setActiveStaticLang}
+            staticRatio={staticRatio}
+            setStaticRatio={setStaticRatio}
+            selectedStaticAssetId={selectedStaticAssetId}
+            assets={assets}
+            showToast={showToast}
+          />
         )}
 
         {/* VIEW 7: LOKALIZACJA */}
         {activeTab === "local" && (
-          <div className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-              <div>
-                <span className="text-xs uppercase tracking-widest font-extrabold text-[var(--accent)]">
-                  06 / LOKALIZACJA &amp; MICROSOFT EXCEL ONLINE
-                </span>
-                <h1 className="text-3xl font-extrabold tracking-tight mt-1 text-[var(--ink-primary)]">
-                  Żywa synchronizacja z arkuszem tłumaczy.
-                </h1>
-                <p className="text-sm text-[var(--ink-secondary)]">
-                  Generuj szkice AI prosto do SharePointa i zatwierdzaj rynki przed końcowym renderem.
-                </p>
-              </div>
-              <button
-                onClick={() => showToast("Zsynchronizowano komórki z Microsoft Excel Online (SharePoint).")}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[var(--accent)] shadow-[var(--shadow-pop)] hover:opacity-95"
-              >
-                ↻ Synchronizuj z Excel Online
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {approvals.map((item, idx) => (
-                <div
-                  key={item.code}
-                  className="p-5 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] flex items-center justify-between"
-                >
-                  <div>
-                    <b className="text-xs block text-[var(--ink-primary)]">{item.label}</b>
-                    <small className="text-[10px] text-[var(--ink-muted)]">{item.by}</small>
-                  </div>
-                  <button
-                    onClick={() => {
-                      const next =
-                        item.status === "Zaakceptowany"
-                          ? "Do akceptacji"
-                          : item.status === "Do akceptacji"
-                          ? "Roboczy"
-                          : "Zaakceptowany";
-                      setApprovals((prev) =>
-                        prev.map((a, i) => (i === idx ? { ...a, status: next } : a))
-                      );
-                      showToast(`Zmieniono status ${item.code} na: ${next}`);
-                    }}
-                    className={`px-3 py-1.5 rounded-full text-xs font-bold ${
-                      item.status === "Zaakceptowany"
-                        ? "bg-[var(--status-ok-bg)] text-[var(--status-ok-ink)]"
-                        : item.status === "Do akceptacji"
-                        ? "bg-[var(--status-warn-bg)] text-[var(--status-warn-ink)]"
-                        : "bg-[var(--bg-subtle)] text-[var(--ink-secondary)]"
-                    }`}
-                  >
-                    {item.status}
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
+          <LocalizationView showToast={showToast} />
         )}
 
         {/* VIEW 8: EKSPORT I PLIKI */}
