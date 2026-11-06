@@ -6,6 +6,9 @@ import { PostproductionView } from "@/components/PostproductionView";
 import { BrandKitView } from "@/components/BrandKitView";
 import { StaticGraphicsView } from "@/components/StaticGraphicsView";
 import { LocalizationView } from "@/components/LocalizationView";
+import BatchProductionView from "@/components/BatchProductionView";
+import ExportView from "@/components/ExportView";
+import IntegrationsView from "@/components/IntegrationsView";
 
 export type ViewTab =
   | "vision"
@@ -15,7 +18,8 @@ export type ViewTab =
   | "assets"
   | "static"
   | "local"
-  | "export";
+  | "export"
+  | "integrations";
 
 export interface BatchItem {
   mdk: string;
@@ -171,7 +175,7 @@ export default function SiMotionApp() {
           </span>
         </div>
 
-        {/* 8 Tabs Navbar */}
+        {/* 9 Tabs Navbar */}
         <nav className="flex items-center gap-1 p-1 rounded-full overflow-x-auto max-w-full bg-[var(--bg-elevated)] border border-[var(--border-subtle)]">
           {(
             [
@@ -182,7 +186,8 @@ export default function SiMotionApp() {
               ["assets", "Materiały"],
               ["static", "Grafiki statyczne"],
               ["local", "Lokalizacja"],
-              ["export", "Eksport i pliki"],
+              ["export", "Eksport i paczki"],
+              ["integrations", "Integracje & API"],
             ] as const
           ).map(([key, label]) => (
             <button
@@ -335,126 +340,7 @@ export default function SiMotionApp() {
         )}
 
         {/* VIEW 3: PRODUKCJA BATCHOWA */}
-        {activeTab === "batch" && (
-          <div className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-              <div>
-                <span className="text-xs uppercase tracking-widest font-extrabold text-[var(--accent)]">
-                  02 / PRODUKCJA MASOWA W TLE
-                </span>
-                <h1 className="text-3xl font-extrabold tracking-tight mt-1 text-[var(--ink-primary)]">
-                  Setki produktów. Jeden proces w tle.
-                </h1>
-                <p className="text-sm text-[var(--ink-secondary)]">
-                  Importuj listę MDK z CSV lub wpisz ręcznie. Serwer pobiera packshoty z PCM i przetwarza kolejkę w tle.
-                </p>
-              </div>
-              <button
-                onClick={() => showToast(`Uruchomiono zadanie batchowe na serwerze dla ${batchItems.length} produktów.`)}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[var(--accent)] shadow-[var(--shadow-pop)] hover:opacity-95"
-              >
-                ✦ Uruchom kolejkę na serwerze
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              <div className="lg:col-span-4 space-y-4">
-                <div className="p-5 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-3">
-                  <h2 className="text-sm font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
-                    Źródło produktów
-                  </h2>
-                  <div className="p-4 rounded-xl border border-dashed border-[var(--border-strong)] text-center bg-[var(--bg-subtle)]">
-                    <p className="text-xs font-bold text-[var(--ink-primary)]">Wgraj listę kodów CSV</p>
-                    <small className="text-[10px] text-[var(--ink-muted)] block mt-0.5">
-                      Kolumny: MDK, model_color, custom_prompt
-                    </small>
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-[var(--ink-primary)] block mb-1">
-                      Lub wklej kody MDK ręcznie:
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={batchManualInput}
-                      onChange={(e) => setBatchManualInput(e.target.value)}
-                      placeholder="001KR-83X, 002AB-10Y, 004LN-90P"
-                      className="w-full px-3 py-2 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)]"
-                    />
-                  </div>
-                  <button
-                    onClick={() => {
-                      if (!batchManualInput.trim()) return;
-                      const ids = batchManualInput.split(/[\s,;]+/).filter(Boolean);
-                      setBatchItems((prev) => [
-                        ...prev,
-                        ...ids.map((id) => ({
-                          mdk: id.trim().toUpperCase(),
-                          source: "Ręcznie + PCM API",
-                          type: "Karta produktu + Social",
-                          status: "Gotowy" as const,
-                        })),
-                      ]);
-                      setBatchManualInput("");
-                      showToast(`Dodano ${ids.length} kodów do kolejki.`);
-                    }}
-                    className="w-full px-4 py-2 rounded-xl text-xs font-bold border bg-[var(--bg-card)] border-[var(--border-strong)] hover:border-[var(--accent)] text-[var(--ink-primary)]"
-                  >
-                    ＋ Dodaj do kolejki
-                  </button>
-                </div>
-              </div>
-
-              <div className="lg:col-span-8">
-                <div className="p-6 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
-                      Kolejka produkcyjna ({batchItems.length} produktów)
-                    </h3>
-                    <button
-                      onClick={() => showToast("Zresetowano kolejkę demonstracyjną.")}
-                      className="text-xs font-bold text-[var(--accent)] underline"
-                    >
-                      Przywróć przykłady
-                    </button>
-                  </div>
-
-                  <div className="overflow-x-auto border border-[var(--border-subtle)] rounded-xl">
-                    <table className="w-full text-left text-xs">
-                      <thead className="bg-[var(--bg-elevated)] border-b border-[var(--border-subtle)] text-[var(--ink-secondary)]">
-                        <tr>
-                          <th className="p-3 font-bold uppercase text-[10px]">Kod MDK</th>
-                          <th className="p-3 font-bold uppercase text-[10px]">Źródło zasobów</th>
-                          <th className="p-3 font-bold uppercase text-[10px]">Wariant</th>
-                          <th className="p-3 font-bold uppercase text-[10px]">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[var(--border-subtle)] text-[var(--ink-primary)]">
-                        {batchItems.map((item, idx) => (
-                          <tr key={idx} className="hover:bg-[var(--bg-subtle)]">
-                            <td className="p-3 font-extrabold font-mono">{item.mdk}</td>
-                            <td className="p-3 text-[var(--ink-secondary)]">{item.source}</td>
-                            <td className="p-3">{item.type}</td>
-                            <td className="p-3">
-                              <span
-                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                  item.status === "Gotowy"
-                                    ? "bg-[var(--status-ok-bg)] text-[var(--status-ok-ink)]"
-                                    : "bg-[var(--status-warn-bg)] text-[var(--status-warn-ink)]"
-                                }`}
-                              >
-                                {item.status}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        {activeTab === "batch" && <BatchProductionView />}
 
         {/* VIEW 4: NAPISY I LOGO */}
         {activeTab === "post" && (
@@ -507,52 +393,11 @@ export default function SiMotionApp() {
           <LocalizationView showToast={showToast} />
         )}
 
-        {/* VIEW 8: EKSPORT I PLIKI */}
-        {activeTab === "export" && (
-          <div className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-              <div>
-                <span className="text-xs uppercase tracking-widest font-extrabold text-[var(--accent)]">
-                  07 / EKSPORT, MANIFEST CSV &amp; CHMURA
-                </span>
-                <h1 className="text-3xl font-extrabold tracking-tight mt-1 text-[var(--ink-primary)]">
-                  Pliki uporządkowane i gotowe do emisji.
-                </h1>
-                <p className="text-sm text-[var(--ink-secondary)]">
-                  Konwencja nazewnictwa: {"{MDK}_{kreacja}_{format}_{tekst}_{dubbing}_{wersja}.mp4"}
-                </p>
-              </div>
-              <button
-                onClick={() => showToast("Pobrano paczkę SiMotion_KR-042_Export.zip wraz z plikiem manifest.csv")}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[var(--accent)] shadow-[var(--shadow-pop)] hover:opacity-95"
-              >
-                ✦ Pobierz paczkę ZIP + manifest.csv ↓
-              </button>
-            </div>
+        {/* VIEW 8: EKSPORT I PACZKI */}
+        {activeTab === "export" && <ExportView />}
 
-            <div className="p-6 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-4">
-              <h2 className="text-sm font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
-                Struktura folderów archiwum ZIP
-              </h2>
-              <pre className="p-4 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-xs font-mono text-[var(--ink-primary)] overflow-x-auto">
-{`SiMotion_KR-042.zip
-├── manifest.csv
-├── pl-PL/
-│   ├── 9x16/
-│   │   └── 001KR-83X_KR-042_9x16_pl-PL_pl-PL_v01.mp4
-│   ├── 4x5/
-│   │   └── 001KR-83X_KR-042_4x5_pl-PL_pl-PL_v01.mp4
-│   └── 1x1/
-│       └── 001KR-83X_KR-042_1x1_pl-PL_pl-PL_v01.mp4
-└── en-US/
-    ├── 9x16/
-    │   └── 001KR-83X_KR-042_9x16_en-US_en-US_v01.mp4
-    └── 1x1/
-        └── 001KR-83X_KR-042_1x1_en-US_en-US_v01.mp4`}
-              </pre>
-            </div>
-          </div>
-        )}
+        {/* VIEW 9: INTEGRACJE & API */}
+        {activeTab === "integrations" && <IntegrationsView />}
       </main>
 
       {/* TOAST NOTIFICATION */}
