@@ -64,6 +64,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
     variantId: "outro_all",
     colorScheme: "white",
     filePath: "/brand/logo_anim/biale/logo_outro_all_WH.mov",
+    gifPath: "/brand/logo_anim/biale/logo_outro_all_WH.gif",
     durationSec: 2.0,
     name: "Outro All (Białe)",
   });
@@ -562,16 +563,25 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
             {isLogoOutroEnabled && (
               <div className="space-y-3 pt-1 border-t border-[var(--border-subtle)]">
                 <div className="flex items-center justify-between gap-3 p-3 rounded-xl border border-[#dfd5c6] dark:border-[#38302b] bg-[var(--bg-subtle)]">
-                  <div>
-                    <span className="text-[10px] font-bold uppercase text-[#c84b31] dark:text-[#e56b4e] block">
-                      Wybrany wariant animacji:
-                    </span>
-                    <p className="text-xs font-semibold text-[var(--ink-primary)] mt-0.5">
-                      🎬 {selectedLogo.name}
-                    </p>
-                    <span className="text-[10px] text-[var(--ink-muted)] block">
-                      Czas: {selectedLogo.durationSec} s · After Effects ProRes
-                    </span>
+                  <div className="flex items-center gap-3">
+                    <div className="w-14 h-11 rounded-lg bg-black/80 p-1 flex items-center justify-center shrink-0 border border-black/20">
+                      <img
+                        src={selectedLogo.gifPath}
+                        alt={selectedLogo.name}
+                        className="max-h-full max-w-full object-contain"
+                      />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold uppercase text-[#c84b31] dark:text-[#e56b4e] block">
+                        Wybrany wariant animacji:
+                      </span>
+                      <p className="text-xs font-semibold text-[var(--ink-primary)] mt-0.5">
+                        🎬 {selectedLogo.name}
+                      </p>
+                      <span className="text-[10px] text-[var(--ink-muted)] block">
+                        Czas: {selectedLogo.durationSec} s · After Effects (Alfa)
+                      </span>
+                    </div>
                   </div>
 
                   <button
@@ -668,15 +678,15 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
 
                 {/* Sinsay Animated Logo Outro Overlay */}
                 {isLogoOutroEnabled && (previewOutroForce || (duration > 0 && currentTime >= Math.max(0, duration - selectedLogo.durationSec))) && (
-                  <div className="absolute inset-0 z-30 bg-black/90 flex flex-col items-center justify-center p-2 transition-all">
-                    <div className="text-center animate-pulse">
-                      <span className="font-serif tracking-widest text-2xl font-black text-white block">
-                        sinsay
-                      </span>
-                      <span className="text-[7px] font-mono tracking-widest text-[#e56b4e] uppercase block mt-1">
-                        {selectedLogo.name}
-                      </span>
-                    </div>
+                  <div className="absolute inset-0 z-30 bg-black/90 flex flex-col items-center justify-center p-3 transition-all">
+                    <img
+                      src={selectedLogo.gifPath}
+                      alt={selectedLogo.name}
+                      className="max-h-[50%] max-w-[80%] object-contain drop-shadow-xl"
+                    />
+                    <span className="text-[7px] font-mono tracking-widest text-[#e56b4e] uppercase block mt-1">
+                      {selectedLogo.name}
+                    </span>
                   </div>
                 )}
 
@@ -722,15 +732,15 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
 
                 {/* Sinsay Animated Logo Outro Overlay */}
                 {isLogoOutroEnabled && (previewOutroForce || (duration > 0 && currentTime >= Math.max(0, duration - selectedLogo.durationSec))) && (
-                  <div className="absolute inset-0 z-30 bg-black/90 flex flex-col items-center justify-center p-2 transition-all">
-                    <div className="text-center animate-pulse">
-                      <span className="font-serif tracking-widest text-2xl font-black text-white block">
-                        sinsay
-                      </span>
-                      <span className="text-[7px] font-mono tracking-widest text-[#e56b4e] uppercase block mt-1">
-                        {selectedLogo.name}
-                      </span>
-                    </div>
+                  <div className="absolute inset-0 z-30 bg-black/90 flex flex-col items-center justify-center p-3 transition-all">
+                    <img
+                      src={selectedLogo.gifPath}
+                      alt={selectedLogo.name}
+                      className="max-h-[50%] max-w-[80%] object-contain drop-shadow-xl"
+                    />
+                    <span className="text-[7px] font-mono tracking-widest text-[#e56b4e] uppercase block mt-1">
+                      {selectedLogo.name}
+                    </span>
                   </div>
                 )}
 
@@ -776,15 +786,15 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
 
                 {/* Sinsay Animated Logo Outro Overlay */}
                 {isLogoOutroEnabled && (previewOutroForce || (duration > 0 && currentTime >= Math.max(0, duration - selectedLogo.durationSec))) && (
-                  <div className="absolute inset-0 z-30 bg-black/90 flex flex-col items-center justify-center p-2 transition-all">
-                    <div className="text-center animate-pulse">
-                      <span className="font-serif tracking-widest text-2xl font-black text-white block">
-                        sinsay
-                      </span>
-                      <span className="text-[7px] font-mono tracking-widest text-[#e56b4e] uppercase block mt-1">
-                        {selectedLogo.name}
-                      </span>
-                    </div>
+                  <div className="absolute inset-0 z-30 bg-black/90 flex flex-col items-center justify-center p-3 transition-all">
+                    <img
+                      src={selectedLogo.gifPath}
+                      alt={selectedLogo.name}
+                      className="max-h-[50%] max-w-[80%] object-contain drop-shadow-xl"
+                    />
+                    <span className="text-[7px] font-mono tracking-widest text-[#e56b4e] uppercase block mt-1">
+                      {selectedLogo.name}
+                    </span>
                   </div>
                 )}
 

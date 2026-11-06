@@ -8,6 +8,8 @@ export interface LogoAnimationVariant {
   desc: string;
   fileBlack: string;
   fileWhite: string;
+  gifBlack: string;
+  gifWhite: string;
   durationSec: number;
   type: "outro" | "intro" | "accent";
   isRecommended?: boolean;
@@ -20,6 +22,8 @@ export const LOGO_VARIANTS: LogoAnimationVariant[] = [
     desc: "Oficjalne zakończenie wideo z animacją całego sygnetu Sinsay.",
     fileBlack: "/brand/logo_anim/czarne/logo_outro_all.mov",
     fileWhite: "/brand/logo_anim/biale/logo_outro_all_WH.mov",
+    gifBlack: "/brand/logo_anim/czarne/logo_outro_all.gif",
+    gifWhite: "/brand/logo_anim/biale/logo_outro_all_WH.gif",
     durationSec: 2.0,
     type: "outro",
     isRecommended: true,
@@ -30,6 +34,8 @@ export const LOGO_VARIANTS: LogoAnimationVariant[] = [
     desc: "Dynamiczne zakończenie z zaakcentowaniem kropki nad 'i'.",
     fileBlack: "/brand/logo_anim/czarne/logo_outro_i.mov",
     fileWhite: "/brand/logo_anim/biale/logo_outro_i_WH.mov",
+    gifBlack: "/brand/logo_anim/czarne/logo_outro_i.gif",
+    gifWhite: "/brand/logo_anim/biale/logo_outro_i_WH.gif",
     durationSec: 1.8,
     type: "outro",
   },
@@ -39,6 +45,8 @@ export const LOGO_VARIANTS: LogoAnimationVariant[] = [
     desc: "Szybka animacja z charakterystycznym gestem fajki.",
     fileBlack: "/brand/logo_anim/czarne/logo_fajka.mov",
     fileWhite: "/brand/logo_anim/biale/logo_fajka_WH.mov",
+    gifBlack: "/brand/logo_anim/czarne/logo_fajka.gif",
+    gifWhite: "/brand/logo_anim/biale/logo_fajka_WH.gif",
     durationSec: 1.6,
     type: "accent",
   },
@@ -48,6 +56,8 @@ export const LOGO_VARIANTS: LogoAnimationVariant[] = [
     desc: "Animacja z dynamicznym przejściem tonalnym.",
     fileBlack: "/brand/logo_anim/czarne/logo_kolor.mov",
     fileWhite: "/brand/logo_anim/biale/logo_kolor_WH.mov",
+    gifBlack: "/brand/logo_anim/czarne/logo_kolor.gif",
+    gifWhite: "/brand/logo_anim/biale/logo_kolor_WH.gif",
     durationSec: 2.2,
     type: "accent",
   },
@@ -57,6 +67,8 @@ export const LOGO_VARIANTS: LogoAnimationVariant[] = [
     desc: "Animowane wejście marki na początku klipu.",
     fileBlack: "/brand/logo_anim/czarne/logo_intro_all.mov",
     fileWhite: "/brand/logo_anim/biale/logo_intro_all_WH.mov",
+    gifBlack: "/brand/logo_anim/czarne/logo_intro_all.gif",
+    gifWhite: "/brand/logo_anim/biale/logo_intro_all_WH.gif",
     durationSec: 2.4,
     type: "intro",
   },
@@ -66,6 +78,8 @@ export const LOGO_VARIANTS: LogoAnimationVariant[] = [
     desc: "Krótkie wejście rozpoczynające się od znaku 'i'.",
     fileBlack: "/brand/logo_anim/czarne/logo_intro_i.mov",
     fileWhite: "/brand/logo_anim/biale/logo_intro_i_WH.mov",
+    gifBlack: "/brand/logo_anim/czarne/logo_intro_i.gif",
+    gifWhite: "/brand/logo_anim/biale/logo_intro_i_WH.gif",
     durationSec: 1.9,
     type: "intro",
   },
@@ -75,6 +89,7 @@ export interface SelectedLogoConfig {
   variantId: string;
   colorScheme: "white" | "black";
   filePath: string;
+  gifPath: string;
   durationSec: number;
   name: string;
 }
@@ -104,11 +119,15 @@ export default function AnimatedLogoModal({
   const currentFilePath =
     colorScheme === "white" ? currentVariant.fileWhite : currentVariant.fileBlack;
 
+  const currentGifPath =
+    colorScheme === "white" ? currentVariant.gifWhite : currentVariant.gifBlack;
+
   const handleApply = () => {
     onSelectConfig({
       variantId: currentVariant.id,
       colorScheme,
       filePath: currentFilePath,
+      gifPath: currentGifPath,
       durationSec: currentVariant.durationSec,
       name: `${currentVariant.name} (${colorScheme === "white" ? "Białe" : "Czarne"})`,
     });
@@ -215,33 +234,49 @@ export default function AnimatedLogoModal({
           <div className="md:col-span-7 space-y-2 max-h-[360px] overflow-y-auto pr-1">
             {filteredVariants.map((v) => {
               const isSelected = activeVariantId === v.id;
+              const variantThumb = colorScheme === "white" ? v.gifWhite : v.gifBlack;
               return (
                 <div
                   key={v.id}
                   onClick={() => setActiveVariantId(v.id)}
-                  className={`p-3.5 rounded-xl border cursor-pointer transition-all flex items-start justify-between gap-3 ${
+                  className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between gap-3 ${
                     isSelected
                       ? "border-[#c84b31] bg-[#38211c]/40 shadow-sm"
                       : "border-[#38302b] bg-[#211d1a]/60 hover:bg-[#211d1a]"
                   }`}
                 >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <h4 className="text-xs font-semibold text-[#f7f3ec]">
-                        {v.name}
-                      </h4>
-                      {v.isRecommended && (
-                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-[#193328] text-[#75d9ae]">
-                          Rekomendowane na Outro
-                        </span>
-                      )}
+                  <div className="flex items-center gap-3">
+                    {/* Real Animation Thumbnail */}
+                    <div
+                      className={`w-14 h-12 rounded-lg grid place-items-center p-1 shrink-0 border border-white/10 ${
+                        colorScheme === "white" ? "bg-black/60" : "bg-neutral-200"
+                      }`}
+                    >
+                      <img
+                        src={variantThumb}
+                        alt={v.name}
+                        className="max-h-full max-w-full object-contain"
+                      />
                     </div>
-                    <p className="text-[11px] text-[#b8aea4] leading-relaxed">
-                      {v.desc}
-                    </p>
-                    <span className="text-[10px] font-mono text-[#8e8379] block">
-                      Czas trwania: {v.durationSec} s · Format: QuickTime ProRes Alfa
-                    </span>
+
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-xs font-semibold text-[#f7f3ec]">
+                          {v.name}
+                        </h4>
+                        {v.isRecommended && (
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-[#193328] text-[#75d9ae]">
+                            Rekomendowane
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-[#b8aea4] leading-relaxed line-clamp-1">
+                        {v.desc}
+                      </p>
+                      <span className="text-[10px] font-mono text-[#8e8379] block">
+                        Czas: {v.durationSec}s · After Effects (Alfa)
+                      </span>
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-2">
@@ -264,7 +299,7 @@ export default function AnimatedLogoModal({
           <div className="md:col-span-5 p-4 rounded-xl border border-[#38302b] bg-[#211d1a] space-y-4 flex flex-col justify-between">
             <div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-[#c84b31] block mb-2">
-                Podgląd animacji logo
+                Oryginalna animacja After Effects
               </span>
 
               {/* Animated Canvas / Box Preview */}
@@ -276,18 +311,17 @@ export default function AnimatedLogoModal({
                 {/* Simulated Fashion background video backdrop */}
                 <div className="absolute inset-0 opacity-20 bg-gradient-to-t from-black via-transparent to-black" />
 
-                {/* Animated Logo representation */}
-                <div className="relative z-10 text-center animate-pulse">
-                  <div
-                    className={`font-serif tracking-widest text-3xl font-black ${
-                      colorScheme === "white" ? "text-white" : "text-[#1c1816]"
-                    }`}
-                  >
-                    sinsay
-                  </div>
+                {/* Real Animated Logo representation from After Effects */}
+                <div className="relative z-10 flex flex-col items-center justify-center p-3 text-center">
+                  <img
+                    key={`${currentVariant.id}-${colorScheme}`}
+                    src={currentGifPath}
+                    alt={currentVariant.name}
+                    className="max-h-[110px] max-w-[85%] object-contain drop-shadow-md"
+                  />
                   <span
-                    className={`text-[9px] font-mono tracking-widest uppercase block mt-1 ${
-                      colorScheme === "white" ? "text-white/70" : "text-black/70"
+                    className={`text-[9px] font-mono tracking-widest uppercase block mt-3 px-2 py-0.5 rounded-full ${
+                      colorScheme === "white" ? "text-white/80 bg-white/10" : "text-black/80 bg-black/10"
                     }`}
                   >
                     {currentVariant.name}
@@ -295,14 +329,14 @@ export default function AnimatedLogoModal({
                 </div>
 
                 <div className="absolute bottom-2 inset-x-2 flex justify-between text-[9px] text-[#8e8379] font-mono px-2">
-                  <span>Outro: ostatnie {currentVariant.durationSec}s</span>
-                  <span>Alfa: 100%</span>
+                  <span>Outro: {currentVariant.durationSec}s</span>
+                  <span>Kanał Alfa: 100%</span>
                 </div>
               </div>
 
               <div className="mt-3 text-xs text-[#b8aea4] space-y-1">
                 <p>
-                  <strong>Plik:</strong>{" "}
+                  <strong>Plik źródłowy:</strong>{" "}
                   <code className="text-[10px] font-mono text-[#f7f3ec]">
                     {currentFilePath.split("/").pop()}
                   </code>
