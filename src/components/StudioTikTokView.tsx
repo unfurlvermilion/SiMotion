@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import SinsayPhraseAssistant from "./SinsayPhraseAssistant";
+import AnimatedLogoModal, { SelectedLogoConfig, LOGO_VARIANTS } from "./AnimatedLogoModal";
 
 export interface StoryboardScene {
   id: string;
@@ -54,6 +55,18 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
   const [videoFile, setVideoFile] = useState<string | null>(null);
   const [activePresetVideo, setActivePresetVideo] = useState<"sample" | "upload">("sample");
   const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  // Animated Sinsay Logo Outro
+  const [isLogoOutroEnabled, setIsLogoOutroEnabled] = useState(true);
+  const [isLogoModalOpen, setIsLogoModalOpen] = useState(false);
+  const [previewOutroForce, setPreviewOutroForce] = useState(false);
+  const [selectedLogo, setSelectedLogo] = useState<SelectedLogoConfig>({
+    variantId: "outro_all",
+    colorScheme: "white",
+    filePath: "/brand/logo_anim/biale/logo_outro_all_WH.mov",
+    durationSec: 2.0,
+    name: "Outro All (Białe)",
+  });
 
   // Modular Storyboard Scenes
   const [showSinsayAssistant, setShowSinsayAssistant] = useState(false);
@@ -522,6 +535,69 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
               </span>
             </div>
           </div>
+
+          {/* 4. Animowane Logo Sinsay na końcu wideo (Outro) */}
+          <div className="p-5 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
+                  4. Animowane Logo Sinsay (Outro)
+                </h2>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#193328] text-[#75d9ae]">
+                  Brand Kit LPP
+                </span>
+              </div>
+              <input
+                type="checkbox"
+                checked={isLogoOutroEnabled}
+                onChange={(e) => setIsLogoOutroEnabled(e.target.checked)}
+                className="w-4 h-4 accent-[#c84b31]"
+              />
+            </div>
+
+            <p className="text-xs text-[var(--ink-secondary)]">
+              Automatyczne doklejenie oficjalnego animowanego logo Sinsay na zakończenie każdego klipu.
+            </p>
+
+            {isLogoOutroEnabled && (
+              <div className="space-y-3 pt-1 border-t border-[var(--border-subtle)]">
+                <div className="flex items-center justify-between gap-3 p-3 rounded-xl border border-[#dfd5c6] dark:border-[#38302b] bg-[var(--bg-subtle)]">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase text-[#c84b31] dark:text-[#e56b4e] block">
+                      Wybrany wariant animacji:
+                    </span>
+                    <p className="text-xs font-semibold text-[var(--ink-primary)] mt-0.5">
+                      🎬 {selectedLogo.name}
+                    </p>
+                    <span className="text-[10px] text-[var(--ink-muted)] block">
+                      Czas: {selectedLogo.durationSec} s · After Effects ProRes
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsLogoModalOpen(true)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-[#211d1a] border border-[#dfd5c6] dark:border-[#38302b] hover:border-[#c84b31] text-[var(--ink-primary)] shadow-sm transition-colors whitespace-nowrap"
+                  >
+                    Zmień wariant ⚙
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between text-xs text-[var(--ink-muted)] pt-1">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs text-[var(--ink-primary)]">
+                    <input
+                      type="checkbox"
+                      checked={previewOutroForce}
+                      onChange={(e) => setPreviewOutroForce(e.target.checked)}
+                      className="accent-[#c84b31]"
+                    />
+                    <span>Wymuś podgląd Outro w playerze teraz</span>
+                  </label>
+                  <span>12 wariantów (.mov)</span>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Right Preview Column: 3-Frame Live Display & Playback Controls */}
@@ -590,6 +666,20 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                   </div>
                 )}
 
+                {/* Sinsay Animated Logo Outro Overlay */}
+                {isLogoOutroEnabled && (previewOutroForce || (duration > 0 && currentTime >= Math.max(0, duration - selectedLogo.durationSec))) && (
+                  <div className="absolute inset-0 z-30 bg-black/90 flex flex-col items-center justify-center p-2 transition-all">
+                    <div className="text-center animate-pulse">
+                      <span className="font-serif tracking-widest text-2xl font-black text-white block">
+                        sinsay
+                      </span>
+                      <span className="text-[7px] font-mono tracking-widest text-[#e56b4e] uppercase block mt-1">
+                        {selectedLogo.name}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 <div className="relative z-10">
                   <p className="text-[10px] font-extrabold text-white leading-tight drop-shadow-md">
                     Nowa kolekcja<br />na Twój sposób
@@ -630,6 +720,20 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                   <div className="absolute inset-2 border border-dashed border-amber-300/80 rounded-xl pointer-events-none" />
                 )}
 
+                {/* Sinsay Animated Logo Outro Overlay */}
+                {isLogoOutroEnabled && (previewOutroForce || (duration > 0 && currentTime >= Math.max(0, duration - selectedLogo.durationSec))) && (
+                  <div className="absolute inset-0 z-30 bg-black/90 flex flex-col items-center justify-center p-2 transition-all">
+                    <div className="text-center animate-pulse">
+                      <span className="font-serif tracking-widest text-2xl font-black text-white block">
+                        sinsay
+                      </span>
+                      <span className="text-[7px] font-mono tracking-widest text-[#e56b4e] uppercase block mt-1">
+                        {selectedLogo.name}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 <div className="relative z-10">
                   <p className="text-[10px] font-extrabold text-white leading-tight drop-shadow-md">
                     Nowa kolekcja<br />na Twój sposób
@@ -668,6 +772,20 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
 
                 {showSafeAreas && (
                   <div className="absolute inset-2 border border-dashed border-amber-300/80 rounded-xl pointer-events-none" />
+                )}
+
+                {/* Sinsay Animated Logo Outro Overlay */}
+                {isLogoOutroEnabled && (previewOutroForce || (duration > 0 && currentTime >= Math.max(0, duration - selectedLogo.durationSec))) && (
+                  <div className="absolute inset-0 z-30 bg-black/90 flex flex-col items-center justify-center p-2 transition-all">
+                    <div className="text-center animate-pulse">
+                      <span className="font-serif tracking-widest text-2xl font-black text-white block">
+                        sinsay
+                      </span>
+                      <span className="text-[7px] font-mono tracking-widest text-[#e56b4e] uppercase block mt-1">
+                        {selectedLogo.name}
+                      </span>
+                    </div>
+                  </div>
                 )}
 
                 <div className="relative z-10">
@@ -800,6 +918,17 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Animated Sinsay Logo Modal */}
+      <AnimatedLogoModal
+        isOpen={isLogoModalOpen}
+        onClose={() => setIsLogoModalOpen(false)}
+        selectedConfig={selectedLogo}
+        onSelectConfig={(cfg) => {
+          setSelectedLogo(cfg);
+          showToast(`Ustawiono logo: ${cfg.name}`);
+        }}
+      />
     </div>
   );
 };
