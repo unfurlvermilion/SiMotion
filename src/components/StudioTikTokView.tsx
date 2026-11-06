@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import SinsayPhraseAssistant from "./SinsayPhraseAssistant";
 
 export interface StoryboardScene {
   id: string;
@@ -55,6 +56,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   // Modular Storyboard Scenes
+  const [showSinsayAssistant, setShowSinsayAssistant] = useState(false);
   const [scenes, setScenes] = useState<StoryboardScene[]>([
     {
       id: "sc-1",
@@ -285,9 +287,19 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
             </div>
 
             <div>
-              <label className="text-xs font-bold text-[var(--ink-primary)] block mb-1">
-                Prompt reżyserski (Brief LLM)
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-bold text-[var(--ink-primary)] block">
+                  Prompt reżyserski (Brief LLM)
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowSinsayAssistant((prev) => !prev)}
+                  className="text-[11px] font-bold text-[#c84b31] dark:text-[#e56b4e] hover:underline flex items-center gap-1"
+                >
+                  <span>✦ AI Hasła Sinsay (Top 20)</span>
+                  <span>{showSinsayAssistant ? "▲ Zwiń" : "▼ Rozwiń"}</span>
+                </button>
+              </div>
               <textarea
                 rows={3}
                 value={prompt}
@@ -295,6 +307,18 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                 className="w-full px-3 py-2 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)]"
               />
             </div>
+
+            {showSinsayAssistant && (
+              <div className="pt-2">
+                <SinsayPhraseAssistant
+                  currentPrompt={prompt}
+                  onSelectPhrase={(item) => {
+                    setPrompt(`${item.pl}. Dynamiczny try-on modowy Sinsay.`);
+                    showToast(`Zastosowano hasło Sinsay: "${item.pl}" (${item.score}% Match)`);
+                  }}
+                />
+              </div>
+            )}
 
             <div>
               <div className="flex justify-between items-center text-xs font-bold mb-1">

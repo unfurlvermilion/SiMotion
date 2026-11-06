@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import SinsayPhraseAssistant from "./SinsayPhraseAssistant";
 
 export interface TranslationRow {
   key: string;
@@ -119,6 +120,26 @@ export const LocalizationView: React.FC<LocalizationViewProps> = ({ showToast })
           </button>
         </div>
       </div>
+
+      {/* Sinsay AI Phrase Assistant: Top 20 Slogans from 4,524 Matrix */}
+      <SinsayPhraseAssistant
+        onSelectPhrase={(item) => {
+          setRows((prev) =>
+            prev.map((r, idx) =>
+              idx === 0
+                ? {
+                    ...r,
+                    pl: item.pl,
+                    en: item.en || item.translations["ENG"] || r.en,
+                    de: item.translations["DE"] || r.de,
+                    cs: item.translations["CZ"] || item.translations["SK"] || r.cs,
+                  }
+                : r
+            )
+          );
+          showToast(`Zaaplikowano oficjalne hasło Sinsay: "${item.pl}" do tabeli tłumaczeń.`);
+        }}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Main Table */}
