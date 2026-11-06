@@ -214,6 +214,17 @@ export default function ExportView() {
         }
       });
 
+      // Add brand kit animated logo asset to ZIP
+      try {
+        const logoRes = await fetch("/brand/logo_anim/biale/logo_outro_all_WH.gif");
+        if (logoRes.ok) {
+          const logoBlob = await logoRes.blob();
+          zip.file("brand/sinsay_animated_outro_logo.gif", logoBlob);
+        }
+      } catch (e) {
+        // fallback
+      }
+
       // 4. Generate the actual ZIP blob and trigger browser download
       const zipBlob = await zip.generateAsync({
         type: "blob",

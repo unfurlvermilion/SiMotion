@@ -85,15 +85,15 @@ export const StaticGraphicsView: React.FC<StaticGraphicsViewProps> = ({
 
     // Brand tag
     ctx.fillStyle = "#fffaf5";
-    ctx.font = "800 28px sans-serif";
-    ctx.fillText("SIMOTION / AUTUMN ATELIER 2026", 75, height - 310);
+    ctx.font = '700 32px "Euclid Circular B", sans-serif';
+    ctx.fillText("SINSAY / AUTUMN ATELIER 2026", 75, height - 310);
 
     // Headline
-    ctx.font = "900 76px sans-serif";
+    ctx.font = '700 80px "Euclid Circular B", sans-serif';
     ctx.fillText(activeCopy.headline, 75, height - 200);
 
     // Subline
-    ctx.font = "500 36px sans-serif";
+    ctx.font = '500 38px "Euclid Circular B", sans-serif';
     ctx.fillText(activeCopy.subline, 75, height - 130);
 
     // Badge if active
@@ -267,23 +267,26 @@ export const StaticGraphicsView: React.FC<StaticGraphicsViewProps> = ({
               />
             )}
 
-            <div className="relative z-10 flex justify-between items-center text-[10px] font-extrabold tracking-widest uppercase">
-              <span>SIMOTION / ATELIER 2026</span>
-              <span className="px-2 py-0.5 rounded bg-black/40 text-white font-mono">
-                {staticRatio}
+            <div className="relative z-10 flex justify-between items-center text-[10px] font-bold tracking-widest uppercase font-sinsay">
+              <span className="flex items-center gap-1.5">
+                <span className="font-serif tracking-widest text-xs font-black lowercase">sinsay</span>
+                <span>/ ATELIER 2026</span>
+              </span>
+              <span className="px-2 py-0.5 rounded bg-black/40 text-white font-mono text-[9px]">
+                {staticRatio} · EUCLID
               </span>
             </div>
 
             {activeAsset && (
               <div className="absolute top-12 right-6 z-10">
-                <span className="px-3 py-1 rounded bg-[var(--burgundy)] text-white text-[10px] font-black shadow-lg transform rotate-3 inline-block">
-                  {activeAsset.text || "AW26"}
+                <span className="px-3 py-1 rounded bg-[var(--burgundy)] text-white text-[10px] font-black shadow-lg transform rotate-3 inline-block font-sinsay">
+                  {activeAsset.text || "NOWOŚĆ"}
                 </span>
               </div>
             )}
 
-            <div className="relative z-10 space-y-1">
-              <h3 className="text-2xl font-black leading-tight drop-shadow-md">
+            <div className="relative z-10 space-y-1 font-sinsay">
+              <h3 className="text-2xl font-bold leading-tight drop-shadow-md">
                 {activeCopy.headline}
               </h3>
               <p className="text-sm font-medium opacity-90 drop-shadow-sm">

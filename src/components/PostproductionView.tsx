@@ -224,25 +224,60 @@ export const PostproductionView: React.FC<PostproductionViewProps> = ({
                 className="w-full px-3 py-2 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)]"
               >
                 <option value="pl-PL">🇵🇱 Polski · PL</option>
-                <option value="en-US">🇬🇧 English · EN</option>
+                <option value="ro-RO">🇷🇴 Română · RO (Główny rynek)</option>
+                <option value="cz-CZ">🇨🇿 Čeština · CZ</option>
                 <option value="de-DE">🇩🇪 Deutsch · DE</option>
-                <option value="cs-CZ">🇨🇿 Čeština · CZ</option>
-                <option value="ro-RO">🇷🇴 Română · RO</option>
+                <option value="hu-HU">🇭🇺 Magyar · HU</option>
+                <option value="it-IT">🇮🇹 Italiano · IT</option>
+                <option value="hr-HR">🇭🇷 Hrvatski · HR</option>
+                <option value="en-US">🇬🇧 English · EN (Fallback)</option>
               </select>
             </div>
 
             <div>
-              <label className="text-xs font-bold text-[var(--ink-primary)] block mb-1">
-                Tekst napisu dla tego języka
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-bold text-[var(--ink-primary)]">
+                  Tekst napisu dla tego rynku
+                </label>
+                <span className="text-[10px] text-[#c84b31] dark:text-[#e56b4e] font-semibold">
+                  Font: Euclid Circular B
+                </span>
+              </div>
               <textarea
                 rows={2}
                 value={postCaptions[postPreviewLang] || ""}
                 onChange={(e) =>
                   setPostCaptions({ ...postCaptions, [postPreviewLang]: e.target.value })
                 }
-                className="w-full px-3 py-2 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)]"
+                className="w-full px-3 py-2 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)] font-sinsay"
               />
+              <button
+                type="button"
+                onClick={async () => {
+                  showToast(`🎙 Generowanie głosu lektora ElevenLabs dla rynku: ${postPreviewLang}...`);
+                  try {
+                    const res = await fetch("/api/tts", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        text: postCaptions[postPreviewLang] || "Nowa kolekcja Sinsay na Twój sposób.",
+                        language: postPreviewLang,
+                      }),
+                    });
+                    const data = await res.json();
+                    if (data.status === "success") {
+                      showToast(`✓ Wygenerowano lektora i znaczniki karaoke (${data.alignment?.characters?.length || 0} znaków)`);
+                      setIsPlaying(true);
+                      setPlaybackTime(0);
+                    }
+                  } catch (e) {
+                    showToast("Błąd łączenia z ElevenLabs API");
+                  }
+                }}
+                className="mt-1.5 w-full py-1.5 px-3 rounded-lg text-[11px] font-bold border border-[#c84b31]/40 bg-[#fceee9] dark:bg-[#38211c] text-[#c84b31] dark:text-[#e56b4e] hover:bg-[#c84b31] hover:text-white transition-all flex items-center justify-center gap-1.5 shadow-xs"
+              >
+                <span>🎙 Wygeneruj lektora ElevenLabs & zsynchronizuj karaoke</span>
+              </button>
             </div>
 
             <div className="pt-2 border-t border-[var(--border-subtle)] grid grid-cols-2 gap-3">

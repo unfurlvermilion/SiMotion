@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import JSZip from "jszip";
 
 interface BatchItem {
   id: string;
@@ -240,6 +241,128 @@ export default function BatchProductionView() {
     addLog("Załadowano przykładowy zestaw testowy CSV (2 nowe kody MDK)");
   };
 
+  const [isExportingBatch, setIsExportingBatch] = useState(false);
+
+  const handleExportBatchZip = async () => {
+    const doneItems = items.filter((i) => i.status === "completed");
+    if (!doneItems.length) {
+      addLog("Brak ukończonych produktów do pobrania. Uruchom najpierw batch!");
+      return;
+    }
+
+    setIsExportingBatch(true);
+    addLog(`Generowanie hurtowego archiwum ZIP dla ${doneItems.length} ukończonych produktów...`);
+
+    try {
+      const zip = new JSZip();
+      const root = zip.folder(`Sinsay_Batch_Export_${new Date().toISOString().slice(0, 10)}`) || zip;
+
+      // 1. Master CSV Summary
+      let csv = "MDK,Nazwa,Kategoria,Status,Rynki,Formaty,Data\n";
+      doneItems.forEach((it) => {
+        csv += `${it.mdk},"${it.name}","${it.category}",${it.status},"${it.markets.join("+")}","${it.formats.join("+")}",${new Date().toISOString()}\n`;
+      });
+      root.file("batch_summary.csv", csv);
+
+      // 2. Add each item's folder with SRT subtitles and render specs
+      doneItems.forEach((it) => {
+        const itemFolder = root.folder(it.mdk) || root;
+        const info = {
+          mdk: it.mdk,
+          name: it.name,
+          category: it.category,
+          markets: it.markets,
+          formats: it.formats,
+          subtitlesFont: "Euclid Circular B (LPP SA Brand Kit)",
+          outroLogo: "Sinsay Outro All (Białe)",
+          completedAt: new Date().toISOString(),
+        };
+        itemFolder.file("item_manifest.json", JSON.stringify(info, null, 2));
+
+        // SRT subtitles for each market
+        it.markets.forEach((m) => {
+          const srt = `1\n00:00:00,000 --> 00:00:02,400\n${it.name}\n\n2\n00:00:02,450 --> 00:00:05,000\nSinsay — Nowa kolekcja na Twój sposób.\n`;
+          itemFolder.file(`subtitles_${m}_euclid.srt`, srt);
+        });
+
+        // 3 formats specs
+        itemFolder.file(
+          "video_specs.txt",
+          `Warianty wideo dla ${it.mdk}:\n- 9:16 (TikTok/Reels)\n- 4:5 (Meta Feed Smart Crop)\n- 1:1 (Kwadrat)\nFont napisów: Euclid Circular B\nLogo Outro: Sinsay After Effects\n`
+        );
+      });
+
+      // 3. Add Brand Kit animated logo asset
+      try {
+        const logoRes = await fetch("/brand/logo_anim/biale/logo_outro_all_WH.gif");
+        if (logoRes.ok) {
+          const logoBlob = await logoRes.blob();
+          root.file("brand/sinsay_animated_outro_logo.gif", logoBlob);
+        }
+      } catch (e) {}
+
+      const blob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `Sinsay_Batch_${doneItems.length}_Products_Export.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      addLog(`✓ Pomyślnie pobrano hurtową paczkę ZIP (${doneItems.length} produktów)!`);
+    } catch (e) {
+      console.error(e);
+      addLog("Błąd generowania paczki ZIP");
+    } finally {
+      setIsExportingBatch(false);
+    }
+  };
+
+  const addSinsayFastProducts = () => {
+    const fresh: BatchItem[] = [
+      {
+        id: `fresh-${Date.now()}-1`,
+        mdk: "108KR-99X",
+        name: "Sukienka z wiskozy z motywem kwiatowym",
+        category: "Sukienki / Nowości",
+        markets: ["PL", "RO", "CZ", "DE", "HU", "IT", "HR"],
+        formats: ["9:16", "4:5", "1:1"],
+        pcmStatus: "ready",
+        qaStatus: "passed",
+        progress: 0,
+        status: "queued",
+      },
+      {
+        id: `fresh-${Date.now()}-2`,
+        mdk: "204KR-41A",
+        name: "Kurtka pikowana z kapturem Sinsay",
+        category: "Kurtki / Bestsellery",
+        markets: ["PL", "RO", "DE", "SK", "CZ"],
+        formats: ["9:16", "4:5", "1:1"],
+        pcmStatus: "ready",
+        qaStatus: "passed",
+        progress: 0,
+        status: "queued",
+      },
+      {
+        id: `fresh-${Date.now()}-3`,
+        mdk: "319KR-05B",
+        name: "Jeansy wide leg z wysokim stanem",
+        category: "Jeans / Denim",
+        markets: ["PL", "CZ", "RO", "HU", "IT"],
+        formats: ["9:16", "4:5", "1:1"],
+        pcmStatus: "ready",
+        qaStatus: "passed",
+        progress: 0,
+        status: "queued",
+      },
+    ];
+    setItems((prev) => [...fresh, ...prev]);
+    addLog(`Dodano 3 nowe bestsellery Sinsay do kolejki renderu!`);
+  };
+
   const filteredItems = items.filter((item) => {
     const matchesSearch =
       item.mdk.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -292,11 +415,26 @@ export default function BatchProductionView() {
             />
           </label>
           <button
+            onClick={addSinsayFastProducts}
+            className="px-3 py-2 text-xs font-semibold rounded-lg border border-[#c84b31]/40 bg-[#fceee9] dark:bg-[#38211c] text-[#c84b31] dark:text-[#e56b4e] hover:bg-[#c84b31] hover:text-white transition-all shadow-sm"
+          >
+            ＋ Bestsellery Sinsay
+          </button>
+          <button
             onClick={loadPresetCSV}
             className="px-3 py-2 text-xs font-medium rounded-lg border border-dashed border-[#bfa890] dark:border-[#5c4d42] text-[#655a53] dark:text-[#b8aea4] hover:text-[#1c1816] dark:hover:text-[#f7f3ec] transition-colors"
           >
             + Przykładowy CSV
           </button>
+          {completedItems > 0 && (
+            <button
+              onClick={handleExportBatchZip}
+              disabled={isExportingBatch}
+              className="px-4 py-2 text-xs font-bold rounded-lg bg-[#1d6346] hover:bg-[#164e37] text-white shadow-sm transition-all flex items-center gap-1.5"
+            >
+              <span>{isExportingBatch ? "Pakowanie..." : `💾 Pobierz Batch ZIP (${completedItems})`}</span>
+            </button>
+          )}
           {isProcessing ? (
             <button
               onClick={handlePauseBatch}

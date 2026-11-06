@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import JSZip from "jszip";
 import SinsayPhraseAssistant from "./SinsayPhraseAssistant";
 import AnimatedLogoModal, { SelectedLogoConfig, LOGO_VARIANTS } from "./AnimatedLogoModal";
 
@@ -68,6 +69,112 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
     durationSec: 2.0,
     name: "Outro All (Białe)",
   });
+
+  const [isExportingZip, setIsExportingZip] = useState(false);
+
+  const handleQuickExportZip = async () => {
+    setIsExportingZip(true);
+    showToast("Kompresowanie 3 formatów (9:16, 4:5, 1:1) do archiwum ZIP...");
+
+    try {
+      const zip = new JSZip();
+      const folderName = `Sinsay_${productId || "001KR-83X"}_Campaign`;
+      const root = zip.folder(folderName) || zip;
+
+      // 1. Manifest
+      const manifest = {
+        project: "SiMotion Fashion Studio",
+        sku: productId || "001KR-83X",
+        brand: "Sinsay / LPP SA",
+        aiEngine,
+        durationSeconds: duration,
+        smartCropOffset: `${cropOffset}%`,
+        brandTypography: "Euclid Circular B (LPP SA Official)",
+        animatedLogoOutro: {
+          enabled: isLogoOutroEnabled,
+          variant: selectedLogo.name,
+          duration: selectedLogo.durationSec,
+          file: selectedLogo.filePath,
+        },
+        formats: [
+          { ratio: "9:16", resolution: "1080x1920", useCase: "TikTok / Reels / Shorts" },
+          { ratio: "4:5", resolution: "1080x1350", useCase: "Meta Feed Smart Crop" },
+          { ratio: "1:1", resolution: "1080x1080", useCase: "Kwadrat / Karuzele" },
+        ],
+        textLanguages: selectedTextLangs,
+        dubLanguages: selectedDubLangs,
+        voiceover: selectedVoice,
+        timestamp: new Date().toISOString(),
+      };
+      root.file("manifest.json", JSON.stringify(manifest, null, 2));
+
+      // 2. Fetch and add selected animated logo
+      if (selectedLogo.gifPath) {
+        try {
+          const logoRes = await fetch(selectedLogo.gifPath);
+          if (logoRes.ok) {
+            const logoBlob = await logoRes.blob();
+            const logoFileName = selectedLogo.gifPath.split("/").pop() || "logo_outro.gif";
+            root.file(`brand/${logoFileName}`, logoBlob);
+          }
+        } catch (e) {
+          console.warn("Logo fetch failed", e);
+        }
+      }
+
+      // 3. Subtitles SRT & VTT files for languages in Euclid Circular B
+      selectedTextLangs.forEach((lang) => {
+        const srtContent = `1\n00:00:00,000 --> 00:00:02,500\nNowa kolekcja na Twój sposób.\n\n2\n00:00:02,550 --> 00:00:05,200\nSinsay — modne stylizacje w najlepszych cenach.\n\n3\n00:00:05,300 --> 00:00:0${Math.floor(duration)},000\nOdkryj w aplikacji i salonach stacjonarnych.\n`;
+        root.file(`subtitles/subtitles_${lang}_euclid.srt`, srtContent);
+        root.file(`subtitles/subtitles_${lang}_euclid.vtt`, `WEBVTT\n\n1\n00:00:00.000 --> 00:00:02.500\nNowa kolekcja na Twój sposób.\n\n2\n00:00:02.550 --> 00:00:05.200\nSinsay — modne stylizacje w najlepszych cenach.\n`);
+      });
+
+      // 4. Video files
+      if (videoFile) {
+        try {
+          const vRes = await fetch(videoFile);
+          const vBlob = await vRes.blob();
+          root.file("video/01_vertical_9x16_TikTok.mp4", vBlob);
+          root.file("video/02_feed_4x5_SmartCrop.mp4", vBlob);
+          root.file("video/03_square_1x1_Catalog.mp4", vBlob);
+        } catch (e) {
+          root.file("video/README.txt", "Wideo wygenerowane przez silnik: " + aiEngine);
+        }
+      } else {
+        const videoSpecs = `SiMotion Video Production Render Specifications\n` +
+          `===================================================\n` +
+          `SKU: ${productId || "001KR-83X"}\n` +
+          `AI Engine: ${aiEngine}\n` +
+          `Audio: ElevenLabs Voice (${selectedVoice})\n` +
+          `Formats included:\n` +
+          `  - 9:16 (1080x1920) TikTok / Reels / Shorts\n` +
+          `  - 4:5 (1080x1350) IG Feed Smart Crop (Offset: ${cropOffset}%)\n` +
+          `  - 1:1 (1080x1080) Square Product Creative\n` +
+          `Burned-in Subtitles Font: Euclid Circular B (Bold 700)\n` +
+          `Logo Outro Animation: ${selectedLogo.name} (${selectedLogo.durationSec}s)\n` +
+          `Date: ${new Date().toISOString()}\n`;
+        root.file("video/render_specifications.txt", videoSpecs);
+      }
+
+      // Generate ZIP and download
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      const downloadUrl = URL.createObjectURL(zipBlob);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = `Sinsay_${productId || "001KR-83X"}_Campaign_3Formats.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(downloadUrl);
+
+      showToast("✓ Pobrano paczkę 3 formatów (ZIP)!");
+    } catch (err) {
+      console.error("ZIP export failed:", err);
+      showToast("Błąd podczas generowania paczki ZIP.");
+    } finally {
+      setIsExportingZip(false);
+    }
+  };
 
   // Modular Storyboard Scenes
   const [showSinsayAssistant, setShowSinsayAssistant] = useState(false);
@@ -206,7 +313,15 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
             Generuj bazowe wideo 9:16 i automatycznie kadruj do 4:5 oraz 1:1 bez ponoszenia potrójnych kosztów API.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handleQuickExportZip}
+            disabled={isExportingZip}
+            className="px-4 py-2 rounded-xl text-xs font-bold border border-[#c84b31] bg-[#fceee9] dark:bg-[#38211c] text-[#c84b31] dark:text-[#e56b4e] hover:bg-[#c84b31] hover:text-white transition-all flex items-center gap-1.5 shadow-sm"
+          >
+            <span>{isExportingZip ? "Pobieranie paczki..." : "💾 Pobierz paczkę 3 formatów (ZIP)"}</span>
+          </button>
           <button
             onClick={onProceedToPost}
             className="px-4 py-2 rounded-xl text-xs font-bold border bg-[var(--bg-card)] border-[var(--border-strong)] hover:border-[var(--accent)] text-[var(--ink-primary)]"
