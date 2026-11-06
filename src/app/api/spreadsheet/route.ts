@@ -57,19 +57,24 @@ let excelDatabase: ExcelRow[] = [
   },
 ];
 
+const SINSAY_SHAREPOINT_DEFAULT =
+  "https://lppsa.sharepoint.com/:x:/s/MEDIAPLANYSinsay/IQARpS_SW7lDSb2wNp3zaIgPATUAtU7X3qUNksY7p-aRCWM?e=OF5v7Y&nav=MTVfe0VBQTEzQzQ2LUU4QjItNEVCMy04RjcxLTIyOTFBOUQxQUY1QX0";
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const sharepointUrl = searchParams.get("url");
 
   return NextResponse.json({
     status: "success",
-    source: sharepointUrl ? "excel_online_sharepoint" : "excel_online_live",
-    sharepointUrl: sharepointUrl || "https://company.sharepoint.com/teams/FashionAtelier/Shared%20Documents/Kolekcja_FW26_Statusy.xlsx",
+    filename: "Sinsay_TRANSLATIONS.xlsx",
+    organization: "LPP SA / MEDIAPLANY Sinsay",
+    source: "sharepoint_lppsa_excel",
+    sharepointUrl: sharepointUrl || SINSAY_SHAREPOINT_DEFAULT,
     totalRows: excelDatabase.length,
     rows: excelDatabase,
     syncedAt: new Date().toISOString(),
     displayTime: new Date().toLocaleTimeString("pl-PL"),
-    message: "Pomyślnie zsynchronizowano z arkuszem Microsoft Excel Online.",
+    message: "Połączono ze skoroszytem Sinsay_TRANSLATIONS.xlsx na SharePoint LPP SA.",
   });
 }
 

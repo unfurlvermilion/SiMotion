@@ -7,10 +7,11 @@ interface SharePointSyncBarProps {
 }
 
 export default function SharePointSyncBar({ onSyncComplete }: SharePointSyncBarProps) {
-  const [sharepointUrl, setSharepointUrl] = useState<string>(
-    "https://firma.sharepoint.com/:x:/r/sites/FashionStudio/Shared%20Documents/Kolekcja_FW26_Statusy.xlsx?web=1"
-  );
-  const [sheetName, setSheetName] = useState<string>("Statusy_Wideo");
+  const SINSAY_OFFICIAL_URL =
+    "https://lppsa.sharepoint.com/:x:/s/MEDIAPLANYSinsay/IQARpS_SW7lDSb2wNp3zaIgPATUAtU7X3qUNksY7p-aRCWM?e=OF5v7Y&nav=MTVfe0VBQTEzQzQ2LUU4QjItNEVCMy04RjcxLTIyOTFBOUQxQUY1QX0";
+
+  const [sharepointUrl, setSharepointUrl] = useState<string>(SINSAY_OFFICIAL_URL);
+  const [sheetName, setSheetName] = useState<string>("Sinsay_TRANSLATIONS");
   const [isAutoSync, setIsAutoSync] = useState<boolean>(true);
   const [syncIntervalSec, setSyncIntervalSec] = useState<number>(30);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
@@ -104,15 +105,25 @@ export default function SharePointSyncBar({ onSyncComplete }: SharePointSyncBarP
             }`}
           />
           <span className="text-[#1c1816] dark:text-[#f7f3ec] font-semibold hidden md:inline">
-            SharePoint Excel:
+            SharePoint LPP:
           </span>
           <span className="text-[#655a53] dark:text-[#b8aea4]">
-            {isSyncing ? "Pobieranie..." : lastSyncTime ? `Zsynchronizowano: ${lastSyncTime}` : "Połączono"}
+            {isSyncing ? "Pobieranie..." : lastSyncTime ? `Zsynchronizowano: ${lastSyncTime}` : "Sinsay_TRANSLATIONS"}
           </span>
           <span className="text-[10px] text-[#877b72] dark:text-[#8e8379] bg-[#f2ece1] dark:bg-[#292420] px-1.5 py-0.5 rounded">
-            ⚙ Ustawienia
+            ⚙ Konfiguracja
           </span>
         </button>
+
+        <a
+          href={sharepointUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hidden lg:inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border border-[#dfd5c6] dark:border-[#38302b] bg-white dark:bg-[#211d1a] hover:bg-[#faf7f2] dark:hover:bg-[#292420] text-[#1c1816] dark:text-[#f7f3ec] transition-colors"
+          title="Otwórz plik Sinsay_TRANSLATIONS.xlsx w SharePoint w nowej karcie"
+        >
+          <span>Sinsay_TRANSLATIONS.xlsx ↗</span>
+        </a>
 
         <button
           onClick={triggerSync}
