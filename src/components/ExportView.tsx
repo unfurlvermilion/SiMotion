@@ -254,36 +254,31 @@ export default function ExportView() {
       {/* Header bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#dfd5c6] dark:border-[#38302b] pb-6">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold tracking-widest uppercase text-[#c84b31] dark:text-[#e56b4e] mb-1">
-            <span>● Moduł 06</span>
-            <span>·</span>
-            <span>Export & Delivery</span>
-          </div>
-          <h2 className="text-2xl lg:text-3xl font-serif text-[#1c1816] dark:text-[#f7f3ec]">
-            Centrum Eksportu & Paczki Kampanijne
+          <h2 className="text-2xl font-extrabold tracking-tight text-[#1c1816] dark:text-[#f7f3ec]">
+            Eksport i paczki
           </h2>
-          <p className="text-sm text-[#655a53] dark:text-[#b8aea4] mt-1">
-            Przygotuj spakowane warianty wideo i grafiki wraz z gotowymi manifestami pod Meta Ads, TikTok i Google.
+          <p className="text-xs text-[#655a53] dark:text-[#b8aea4] mt-0.5">
+            Pobieranie plików wideo, grafik i napisów wraz z manifestami pod kampanie.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <button
             onClick={() => handleDownloadManifest("json")}
-            className="px-3.5 py-2 text-xs font-medium rounded-lg border border-[#dfd5c6] dark:border-[#38302b] bg-white dark:bg-[#211d1a] hover:bg-[#faf7f2] dark:hover:bg-[#292420] text-[#1c1816] dark:text-[#f7f3ec] transition-colors shadow-sm"
+            className="px-3 py-2 text-xs font-medium rounded-lg border border-[#dfd5c6] dark:border-[#38302b] bg-white dark:bg-[#211d1a] hover:bg-[#faf7f2] dark:hover:bg-[#292420] text-[#1c1816] dark:text-[#f7f3ec] transition-colors shadow-sm"
           >
-            Pobierz Manifest JSON
+            Manifest JSON
           </button>
           <button
             onClick={() => handleDownloadManifest("csv")}
-            className="px-3.5 py-2 text-xs font-medium rounded-lg border border-[#dfd5c6] dark:border-[#38302b] bg-white dark:bg-[#211d1a] hover:bg-[#faf7f2] dark:hover:bg-[#292420] text-[#1c1816] dark:text-[#f7f3ec] transition-colors shadow-sm"
+            className="px-3 py-2 text-xs font-medium rounded-lg border border-[#dfd5c6] dark:border-[#38302b] bg-white dark:bg-[#211d1a] hover:bg-[#faf7f2] dark:hover:bg-[#292420] text-[#1c1816] dark:text-[#f7f3ec] transition-colors shadow-sm"
           >
-            Pobierz Manifest CSV
+            Manifest CSV
           </button>
           <button
             onClick={handleStartExportPackage}
             disabled={selectedFiles.length === 0 || isExporting}
-            className="px-5 py-2 text-xs font-medium rounded-lg bg-[#c84b31] dark:bg-[#e56b4e] hover:opacity-90 disabled:opacity-50 text-white shadow-sm transition-colors flex items-center gap-2"
+            className="px-4 py-2 text-xs font-bold rounded-lg bg-[#c84b31] dark:bg-[#e56b4e] hover:opacity-90 disabled:opacity-50 text-white shadow-sm transition-colors flex items-center gap-2"
           >
             {isExporting ? (
               <>
@@ -291,7 +286,7 @@ export default function ExportView() {
                 <span>Pakowanie archiwum...</span>
               </>
             ) : (
-              <span>↓ Pobierz Paczkę ({selectedFiles.length} plików)</span>
+              <span>Pobierz paczkę ZIP ({selectedFiles.length})</span>
             )}
           </button>
         </div>

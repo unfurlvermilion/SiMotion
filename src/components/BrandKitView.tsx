@@ -125,19 +125,16 @@ export const BrandKitView: React.FC<BrandKitViewProps> = ({
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <span className="text-xs uppercase tracking-widest font-extrabold text-[var(--accent)]">
-            03 / BRAND KIT &amp; ZASOBY MARKI
-          </span>
-          <h1 className="text-3xl font-extrabold tracking-tight mt-1 text-[var(--ink-primary)]">
-            Współdzielona biblioteka zasobów.
+          <h1 className="text-2xl font-extrabold tracking-tight text-[var(--ink-primary)]">
+            Materiały marki
           </h1>
-          <p className="text-sm text-[var(--ink-secondary)]">
-            Zarządzaj nakładkami, badge'ami kolekcji, logotypami i grafikami PNG/SVG dla kreacji wideo i formatów statycznych.
+          <p className="text-xs text-[var(--ink-secondary)] mt-0.5">
+            Nakładki, badge kolekcji i logotypy PNG/SVG pod wideo i grafiki.
           </p>
         </div>
 
         <label className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[var(--accent)] shadow-[var(--shadow-pop)] hover:opacity-95 cursor-pointer">
-          <span>＋ Wgraj pliki PNG / SVG</span>
+          <span>＋ Wgraj PNG / SVG</span>
           <input type="file" multiple accept="image/*" onChange={handleFileUpload} className="hidden" />
         </label>
       </div>

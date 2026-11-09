@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "SiMotion — Sinsay Motion Studio",
-  description: "Autonomiczne studio kreacji wideo i lookbooków Sinsay: Seedance, Higgsfield, ElevenLabs, Smart Crop i Microsoft SharePoint Excel Online.",
+  description: "Studio produkcji wideo i lookbooków Sinsay.",
 };
 
 export default function RootLayout({

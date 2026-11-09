@@ -118,14 +118,11 @@ export const StaticGraphicsView: React.FC<StaticGraphicsViewProps> = ({
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <span className="text-xs uppercase tracking-widest font-extrabold text-[var(--accent)]">
-            04 / GRAFIKI STATYCZNE &amp; LOOKBOOK
-          </span>
-          <h1 className="text-3xl font-extrabold tracking-tight mt-1 text-[var(--ink-primary)]">
-            Jedna kreacja statyczna. Wszystkie formaty.
+          <h1 className="text-2xl font-extrabold tracking-tight text-[var(--ink-primary)]">
+            Grafiki statyczne
           </h1>
-          <p className="text-sm text-[var(--ink-secondary)]">
-            Adaptuj zdjęcia na formaty 1:1, 4:5 i 9:16 i generuj gotowe pliki graficzne PNG natychmiast w przeglądarce.
+          <p className="text-xs text-[var(--ink-secondary)] mt-0.5">
+            Kadrowanie zdjęć i eksport grafik pod formaty 1:1, 4:5 i 9:16.
           </p>
         </div>
         <div className="flex gap-2">
@@ -133,7 +130,7 @@ export const StaticGraphicsView: React.FC<StaticGraphicsViewProps> = ({
             onClick={exportPNG}
             className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[var(--accent)] shadow-[var(--shadow-pop)] hover:opacity-95"
           >
-            ✦ Pobierz plik PNG ↓
+            Pobierz PNG
           </button>
         </div>
       </div>

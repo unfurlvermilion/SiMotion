@@ -307,14 +307,11 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
       {/* Top Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <span className="text-xs uppercase tracking-widest font-extrabold text-[var(--accent)]">
-            01 / STUDIO WIDEO &amp; TIKTOK
-          </span>
-          <h1 className="text-3xl font-extrabold tracking-tight mt-1 text-[var(--ink-primary)]">
-            Jedna kreacja. Trzy kadry. Wszystkie rynki.
+          <h1 className="text-2xl font-extrabold tracking-tight text-[var(--ink-primary)]">
+            Studio wideo
           </h1>
-          <p className="text-sm text-[var(--ink-secondary)]">
-            Generuj bazowe wideo 3:4 (Golden Ratio dla mody) i bezstratnie kadruj do 9:16 (rolki), 4:5 (feed) oraz 1:1 (karuzela).
+          <p className="text-xs text-[var(--ink-secondary)] mt-0.5">
+            Generowanie bazy 3:4 i automatyczne kadry pod TikTok, IG Feed oraz kwadrat.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -322,25 +319,25 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
             type="button"
             onClick={handleQuickExportZip}
             disabled={isExportingZip}
-            className="px-4 py-2 rounded-xl text-xs font-bold border border-[#c84b31] bg-[#fceee9] dark:bg-[#38211c] text-[#c84b31] dark:text-[#e56b4e] hover:bg-[#c84b31] hover:text-white transition-all flex items-center gap-1.5 shadow-sm"
+            className="px-3.5 py-2 rounded-xl text-xs font-bold border border-[#c84b31] bg-[#fceee9] dark:bg-[#38211c] text-[#c84b31] dark:text-[#e56b4e] hover:bg-[#c84b31] hover:text-white transition-all flex items-center gap-1.5 shadow-sm"
           >
-            <span>{isExportingZip ? "Pobieranie paczki..." : "💾 Pobierz paczkę 3 formatów (ZIP)"}</span>
+            <span>{isExportingZip ? "Pakowanie..." : "Pobierz formaty (ZIP)"}</span>
           </button>
           <button
             onClick={onProceedToPost}
-            className="px-4 py-2 rounded-xl text-xs font-bold border bg-[var(--bg-card)] border-[var(--border-strong)] hover:border-[var(--accent)] text-[var(--ink-primary)]"
+            className="px-3.5 py-2 rounded-xl text-xs font-bold border bg-[var(--bg-card)] border-[var(--border-strong)] hover:border-[var(--accent)] text-[var(--ink-primary)]"
           >
-            Przejdź do montażu wideo →
+            Montaż wideo →
           </button>
           <button
             onClick={() =>
               showToast(
-                `Zadanie wysłane do adaptera ${aiEngine.toUpperCase()} ($${totalCost})`
+                `Zlecono generację wideo: ${aiEngine.toUpperCase()} ($${totalCost})`
               )
             }
             className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[var(--accent)] shadow-[var(--shadow-pop)] hover:opacity-95"
           >
-            ✦ Uruchom generację wideo
+            Generuj wideo (${totalCost})
           </button>
         </div>
       </div>
@@ -348,20 +345,20 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Control Column */}
         <div className="lg:col-span-5 space-y-5">
-          {/* 1. Produkt PCM i Model AI */}
+          {/* 1. Produkt i Model */}
           <div className="p-5 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-4 shadow-sm">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
-                1. Produkt (PCM) &amp; Silnik AI
+              <h2 className="text-xs font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
+                Produkt i model
               </h2>
               <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[var(--status-ok-bg)] text-[var(--status-ok-ink)]">
-                ✓ PCM Połączone
+                PCM połączone
               </span>
             </div>
 
             <div>
               <label className="text-xs font-bold text-[var(--ink-primary)] block mb-1">
-                Kod MDK produktu w PCM
+                Kod MDK (artykuł)
               </label>
               <div className="flex gap-2">
                 <input
@@ -371,7 +368,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                   className="flex-1 px-3 py-2 rounded-xl text-xs border font-mono bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)] focus:outline-none focus:border-[var(--accent)]"
                 />
                 <button
-                  onClick={() => showToast(`Pobrano 3 zdjęcia dla ${productId} z API PCM.`)}
+                  onClick={() => showToast(`Pobrano zdjęcia dla ${productId} z PCM.`)}
                   className="px-3 py-2 rounded-xl text-xs font-bold border bg-[var(--bg-card)] border-[var(--border-strong)] hover:border-[var(--accent)] text-[var(--ink-primary)]"
                 >
                   Pobierz ↻
@@ -379,13 +376,13 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
               </div>
               <div className="flex gap-1.5 mt-2 flex-wrap text-[10px] text-[var(--ink-muted)]">
                 <span className="px-2 py-0.5 rounded-full bg-[var(--bg-subtle)] border border-[var(--border-subtle)]">
-                  ✓ {productId}_01_packshot.jpg
+                  ✓ packshot
                 </span>
                 <span className="px-2 py-0.5 rounded-full bg-[var(--bg-subtle)] border border-[var(--border-subtle)]">
-                  ✓ {productId}_02_model.jpg
+                  ✓ model
                 </span>
                 <span className="px-2 py-0.5 rounded-full bg-[var(--bg-subtle)] border border-[var(--border-subtle)]">
-                  ✓ {productId}_03_detail.jpg
+                  ✓ detal
                 </span>
               </div>
             </div>
@@ -393,28 +390,28 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs font-bold text-[var(--ink-primary)] block mb-1">
-                  Silnik wideo AI
+                  Silnik wideo
                 </label>
                 <select
                   value={aiEngine}
                   onChange={(e) => setAiEngine(e.target.value as any)}
                   className="w-full px-3 py-2 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)]"
                 >
-                  <option value="seedance">Seedance 2.0 (Moda/Ruch)</option>
-                  <option value="higgsfield">Higgsfield AI (Dynamic Camera)</option>
+                  <option value="seedance">Seedance 2.0</option>
+                  <option value="higgsfield">Higgsfield AI</option>
                 </select>
               </div>
               <div>
                 <label className="text-xs font-bold text-[var(--ink-primary)] block mb-1">
-                  Tryb generacji
+                  Tryb
                 </label>
                 <select
                   value={genMode}
                   onChange={(e) => setGenMode(e.target.value as any)}
                   className="w-full px-3 py-2 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)]"
                 >
-                  <option value="storyboard">Storyboard (6 modularnych scen)</option>
-                  <option value="single">Szybki klip (1 pojedyncze ujęcie)</option>
+                  <option value="storyboard">Storyboard (6 scen)</option>
+                  <option value="single">Pojedyncze ujęcie</option>
                 </select>
               </div>
             </div>
@@ -422,15 +419,15 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="text-xs font-bold text-[var(--ink-primary)] block">
-                  Prompt reżyserski (Brief LLM)
+                  Prompt wideo
                 </label>
                 <button
                   type="button"
                   onClick={() => setShowSinsayAssistant((prev) => !prev)}
                   className="text-[11px] font-bold text-[#c84b31] dark:text-[#e56b4e] hover:underline flex items-center gap-1"
                 >
-                  <span>✦ AI Hasła Sinsay (Top 20)</span>
-                  <span>{showSinsayAssistant ? "▲ Zwiń" : "▼ Rozwiń"}</span>
+                  <span>Hasła Sinsay</span>
+                  <span>{showSinsayAssistant ? "▲" : "▼"}</span>
                 </button>
               </div>
               <textarea
@@ -474,20 +471,17 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
             </div>
           </div>
 
-          {/* 2. Formaty i Smart Crop */}
+          {/* 2. Formaty i kadrowanie */}
           <div className="p-5 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-4 shadow-sm">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
-                2. Format bazowy 3:4 i Smart Crop
+              <h2 className="text-xs font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
+                Formaty i kadrowanie
               </h2>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--accent-soft)] text-[var(--accent)]">
-                Baza 3:4 = 3 Formaty bez straty
-              </span>
             </div>
 
             <div className="flex flex-wrap gap-2">
               {[
-                ["3x4", "3:4 · Master Baza (Moda)"],
+                ["3x4", "3:4 · Baza modowa"],
                 ["9x16", "9:16 · TikTok / Reels"],
                 ["4x5", "4:5 · Feed IG"],
                 ["1x1", "1:1 · Kwadrat"],
@@ -508,7 +502,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
 
             <div>
               <div className="flex justify-between items-center text-xs font-bold mb-1">
-                <span>Punkt fokusu poziomego (Smart Crop Offset)</span>
+                <span>Przesunięcie kadru (Smart Crop)</span>
                 <span className="text-[var(--accent)] font-extrabold">
                   {cropOffset > 0 ? `+${cropOffset}%` : `${cropOffset}%`}
                 </span>
@@ -523,21 +517,18 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
               />
               <div className="flex justify-between text-[10px] text-[var(--ink-muted)]">
                 <span>Lewo (−40%)</span>
-                <span>Centrum (0%)</span>
+                <span>Środek (0%)</span>
                 <span>Prawo (+40%)</span>
               </div>
-              <p className="text-[10px] text-[var(--ink-muted)] mt-1.5 leading-relaxed">
-                Kadrowanie z bazy 3:4 odcina jedynie tło po bokach dla 9:16 oraz nieznacznie góra/dół dla 1:1. Sylwetka i produkt pozostają w pełni wyeksponowane.
-              </p>
             </div>
 
             <div className="flex items-center justify-between py-2 border-t border-[var(--border-subtle)]">
               <div>
                 <b className="text-xs block text-[var(--ink-primary)]">
-                  Strefy bezpieczne (TikTok &amp; Meta 2025/2026)
+                  Strefy ochronne (TikTok / Reels)
                 </b>
                 <small className="text-[10px] text-[var(--ink-muted)]">
-                  Oficjalne pole ochronne UI: góra 130 px, dół 484 px, prawa 140 px (podpis, CTA, dźwięk i ikony)
+                  Podgląd bezpiecznego pola pod interfejs aplikacji
                 </small>
               </div>
               <input
@@ -551,10 +542,10 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
             <div className="flex items-center justify-between py-2 border-t border-[var(--border-subtle)]">
               <div>
                 <b className="text-xs block text-[var(--ink-primary)]">
-                  Wymuś osobny render AI dla każdego formatu
+                  Osobny render dla każdego formatu
                 </b>
                 <small className="text-[10px] text-[var(--ink-muted)]">
-                  Wyłącza Smart Crop (generuje 3 oddzielne wideo, wyższy koszt API)
+                  Wyłącza kadrowanie z bazy (3x wyższy koszt)
                 </small>
               </div>
               <input
@@ -566,15 +557,15 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
             </div>
           </div>
 
-          {/* 3. Języki i Dubbing ElevenLabs */}
+          {/* 3. Języki i dźwięk */}
           <div className="p-5 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-4 shadow-sm">
-            <h2 className="text-sm font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
-              3. Rynki, Lektor ElevenLabs &amp; Audio
+            <h2 className="text-xs font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
+              Języki i dźwięk
             </h2>
 
             <div>
               <span className="text-xs font-bold block text-[var(--ink-primary)] mb-1.5">
-                Wersje językowe napisów:
+                Napisy:
               </span>
               <div className="flex flex-wrap gap-1.5">
                 {["pl-PL", "en-US", "de-DE", "cs-CZ", "ro-RO"].map((lang) => (
@@ -596,11 +587,8 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
             <div className="flex items-center justify-between pt-2 border-t border-[var(--border-subtle)]">
               <div>
                 <b className="text-xs block text-[var(--ink-primary)]">
-                  Dubbing AI (ElevenLabs TTS + Word Timestamps)
+                  Lektor (ElevenLabs)
                 </b>
-                <small className="text-[10px] text-[var(--ink-muted)]">
-                  Generuje audio lektora i znaczniki pod napisy karaoke
-                </small>
               </div>
               <input
                 type="checkbox"
@@ -614,7 +602,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
               <div className="grid grid-cols-2 gap-3 pt-1">
                 <div>
                   <label className="text-xs font-bold text-[var(--ink-primary)] block mb-1">
-                    Głos ElevenLabs
+                    Głos lektora
                   </label>
                   <select
                     value={selectedVoice}
@@ -738,17 +726,14 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
           <div className="p-6 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] shadow-sm space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div>
-                <h3 className="text-sm font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
-                  Podgląd 4 kadrów z bazy 3:4 w czasie rzeczywistym
+                <h3 className="text-xs font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
+                  Podgląd kadrów (Baza 3:4 → 9:16, 4:5, 1:1)
                 </h3>
-                <small className="text-xs text-[var(--ink-muted)]">
-                  Jedno źródło 3:4 (Master Baza) bezstratnie kadrowane do 9:16, 4:5 oraz 1:1
-                </small>
               </div>
 
               {/* Upload custom test video */}
               <label className="px-3 py-1.5 rounded-xl text-xs font-bold border border-dashed border-[var(--border-strong)] bg-[var(--bg-subtle)] hover:border-[var(--accent)] cursor-pointer text-[var(--ink-primary)]">
-                <span>↑ Wgraj plik testowy</span>
+                <span>↑ Wgraj własne wideo</span>
                 <input
                   type="file"
                   accept="video/*"

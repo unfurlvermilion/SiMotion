@@ -340,16 +340,11 @@ export default function BatchProductionView() {
       {/* Header bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#dfd5c6] dark:border-[#38302b] pb-6">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold tracking-widest uppercase text-[#c84b31] dark:text-[#e56b4e] mb-1">
-            <span>● Moduł 01</span>
-            <span>·</span>
-            <span>Batch Engine</span>
-          </div>
-          <h2 className="text-2xl lg:text-3xl font-serif text-[#1c1816] dark:text-[#f7f3ec]">
-            Produkcja Masowa & Kolejka Renderu
+          <h2 className="text-2xl font-extrabold tracking-tight text-[#1c1816] dark:text-[#f7f3ec]">
+            Produkcja seryjna (Batch)
           </h2>
-          <p className="text-sm text-[#655a53] dark:text-[#b8aea4] mt-1">
-            Jednoczesne generowanie wariantów dla wielu produktów (MDK), rynków i proporcji ekranu.
+          <p className="text-xs text-[#655a53] dark:text-[#b8aea4] mt-0.5">
+            Generowanie partii wideo z pliku CSV lub SharePointa.
           </p>
         </div>
 
@@ -357,13 +352,12 @@ export default function BatchProductionView() {
           <button
             onClick={fetchSharepointRows}
             className="px-3.5 py-2 text-xs font-medium rounded-lg border border-[#193328] bg-[#e6f4ed] dark:bg-[#193328] text-[#1d6346] dark:text-[#75d9ae] hover:opacity-90 transition-all flex items-center gap-1.5 shadow-sm"
-            title="Wymuś synchronizację z arkuszem SharePoint teraz"
           >
             <span>↻</span>
-            <span>SharePoint Auto-Sync {lastSharePointSync ? `(${lastSharePointSync})` : ""}</span>
+            <span>SharePoint {lastSharePointSync ? `(${lastSharePointSync})` : ""}</span>
           </button>
-          <label className="cursor-pointer px-4 py-2 text-xs font-medium rounded-lg border border-[#dfd5c6] dark:border-[#38302b] bg-white dark:bg-[#211d1a] hover:bg-[#faf7f2] dark:hover:bg-[#292420] text-[#1c1816] dark:text-[#f7f3ec] transition-colors flex items-center gap-2 shadow-sm">
-            <span>↑ Wgraj plik CSV / Excel</span>
+          <label className="cursor-pointer px-3.5 py-2 text-xs font-medium rounded-lg border border-[#dfd5c6] dark:border-[#38302b] bg-white dark:bg-[#211d1a] hover:bg-[#faf7f2] dark:hover:bg-[#292420] text-[#1c1816] dark:text-[#f7f3ec] transition-colors flex items-center gap-2 shadow-sm">
+            <span>↑ Wgraj CSV</span>
             <input
               type="file"
               accept=".csv,.txt"

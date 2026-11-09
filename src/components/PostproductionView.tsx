@@ -116,28 +116,25 @@ export const PostproductionView: React.FC<PostproductionViewProps> = ({
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <span className="text-xs uppercase tracking-widest font-extrabold text-[var(--accent)]">
-            02 / MONTAŻ WIDEO &amp; POSTPRODUKCJA
-          </span>
-          <h1 className="text-3xl font-extrabold tracking-tight mt-1 text-[var(--ink-primary)]">
-            Montaż warstw wideo, napisy karaoke i logo outro.
+          <h1 className="text-2xl font-extrabold tracking-tight text-[var(--ink-primary)]">
+            Montaż wideo
           </h1>
-          <p className="text-sm text-[var(--ink-secondary)]">
-            Montuj warstwy dynamicznie w przeglądarce. Zmiana napisów czy pozycji logo nie zużywa kredytów wideo AI.
+          <p className="text-xs text-[var(--ink-secondary)] mt-0.5">
+            Napisy, animowane logo outro i nakładki marki na wideo.
           </p>
         </div>
         <div className="flex gap-2">
           <button
             onClick={onGoToAssets}
-            className="px-4 py-2 rounded-xl text-xs font-bold border bg-[var(--bg-card)] border-[var(--border-strong)] hover:border-[var(--accent)] text-[var(--ink-primary)]"
+            className="px-3.5 py-2 rounded-xl text-xs font-bold border bg-[var(--bg-card)] border-[var(--border-strong)] hover:border-[var(--accent)] text-[var(--ink-primary)]"
           >
-            Brand Kit &amp; Nakładki ↗
+            Materiały marki ↗
           </button>
           <button
-            onClick={() => showToast("Zsynchronizowano teksty z arkuszem Microsoft Excel Online.")}
-            className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[var(--accent)] shadow-[var(--shadow-pop)] hover:opacity-95"
+            onClick={() => showToast("Zsynchronizowano teksty z arkuszem SharePoint.")}
+            className="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-[var(--accent)] shadow-[var(--shadow-pop)] hover:opacity-95"
           >
-            ↻ Pobierz z Excel Online
+            Pobierz z SharePoint ↻
           </button>
         </div>
       </div>
@@ -146,8 +143,8 @@ export const PostproductionView: React.FC<PostproductionViewProps> = ({
         {/* Controls Column */}
         <div className="lg:col-span-5 space-y-4">
           <div className="p-5 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-4 shadow-sm">
-            <h2 className="text-sm font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
-              Styl i zachowanie napisów
+            <h2 className="text-xs font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
+              Napisy
             </h2>
 
             <div className="grid grid-cols-2 gap-3">
@@ -160,23 +157,23 @@ export const PostproductionView: React.FC<PostproductionViewProps> = ({
                   onChange={(e) => setCaptionMode(e.target.value as any)}
                   className="w-full px-3 py-2 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)]"
                 >
-                  <option value="karaoke">Dynamiczne karaoke (ElevenLabs)</option>
-                  <option value="scene">Statyczne belki sceniczne</option>
+                  <option value="karaoke">Karaoke (synchroniczne)</option>
+                  <option value="scene">Statyczne</option>
                 </select>
               </div>
 
               <div>
                 <label className="text-xs font-bold text-[var(--ink-primary)] block mb-1">
-                  Szablon wizualny
+                  Styl wizualny
                 </label>
                 <select
                   value={postCaptionStyle}
                   onChange={(e) => setPostCaptionStyle(e.target.value as any)}
                   className="w-full px-3 py-2 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)]"
                 >
-                  <option value="bold">Editorial Bold (Duży tekst)</option>
-                  <option value="pill">Ciemna kapsuła (TikTok/Reels)</option>
-                  <option value="minimal">Subtelny Lookbook</option>
+                  <option value="bold">Pogrubione</option>
+                  <option value="pill">Kapsułka z tłem</option>
+                  <option value="minimal">Minimalistyczne</option>
                 </select>
               </div>
             </div>

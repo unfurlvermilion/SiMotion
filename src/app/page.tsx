@@ -126,7 +126,7 @@ export default function SiMotionApp() {
   const toggleTheme = () => {
     const next = theme === "dark" ? "light" : "dark";
     setTheme(next);
-    showToast(`Przełączono na motyw ${next === "dark" ? "ciemny (Obsidian Velvet)" : "jasny (Atelier Ivory)"}.`);
+    showToast(`Przełączono na motyw ${next === "dark" ? "ciemny" : "jasny"}.`);
   };
 
   // Calculations for Single

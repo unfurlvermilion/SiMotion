@@ -95,28 +95,25 @@ export const LocalizationView: React.FC<LocalizationViewProps> = ({ showToast })
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <span className="text-xs uppercase tracking-widest font-extrabold text-[var(--accent)]">
-            05 / TŁUMACZENIA &amp; MICROSOFT EXCEL ONLINE
-          </span>
-          <h1 className="text-3xl font-extrabold tracking-tight mt-1 text-[var(--ink-primary)]">
-            Tłumaczenia &amp; Żywa synchronizacja z arkuszem SharePoint.
+          <h1 className="text-2xl font-extrabold tracking-tight text-[var(--ink-primary)]">
+            Tłumaczenia rynkowe
           </h1>
-          <p className="text-sm text-[var(--ink-secondary)]">
-            Oficjalna matryca 28 rynków Sinsay: edytuj teksty, kontroluj limity znaków na żywo i weryfikuj pokrycie językowe.
+          <p className="text-xs text-[var(--ink-secondary)] mt-0.5">
+            Baza tekstów i haseł dla 28 rynków Sinsay z synchronizacją z arkuszem SharePoint.
           </p>
         </div>
         <div className="flex gap-2">
           <button
             onClick={handlePushToSharePoint}
-            className="px-4 py-2 rounded-xl text-xs font-bold border bg-[var(--bg-card)] border-[var(--border-strong)] hover:border-[var(--accent)] text-[var(--ink-primary)]"
+            className="px-3.5 py-2 rounded-xl text-xs font-bold border bg-[var(--bg-card)] border-[var(--border-strong)] hover:border-[var(--accent)] text-[var(--ink-primary)]"
           >
-            ↑ Wypchnij szkic AI do Excela
+            Wyślij do SharePoint
           </button>
           <button
             onClick={handlePullFromSharePoint}
-            className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[var(--accent)] shadow-[var(--shadow-pop)] hover:opacity-95"
+            className="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-[var(--accent)] shadow-[var(--shadow-pop)] hover:opacity-95"
           >
-            ↻ Synchronizuj z Excel Online
+            Pobierz z SharePoint ↻
           </button>
         </div>
       </div>

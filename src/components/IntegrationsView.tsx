@@ -110,16 +110,11 @@ export default function IntegrationsView() {
       {/* Header bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#dfd5c6] dark:border-[#38302b] pb-6">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold tracking-widest uppercase text-[#c84b31] dark:text-[#e56b4e] mb-1">
-            <span>● Moduł 07</span>
-            <span>·</span>
-            <span>Connectors & API</span>
-          </div>
-          <h2 className="text-2xl lg:text-3xl font-serif text-[#1c1816] dark:text-[#f7f3ec]">
-            Integracje, Klucze API & Arkusz Excel
+          <h2 className="text-2xl font-extrabold tracking-tight text-[#1c1816] dark:text-[#f7f3ec]">
+            Ustawienia API
           </h2>
-          <p className="text-sm text-[#655a53] dark:text-[#b8aea4] mt-1">
-            Zarządzaj połączeniami z Seedance 2.0, ElevenLabs TTS, PCM API oraz dwukierunkową synchronizacją Microsoft Excel Online.
+          <p className="text-xs text-[#655a53] dark:text-[#b8aea4] mt-0.5">
+            Połączenia z Seedance, ElevenLabs, PCM i arkuszem SharePoint.
           </p>
         </div>
 
@@ -134,7 +129,7 @@ export default function IntegrationsView() {
                   : "text-[#655a53] dark:text-[#b8aea4]"
               }`}
             >
-              Tryb Sandbox (Mock)
+              Testowy (Sandbox)
             </button>
             <button
               onClick={() => setConfig((prev) => ({ ...prev, mode: "live" }))}
@@ -144,15 +139,15 @@ export default function IntegrationsView() {
                   : "text-[#655a53] dark:text-[#b8aea4]"
               }`}
             >
-              Tryb Live (Klucze API)
+              Produkcyjny (Live)
             </button>
           </div>
 
           <button
             onClick={handleSave}
-            className="px-5 py-2 text-xs font-medium rounded-lg bg-[#c84b31] dark:bg-[#e56b4e] hover:opacity-90 text-white shadow-sm transition-colors"
+            className="px-4 py-2 text-xs font-bold rounded-lg bg-[#c84b31] dark:bg-[#e56b4e] hover:opacity-90 text-white shadow-sm transition-colors"
           >
-            Zapisz konfigurację
+            Zapisz
           </button>
         </div>
       </div>
@@ -160,23 +155,23 @@ export default function IntegrationsView() {
       {saveSuccess && (
         <div className="p-3 rounded-xl border border-[#1d6346] dark:border-[#75d9ae] bg-[#e6f4ed] dark:bg-[#193328] text-[#1d6346] dark:text-[#75d9ae] text-xs flex items-center gap-2">
           <span>✓</span>
-          <span>Konfiguracja została pomyślnie zapisana w pamięci lokalnej (localStorage).</span>
+          <span>Zapisano ustawienia.</span>
         </div>
       )}
 
       {config.mode === "sandbox" ? (
-        <div className="p-4 rounded-xl border border-[#bfa890] dark:border-[#5c4d42] bg-[#fdf1e1]/50 dark:bg-[#382916]/30 text-xs text-[#8f4f0e] dark:text-[#f5bc7a] flex items-center justify-between">
+        <div className="p-3.5 rounded-xl border border-[#bfa890] dark:border-[#5c4d42] bg-[#fdf1e1]/50 dark:bg-[#382916]/30 text-xs text-[#8f4f0e] dark:text-[#f5bc7a] flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span>ℹ</span>
             <span>
-              <strong>Aktywny Tryb Sandbox:</strong> Wszystkie zapytania do Seedance, ElevenLabs i Excel Online działają w bezpiecznym środowisku symulacyjnym (bez zużycia kredytów i bez opłat).
+              <strong>Tryb testowy:</strong> Zapytania do Seedance i ElevenLabs są symulowane (bez opłat).
             </span>
           </div>
           <button
             onClick={() => setConfig((prev) => ({ ...prev, mode: "live" }))}
-            className="underline hover:no-underline font-medium"
+            className="underline hover:no-underline font-medium text-xs"
           >
-            Przełącz na Live API
+            Przełącz na Live
           </button>
         </div>
       ) : (
