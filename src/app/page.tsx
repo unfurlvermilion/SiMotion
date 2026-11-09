@@ -9,7 +9,6 @@ import { LocalizationView } from "@/components/LocalizationView";
 import BatchProductionView from "@/components/BatchProductionView";
 import ExportView from "@/components/ExportView";
 import IntegrationsView from "@/components/IntegrationsView";
-import AccessGate from "@/components/AccessGate";
 import SharePointSyncBar from "@/components/SharePointSyncBar";
 
 export type ViewTab =
@@ -155,8 +154,7 @@ export default function SiMotionApp() {
   };
 
   return (
-    <AccessGate>
-      <div className="min-h-screen flex flex-col transition-colors duration-200">
+    <div className="min-h-screen flex flex-col transition-colors duration-200">
       {/* TOPBAR */}
       <header className="sticky top-0 z-30 border-b backdrop-blur-md bg-[var(--bg-glass)] border-[var(--border-subtle)]">
         <div className="px-6 py-2.5 flex items-center justify-between gap-4">
@@ -304,6 +302,5 @@ export default function SiMotionApp() {
         </div>
       )}
     </div>
-  </AccessGate>
   );
 }
