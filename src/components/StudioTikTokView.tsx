@@ -37,7 +37,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
   const [duration, setDuration] = useState(10);
 
   // Formats & Smart Crop
-  const [selectedRatios, setSelectedRatios] = useState<string[]>(["9x16", "4x5", "1x1"]);
+  const [selectedRatios, setSelectedRatios] = useState<string[]>(["3x4", "9x16", "4x5", "1x1"]);
   const [cropOffset, setCropOffset] = useState(0); // -50% to +50%
   const [showSafeAreas, setShowSafeAreas] = useState(true);
   const [separateRender, setSeparateRender] = useState(false);
@@ -74,7 +74,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
 
   const handleQuickExportZip = async () => {
     setIsExportingZip(true);
-    showToast("Kompresowanie 3 formatów (9:16, 4:5, 1:1) do archiwum ZIP...");
+    showToast("Kompresowanie bazy 3:4 oraz formatów (9:16, 4:5, 1:1) do archiwum ZIP...");
 
     try {
       const zip = new JSZip();
@@ -97,7 +97,8 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
           file: selectedLogo.filePath,
         },
         formats: [
-          { ratio: "9:16", resolution: "1080x1920", useCase: "TikTok / Reels / Shorts" },
+          { ratio: "3:4", resolution: "1440x1920", useCase: "Master Baza (Moda / E-commerce)" },
+          { ratio: "9:16", resolution: "1080x1920", useCase: "TikTok / Reels / Shorts (Side Crop)" },
           { ratio: "4:5", resolution: "1080x1350", useCase: "Meta Feed Smart Crop" },
           { ratio: "1:1", resolution: "1080x1080", useCase: "Kwadrat / Karuzele" },
         ],
@@ -134,6 +135,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
         try {
           const vRes = await fetch(videoFile);
           const vBlob = await vRes.blob();
+          root.file("video/00_master_3x4_Base.mp4", vBlob);
           root.file("video/01_vertical_9x16_TikTok.mp4", vBlob);
           root.file("video/02_feed_4x5_SmartCrop.mp4", vBlob);
           root.file("video/03_square_1x1_Catalog.mp4", vBlob);
@@ -147,8 +149,9 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
           `AI Engine: ${aiEngine}\n` +
           `Audio: ElevenLabs Voice (${selectedVoice})\n` +
           `Formats included:\n` +
-          `  - 9:16 (1080x1920) TikTok / Reels / Shorts\n` +
-          `  - 4:5 (1080x1350) IG Feed Smart Crop (Offset: ${cropOffset}%)\n` +
+          `  - 3:4 (1440x1920) Master Fashion Base\n` +
+          `  - 9:16 (1080x1920) TikTok / Reels / Shorts (Side Crop Offset: ${cropOffset}%)\n` +
+          `  - 4:5 (1080x1350) IG Feed Smart Crop\n` +
           `  - 1:1 (1080x1080) Square Product Creative\n` +
           `Burned-in Subtitles Font: Euclid Circular B (Bold 700)\n` +
           `Logo Outro Animation: ${selectedLogo.name} (${selectedLogo.durationSec}s)\n` +
@@ -304,13 +307,13 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <span className="text-xs uppercase tracking-widest font-extrabold text-[var(--accent)]">
-            01 / STUDIO TIKTOK &amp; REELS
+            01 / STUDIO WIDEO &amp; TIKTOK
           </span>
           <h1 className="text-3xl font-extrabold tracking-tight mt-1 text-[var(--ink-primary)]">
             Jedna kreacja. Trzy kadry. Wszystkie rynki.
           </h1>
           <p className="text-sm text-[var(--ink-secondary)]">
-            Generuj bazowe wideo 9:16 i automatycznie kadruj do 4:5 oraz 1:1 bez ponoszenia potrójnych kosztów API.
+            Generuj bazowe wideo 3:4 (Golden Ratio dla mody) i bezstratnie kadruj do 9:16 (rolki), 4:5 (feed) oraz 1:1 (karuzela).
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -474,15 +477,16 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
           <div className="p-5 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-4 shadow-sm">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
-                2. Formaty i Smart Crop
+                2. Format bazowy 3:4 i Smart Crop
               </h2>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--accent-soft)] text-[var(--accent)]">
-                1 Generacja = 3 Kadry
+                Baza 3:4 = 3 Formaty bez straty
               </span>
             </div>
 
             <div className="flex flex-wrap gap-2">
               {[
+                ["3x4", "3:4 · Master Baza (Moda)"],
                 ["9x16", "9:16 · TikTok / Reels"],
                 ["4x5", "4:5 · Feed IG"],
                 ["1x1", "1:1 · Kwadrat"],
@@ -521,6 +525,9 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                 <span>Centrum (0%)</span>
                 <span>Prawo (+40%)</span>
               </div>
+              <p className="text-[10px] text-[var(--ink-muted)] mt-1.5 leading-relaxed">
+                Kadrowanie z bazy 3:4 odcina jedynie tło po bokach dla 9:16 oraz nieznacznie góra/dół dla 1:1. Sylwetka i produkt pozostają w pełni wyeksponowane.
+              </p>
             </div>
 
             <div className="flex items-center justify-between py-2 border-t border-[var(--border-subtle)]">
@@ -725,16 +732,16 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
           </div>
         </div>
 
-        {/* Right Preview Column: 3-Frame Live Display & Playback Controls */}
+        {/* Right Preview Column: 4-Frame Live Display (3:4 Master + 3 Smart Crops) & Playback Controls */}
         <div className="lg:col-span-7 space-y-5">
           <div className="p-6 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] shadow-sm space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div>
                 <h3 className="text-sm font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
-                  Podgląd 3 formatów w czasie rzeczywistym
+                  Podgląd 4 kadrów z bazy 3:4 w czasie rzeczywistym
                 </h3>
                 <small className="text-xs text-[var(--ink-muted)]">
-                  Jedno źródło 9:16 automatycznie kadrowane do 4:5 oraz 1:1
+                  Jedno źródło 3:4 (Master Baza) bezstratnie kadrowane do 9:16, 4:5 oraz 1:1
                 </small>
               </div>
 
@@ -751,9 +758,9 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
             </div>
 
             {/* Stage Container */}
-            <div className="p-6 rounded-2xl bg-gradient-to-b from-[var(--champagne)] to-[var(--bg-elevated)] border border-[var(--border-subtle)] grid grid-cols-3 gap-3 place-items-center min-h-[360px] overflow-hidden">
-              {/* 1. 9:16 Frame */}
-              <div className="w-full max-w-[140px] aspect-[9/16] rounded-2xl border-4 border-black bg-black p-2 flex flex-col justify-between text-center relative overflow-hidden shadow-2xl">
+            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-b from-[var(--champagne)] to-[var(--bg-elevated)] border border-[var(--border-subtle)] grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 place-items-center min-h-[360px] overflow-hidden">
+              {/* 1. 3:4 MASTER BAZA */}
+              <div className="w-full max-w-[155px] aspect-[3/4] rounded-2xl border-4 border-[#c84b31] bg-black p-2 flex flex-col justify-between text-center relative overflow-hidden shadow-2xl ring-2 ring-[#c84b31]/30">
                 {videoFile ? (
                   <video
                     ref={videoRef}
@@ -773,20 +780,21 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                 )}
 
                 <div className="relative z-10 flex justify-between items-center text-[8px] font-bold text-white">
-                  <span className="px-1.5 py-0.5 rounded bg-black/70">9:16 BAZA</span>
-                  <span className="px-1.5 py-0.5 rounded bg-[var(--accent)]">
+                  <span className="px-1.5 py-0.5 rounded bg-[#c84b31] text-white">3:4 MASTER</span>
+                  <span className="px-1.5 py-0.5 rounded bg-black/70">
                     {currentTime.toFixed(1)}s
                   </span>
                 </div>
 
-                {/* TikTok UI Overlay Mockup */}
+                {/* Safe Area Guides showing crop lines for 9:16 and 1:1 */}
                 {showSafeAreas && (
-                  <div className="absolute inset-2 border border-dashed border-amber-300/80 rounded-xl pointer-events-none flex flex-col justify-between p-1">
-                    <span className="text-[7px] text-amber-200 self-start bg-black/50 px-1 rounded">
-                      Safe Area Top
-                    </span>
-                    <span className="text-[7px] text-amber-200 self-end bg-black/50 px-1 rounded">
-                      Safe Area Bottom
+                  <div className="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between p-1">
+                    {/* Vertical dashed lines for 9:16 crop boundaries */}
+                    <div className="absolute inset-y-0 left-[12.5%] right-[12.5%] border-x border-dashed border-amber-300/70" />
+                    {/* Horizontal dashed lines for 1:1 crop boundaries */}
+                    <div className="absolute inset-x-0 top-[12.5%] bottom-[12.5%] border-y border-dashed border-sky-300/60" />
+                    <span className="text-[6.5px] text-amber-200 self-start bg-black/60 px-1 rounded z-20">
+                      Kolumny: 9:16 | Wiersze: 1:1
                     </span>
                   </div>
                 )}
@@ -806,14 +814,14 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                 )}
 
                 <div className="relative z-10">
-                  <p className="text-[10px] font-bold text-white leading-tight drop-shadow-md font-sinsay tracking-wide">
+                  <p className="text-[9px] font-bold text-white leading-tight drop-shadow-md font-sinsay tracking-wide">
                     Nowa kolekcja<br />na Twój sposób
                   </p>
                 </div>
               </div>
 
-              {/* 2. 4:5 Frame (Smart Crop with offset) */}
-              <div className="w-full max-w-[170px] aspect-[4/5] rounded-2xl border-4 border-black bg-black p-2 flex flex-col justify-between text-center relative overflow-hidden shadow-2xl">
+              {/* 2. 9:16 TikTok / Reels Frame (Side Crop with offset) */}
+              <div className="w-full max-w-[130px] aspect-[9/16] rounded-2xl border-4 border-black bg-black p-2 flex flex-col justify-between text-center relative overflow-hidden shadow-2xl">
                 {videoFile ? (
                   <video
                     src={videoFile}
@@ -821,13 +829,74 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                     muted
                     playsInline
                     className="absolute inset-0 w-full h-full object-cover transition-transform duration-150"
-                    style={{ transform: `translateX(${cropOffset * 0.8}%)` }}
+                    style={{ transform: `translateX(${cropOffset * 0.9}%)` }}
                   />
                 ) : (
                   <div
                     className="absolute inset-0 bg-gradient-to-tr from-[#3a151e] via-[#6e1d2f] to-[#c84b31] transition-transform duration-150"
                     style={{
-                      transform: `translateX(${cropOffset * 0.8}%) scale(${
+                      transform: `translateX(${cropOffset * 0.9}%) scale(${
+                        1 + Math.sin(currentTime) * 0.05
+                      })`,
+                    }}
+                  >
+                    <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_50%_40%,#ffeedd_0%,transparent_60%)]" />
+                  </div>
+                )}
+
+                <div className="relative z-10 flex justify-between items-center text-[8px] font-bold text-white">
+                  <span className="px-1.5 py-0.5 rounded bg-black/70">9:16 CROP</span>
+                  <span className="px-1.5 py-0.5 rounded bg-[var(--accent)]">TikTok</span>
+                </div>
+
+                {showSafeAreas && (
+                  <div className="absolute inset-2 border border-dashed border-amber-300/80 rounded-xl pointer-events-none flex flex-col justify-between p-1">
+                    <span className="text-[6.5px] text-amber-200 self-start bg-black/50 px-1 rounded">
+                      Safe Top
+                    </span>
+                    <span className="text-[6.5px] text-amber-200 self-end bg-black/50 px-1 rounded">
+                      Safe Bottom
+                    </span>
+                  </div>
+                )}
+
+                {/* Sinsay Animated Logo Outro Overlay */}
+                {isLogoOutroEnabled && (previewOutroForce || (duration > 0 && currentTime >= Math.max(0, duration - selectedLogo.durationSec))) && (
+                  <div className="absolute inset-0 z-30 bg-black/90 flex flex-col items-center justify-center p-3 transition-all">
+                    <img
+                      src={selectedLogo.gifPath}
+                      alt={selectedLogo.name}
+                      className="max-h-[50%] max-w-[80%] object-contain drop-shadow-xl"
+                    />
+                    <span className="text-[7px] font-mono tracking-widest text-[#e56b4e] uppercase block mt-1">
+                      {selectedLogo.name}
+                    </span>
+                  </div>
+                )}
+
+                <div className="relative z-10">
+                  <p className="text-[9px] font-bold text-white leading-tight drop-shadow-md font-sinsay tracking-wide">
+                    Nowa kolekcja<br />na Twój sposób
+                  </p>
+                </div>
+              </div>
+
+              {/* 3. 4:5 Frame (Meta Feed Smart Crop) */}
+              <div className="w-full max-w-[145px] aspect-[4/5] rounded-2xl border-4 border-black bg-black p-2 flex flex-col justify-between text-center relative overflow-hidden shadow-2xl">
+                {videoFile ? (
+                  <video
+                    src={videoFile}
+                    loop
+                    muted
+                    playsInline
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-150"
+                    style={{ transform: `translateX(${cropOffset * 0.4}%)` }}
+                  />
+                ) : (
+                  <div
+                    className="absolute inset-0 bg-gradient-to-tr from-[#3a151e] via-[#6e1d2f] to-[#c84b31] transition-transform duration-150"
+                    style={{
+                      transform: `translateX(${cropOffset * 0.4}%) scale(${
                         1 + Math.sin(currentTime) * 0.05
                       })`,
                     }}
@@ -838,7 +907,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
 
                 <div className="relative z-10 flex justify-between items-center text-[8px] font-bold text-white">
                   <span className="px-1.5 py-0.5 rounded bg-black/70">4:5 CROP</span>
-                  <span className="px-1.5 py-0.5 rounded bg-[var(--accent)]">Feed</span>
+                  <span className="px-1.5 py-0.5 rounded bg-[var(--accent)]">Feed IG</span>
                 </div>
 
                 {showSafeAreas && (
@@ -860,14 +929,14 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                 )}
 
                 <div className="relative z-10">
-                  <p className="text-[10px] font-bold text-white leading-tight drop-shadow-md font-sinsay tracking-wide">
+                  <p className="text-[9px] font-bold text-white leading-tight drop-shadow-md font-sinsay tracking-wide">
                     Nowa kolekcja<br />na Twój sposób
                   </p>
                 </div>
               </div>
 
-              {/* 3. 1:1 Frame (Smart Crop with offset) */}
-              <div className="w-full max-w-[180px] aspect-square rounded-2xl border-4 border-black bg-black p-2 flex flex-col justify-between text-center relative overflow-hidden shadow-2xl">
+              {/* 4. 1:1 Frame (Catalog / Square Carousel) */}
+              <div className="w-full max-w-[150px] aspect-square rounded-2xl border-4 border-black bg-black p-2 flex flex-col justify-between text-center relative overflow-hidden shadow-2xl">
                 {videoFile ? (
                   <video
                     src={videoFile}
@@ -875,15 +944,13 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                     muted
                     playsInline
                     className="absolute inset-0 w-full h-full object-cover transition-transform duration-150"
-                    style={{ transform: `translateX(${cropOffset * 1.1}%)` }}
+                    style={{ transform: `scale(1.05)` }}
                   />
                 ) : (
                   <div
                     className="absolute inset-0 bg-gradient-to-tr from-[#3a151e] via-[#6e1d2f] to-[#c84b31] transition-transform duration-150"
                     style={{
-                      transform: `translateX(${cropOffset * 1.1}%) scale(${
-                        1 + Math.sin(currentTime) * 0.05
-                      })`,
+                      transform: `scale(${1 + Math.sin(currentTime) * 0.05})`,
                     }}
                   >
                     <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_50%_40%,#ffeedd_0%,transparent_60%)]" />
@@ -914,7 +981,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                 )}
 
                 <div className="relative z-10">
-                  <p className="text-[10px] font-bold text-white leading-tight drop-shadow-md font-sinsay tracking-wide">
+                  <p className="text-[9px] font-bold text-white leading-tight drop-shadow-md font-sinsay tracking-wide">
                     Nowa kolekcja<br />na Twój sposób
                   </p>
                 </div>
