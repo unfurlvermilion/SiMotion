@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { BrandAsset } from "@/app/page";
+import { SocialSafeAreaOverlay } from "./SocialSafeAreaOverlay";
 
 interface PostproductionViewProps {
   postCaptions: Record<string, string>;
@@ -40,6 +41,7 @@ export const PostproductionView: React.FC<PostproductionViewProps> = ({
   const [logoPosition, setLogoPosition] = useState<"top-left" | "top-right" | "bottom-center">("top-left");
   const [selectedLangs, setSelectedLangs] = useState<string[]>(["pl-PL", "en-US", "de-DE"]);
   const [uploadedVideo, setUploadedVideo] = useState<string | null>(null);
+  const [showSafeAreas, setShowSafeAreas] = useState(true);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const activeText = postCaptions[postPreviewLang] || "Nowa kolekcja na Twój sposób";
@@ -353,7 +355,22 @@ export const PostproductionView: React.FC<PostproductionViewProps> = ({
         </div>
 
         {/* Live Preview Display */}
-        <div className="lg:col-span-7 flex flex-col items-center justify-center p-8 rounded-3xl bg-gradient-to-b from-[var(--champagne)] to-[var(--bg-elevated)] border border-[var(--border-subtle)] shadow-sm">
+        <div className="lg:col-span-7 flex flex-col items-center justify-center p-8 rounded-3xl bg-gradient-to-b from-[var(--champagne)] to-[var(--bg-elevated)] border border-[var(--border-subtle)] shadow-sm space-y-4">
+          <div className="flex items-center justify-between w-full max-w-[260px]">
+            <span className="text-xs font-bold text-[var(--ink-secondary)]">
+              Podgląd 9:16
+            </span>
+            <label className="flex items-center gap-1.5 cursor-pointer text-xs font-bold text-[var(--ink-primary)]">
+              <input
+                type="checkbox"
+                checked={showSafeAreas}
+                onChange={(e) => setShowSafeAreas(e.target.checked)}
+                className="w-3.5 h-3.5 accent-[var(--accent)]"
+              />
+              <span>Strefy TikTok (2025/2026)</span>
+            </label>
+          </div>
+
           <div className="w-[240px] aspect-[9/16] rounded-3xl border-4 border-black bg-black p-4 flex flex-col justify-between text-center relative overflow-hidden shadow-2xl">
             {uploadedVideo ? (
               <video
@@ -372,6 +389,9 @@ export const PostproductionView: React.FC<PostproductionViewProps> = ({
                 <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_50%_40%,#ffeedd_0%,transparent_60%)]" />
               </div>
             )}
+
+            {/* TikTok Safe Area Overlay */}
+            {showSafeAreas && <SocialSafeAreaOverlay format="tiktok-9x16" />}
 
             {/* Logo Layer with dynamic position & animation */}
             {postLogoAnim !== "none" && (
@@ -405,8 +425,8 @@ export const PostproductionView: React.FC<PostproductionViewProps> = ({
               </div>
             )}
 
-            {/* Captions Layer */}
-            <div className={`relative z-10 pb-4 ${fontClass}`}>
+            {/* Captions Layer - safely positioned within Safe Zone when enabled */}
+            <div className={`relative z-10 transition-all duration-200 ${showSafeAreas ? "mb-14" : "pb-4"} ${fontClass}`}>
               {captionMode === "karaoke" ? (
                 <div
                   className={`flex flex-wrap justify-center gap-1.5 text-base ${weightClass} ${

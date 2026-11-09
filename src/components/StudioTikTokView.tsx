@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import JSZip from "jszip";
 import SinsayPhraseAssistant from "./SinsayPhraseAssistant";
 import AnimatedLogoModal, { SelectedLogoConfig, LOGO_VARIANTS } from "./AnimatedLogoModal";
+import { SocialSafeAreaOverlay } from "./SocialSafeAreaOverlay";
 
 export interface StoryboardScene {
   id: string;
@@ -533,10 +534,10 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
             <div className="flex items-center justify-between py-2 border-t border-[var(--border-subtle)]">
               <div>
                 <b className="text-xs block text-[var(--ink-primary)]">
-                  Strefy bezpieczne (Safe Areas)
+                  Strefy bezpieczne (TikTok &amp; Meta 2025/2026)
                 </b>
                 <small className="text-[10px] text-[var(--ink-muted)]">
-                  Nakłada marginesy interfejsu TikTok / Reels (ikony, opis, dźwięk)
+                  Oficjalne pole ochronne UI: góra 130 px, dół 484 px, prawa 140 px (podpis, CTA, dźwięk i ikony)
                 </small>
               </div>
               <input
@@ -787,17 +788,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                 </div>
 
                 {/* Safe Area Guides showing crop lines for 9:16 and 1:1 */}
-                {showSafeAreas && (
-                  <div className="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between p-1">
-                    {/* Vertical dashed lines for 9:16 crop boundaries */}
-                    <div className="absolute inset-y-0 left-[12.5%] right-[12.5%] border-x border-dashed border-amber-300/70" />
-                    {/* Horizontal dashed lines for 1:1 crop boundaries */}
-                    <div className="absolute inset-x-0 top-[12.5%] bottom-[12.5%] border-y border-dashed border-sky-300/60" />
-                    <span className="text-[6.5px] text-amber-200 self-start bg-black/60 px-1 rounded z-20">
-                      Kolumny: 9:16 | Wiersze: 1:1
-                    </span>
-                  </div>
-                )}
+                {showSafeAreas && <SocialSafeAreaOverlay format="master-3x4" />}
 
                 {/* Sinsay Animated Logo Outro Overlay */}
                 {isLogoOutroEnabled && (previewOutroForce || (duration > 0 && currentTime >= Math.max(0, duration - selectedLogo.durationSec))) && (
@@ -813,7 +804,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                   </div>
                 )}
 
-                <div className="relative z-10">
+                <div className={`relative z-10 transition-all ${showSafeAreas ? "mb-10" : ""}`}>
                   <p className="text-[9px] font-bold text-white leading-tight drop-shadow-md font-sinsay tracking-wide">
                     Nowa kolekcja<br />na Twój sposób
                   </p>
@@ -849,16 +840,8 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                   <span className="px-1.5 py-0.5 rounded bg-[var(--accent)]">TikTok</span>
                 </div>
 
-                {showSafeAreas && (
-                  <div className="absolute inset-2 border border-dashed border-amber-300/80 rounded-xl pointer-events-none flex flex-col justify-between p-1">
-                    <span className="text-[6.5px] text-amber-200 self-start bg-black/50 px-1 rounded">
-                      Safe Top
-                    </span>
-                    <span className="text-[6.5px] text-amber-200 self-end bg-black/50 px-1 rounded">
-                      Safe Bottom
-                    </span>
-                  </div>
-                )}
+                {/* TikTok 9:16 In-Feed Safe Area Overlay (2025/2026) */}
+                {showSafeAreas && <SocialSafeAreaOverlay format="tiktok-9x16" />}
 
                 {/* Sinsay Animated Logo Outro Overlay */}
                 {isLogoOutroEnabled && (previewOutroForce || (duration > 0 && currentTime >= Math.max(0, duration - selectedLogo.durationSec))) && (
@@ -874,7 +857,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                   </div>
                 )}
 
-                <div className="relative z-10">
+                <div className={`relative z-10 transition-all ${showSafeAreas ? "mb-10" : ""}`}>
                   <p className="text-[9px] font-bold text-white leading-tight drop-shadow-md font-sinsay tracking-wide">
                     Nowa kolekcja<br />na Twój sposób
                   </p>
@@ -910,9 +893,8 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                   <span className="px-1.5 py-0.5 rounded bg-[var(--accent)]">Feed IG</span>
                 </div>
 
-                {showSafeAreas && (
-                  <div className="absolute inset-2 border border-dashed border-amber-300/80 rounded-xl pointer-events-none" />
-                )}
+                {/* Meta Feed 4:5 Safe Area Overlay */}
+                {showSafeAreas && <SocialSafeAreaOverlay format="feed-4x5" />}
 
                 {/* Sinsay Animated Logo Outro Overlay */}
                 {isLogoOutroEnabled && (previewOutroForce || (duration > 0 && currentTime >= Math.max(0, duration - selectedLogo.durationSec))) && (
@@ -928,7 +910,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                   </div>
                 )}
 
-                <div className="relative z-10">
+                <div className={`relative z-10 transition-all ${showSafeAreas ? "mb-10" : ""}`}>
                   <p className="text-[9px] font-bold text-white leading-tight drop-shadow-md font-sinsay tracking-wide">
                     Nowa kolekcja<br />na Twój sposób
                   </p>
@@ -962,9 +944,8 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                   <span className="px-1.5 py-0.5 rounded bg-[var(--accent)]">Kwadrat</span>
                 </div>
 
-                {showSafeAreas && (
-                  <div className="absolute inset-2 border border-dashed border-amber-300/80 rounded-xl pointer-events-none" />
-                )}
+                {/* Square 1:1 Safe Area Overlay */}
+                {showSafeAreas && <SocialSafeAreaOverlay format="square-1x1" />}
 
                 {/* Sinsay Animated Logo Outro Overlay */}
                 {isLogoOutroEnabled && (previewOutroForce || (duration > 0 && currentTime >= Math.max(0, duration - selectedLogo.durationSec))) && (
@@ -980,7 +961,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                   </div>
                 )}
 
-                <div className="relative z-10">
+                <div className={`relative z-10 transition-all ${showSafeAreas ? "mb-10" : ""}`}>
                   <p className="text-[9px] font-bold text-white leading-tight drop-shadow-md font-sinsay tracking-wide">
                     Nowa kolekcja<br />na Twój sposób
                   </p>
