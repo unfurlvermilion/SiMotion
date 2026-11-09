@@ -161,7 +161,7 @@ export default function SiMotionApp() {
       {/* TOPBAR */}
       <header className="sticky top-0 z-30 border-b backdrop-blur-md bg-[var(--bg-glass)] border-[var(--border-subtle)]">
         <div className="px-6 py-2.5 flex items-center justify-between gap-4">
-          {/* Logo & Product Code */}
+          {/* Logo */}
           <div className="flex items-center gap-3 shrink-0">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[var(--accent)] to-[var(--burgundy)] text-white font-extrabold text-base grid place-items-center shadow-[var(--shadow-pop)]">
               S
@@ -174,32 +174,28 @@ export default function SiMotionApp() {
                 FASHION &amp; VIDEO STUDIO
               </small>
             </div>
-            <span className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-[var(--ink-secondary)]">
-              <span className="w-1.5 h-1.5 rounded-full bg-[var(--status-ok-ink)] shadow-[0_0_0_2px_var(--status-ok-bg)]" />
-              KR-042 · {activeTab === "local" ? "TŁUMACZENIA" : activeTab.toUpperCase()}
-            </span>
           </div>
 
-          {/* Centered Navigation Bar */}
-          <div className="flex-1 flex justify-center px-2 min-w-0">
-            <nav className="flex items-center gap-1 p-1 rounded-full overflow-x-auto max-w-full bg-[var(--bg-elevated)] border border-[var(--border-subtle)] shadow-xs">
+          {/* Centered Navigation Bar — cleanly fitted without horizontal scroll */}
+          <div className="flex-1 flex justify-center px-2">
+            <nav className="flex items-center gap-1 p-1 rounded-full bg-[var(--bg-elevated)] border border-[var(--border-subtle)] shadow-xs">
               {(
                 [
                   ["vision", "Pulpit"],
                   ["single", "Studio TikTok"],
-                  ["batch", "Produkcja batchowa"],
+                  ["batch", "Batch"],
                   ["post", "Napisy i logo"],
                   ["assets", "Materiały"],
-                  ["static", "Grafiki statyczne"],
+                  ["static", "Grafiki"],
                   ["local", "Tłumaczenia"],
-                  ["export", "Eksport i paczki"],
-                  ["integrations", "Integracje & API"],
+                  ["export", "Eksport"],
+                  ["integrations", "Integracje"],
                 ] as const
               ).map(([key, label]) => (
                 <button
                   key={key}
                   onClick={() => setActiveTab(key)}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
                     activeTab === key
                       ? "bg-[var(--bg-card)] text-[var(--ink-primary)] shadow-sm font-bold border border-[var(--border-strong)]"
                       : "text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] hover:bg-[var(--bg-card)]"
@@ -224,11 +220,8 @@ export default function SiMotionApp() {
               title="Przełącz motyw"
             >
               <span>{theme === "dark" ? "☀" : "☾"}</span>
-              <span className="hidden sm:inline">{theme === "dark" ? "Jasny" : "Ciemny"}</span>
+              <span>{theme === "dark" ? "Jasny" : "Ciemny"}</span>
             </button>
-            <div className="w-8 h-8 rounded-full grid place-items-center bg-[var(--burgundy)] text-white text-xs font-bold border-2 border-[var(--champagne)] shrink-0">
-              SM
-            </div>
           </div>
         </div>
       </header>

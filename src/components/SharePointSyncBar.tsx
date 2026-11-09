@@ -93,7 +93,7 @@ export default function SharePointSyncBar({ onSyncComplete }: SharePointSyncBarP
         <button
           onClick={() => setIsSettingsOpen(true)}
           className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border border-[#dfd5c6] dark:border-[#38302b] bg-white dark:bg-[#211d1a] hover:border-[#c84b31] dark:hover:border-[#e56b4e] transition-colors shadow-xs"
-          title="Kliknij, aby skonfigurować połączenie ze skoroszytem SharePoint"
+          title="Kliknij, aby otworzyć menu i ustawienia połączenia ze skoroszytem SharePoint"
         >
           <span
             className={`w-2 h-2 rounded-full shrink-0 ${
@@ -107,23 +107,10 @@ export default function SharePointSyncBar({ onSyncComplete }: SharePointSyncBarP
           <span className="text-[#1c1816] dark:text-[#f7f3ec] font-semibold text-xs">
             SharePoint
           </span>
-          <span className="text-[#655a53] dark:text-[#b8aea4] font-mono text-[11px] hidden 2xl:inline">
-            {isSyncing ? "..." : lastSyncTime || "Auto"}
-          </span>
           <span className="text-[10px] text-[#877b72] dark:text-[#8e8379]">
             ⚙
           </span>
         </button>
-
-        <a
-          href={sharepointUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="hidden 2xl:inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border border-[#dfd5c6] dark:border-[#38302b] bg-white dark:bg-[#211d1a] hover:bg-[#faf7f2] dark:hover:bg-[#292420] text-[#1c1816] dark:text-[#f7f3ec] transition-colors"
-          title="Otwórz plik Sinsay_TRANSLATIONS.xlsx w SharePoint w nowej karcie"
-        >
-          <span>Arkusz ↗</span>
-        </a>
 
         <button
           onClick={triggerSync}
@@ -162,6 +149,26 @@ export default function SharePointSyncBar({ onSyncComplete }: SharePointSyncBarP
             </div>
 
             <div className="space-y-4 text-xs">
+              {/* Direct Open Link in SharePoint */}
+              <div className="p-3 rounded-xl border border-[#193328] bg-[#193328]/30 flex items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <p className="font-semibold text-[#75d9ae] text-xs">
+                    Arkusz produkcyjny Sinsay_TRANSLATIONS.xlsx
+                  </p>
+                  <p className="text-[10px] text-[#b8aea4]">
+                    Otwórz bieżący skoroszyt bezpośrednio w portalu Microsoft SharePoint w nowej karcie
+                  </p>
+                </div>
+                <a
+                  href={sharepointUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3.5 py-1.5 rounded-lg bg-[#193328] hover:bg-[#1d6346] border border-[#75d9ae]/40 text-white font-bold text-xs transition-colors whitespace-nowrap flex items-center gap-1 shadow-sm"
+                >
+                  <span>Otwórz arkusz ↗</span>
+                </a>
+              </div>
+
               <div className="space-y-1.5">
                 <label className="text-[#b8aea4] block font-medium">
                   Link do skoroszytu Excel na SharePoint / OneDrive:
