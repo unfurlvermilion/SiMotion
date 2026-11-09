@@ -182,7 +182,7 @@ export default function SiMotionApp() {
                 [
                   ["single", "Studio TikTok"],
                   ["batch", "Batch"],
-                  ["post", "Napisy i logo"],
+                  ["post", "Montaż wideo"],
                   ["assets", "Materiały"],
                   ["static", "Grafiki"],
                   ["local", "Tłumaczenia"],

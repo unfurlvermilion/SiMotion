@@ -115,10 +115,10 @@ export const PostproductionView: React.FC<PostproductionViewProps> = ({
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <span className="text-xs uppercase tracking-widest font-extrabold text-[var(--accent)]">
-            02 / POSTPRODUKCJA &amp; WARSTWY NAPISÓW
+            02 / MONTAŻ WIDEO &amp; POSTPRODUKCJA
           </span>
           <h1 className="text-3xl font-extrabold tracking-tight mt-1 text-[var(--ink-primary)]">
-            Napisy karaoke, animacja logo i nakładki marki.
+            Montaż warstw wideo, napisy karaoke i logo outro.
           </h1>
           <p className="text-sm text-[var(--ink-secondary)]">
             Montuj warstwy dynamicznie w przeglądarce. Zmiana napisów czy pozycji logo nie zużywa kredytów wideo AI.

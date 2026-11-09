@@ -326,7 +326,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
             onClick={onProceedToPost}
             className="px-4 py-2 rounded-xl text-xs font-bold border bg-[var(--bg-card)] border-[var(--border-strong)] hover:border-[var(--accent)] text-[var(--ink-primary)]"
           >
-            Przekaż do Napisów i logo →
+            Przejdź do montażu wideo →
           </button>
           <button
             onClick={() =>
