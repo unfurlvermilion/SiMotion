@@ -13,7 +13,6 @@ import AccessGate from "@/components/AccessGate";
 import SharePointSyncBar from "@/components/SharePointSyncBar";
 
 export type ViewTab =
-  | "vision"
   | "single"
   | "batch"
   | "post"
@@ -40,7 +39,7 @@ export interface BrandAsset {
 }
 
 export default function SiMotionApp() {
-  const [activeTab, setActiveTab] = useState<ViewTab>("vision");
+  const [activeTab, setActiveTab] = useState<ViewTab>("single");
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -181,7 +180,6 @@ export default function SiMotionApp() {
             <nav className="flex items-center gap-1 p-1 rounded-full bg-[var(--bg-elevated)] border border-[var(--border-subtle)] shadow-xs">
               {(
                 [
-                  ["vision", "Pulpit"],
                   ["single", "Studio TikTok"],
                   ["batch", "Batch"],
                   ["post", "Napisy i logo"],
@@ -228,110 +226,7 @@ export default function SiMotionApp() {
 
       {/* MAIN CONTAINER */}
       <main className="w-full max-w-[1600px] mx-auto p-6 md:p-8 flex-1">
-        {/* VIEW 1: PULPIT */}
-        {activeTab === "vision" && (
-          <div className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-              <div>
-                <span className="text-xs uppercase tracking-widest font-extrabold text-[var(--accent)]">
-                  ✦ ATELIER MOTION / CENTRUM PRODUKCJI
-                </span>
-                <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight mt-1 text-[var(--ink-primary)]">
-                  Kreacje wideo i lookbooki w jednym procesie.
-                </h1>
-                <p className="text-sm mt-1 text-[var(--ink-secondary)] max-w-2xl">
-                  Od packshotów PCM i generacji AI (Seedance/Higgsfield), przez montaż w przeglądarce, po dwukierunkową synchronizację z Microsoft Excel Online.
-                </p>
-              </div>
-              <div className="flex items-center gap-2.5">
-                <button
-                  onClick={() => {
-                    setActiveTab("local");
-                    showToast("Zsynchronizowano z tabelą Excel Online.");
-                  }}
-                  className="px-4 py-2 rounded-xl text-xs font-bold border bg-[var(--bg-card)] border-[var(--border-strong)] hover:border-[var(--accent)] text-[var(--ink-primary)]"
-                >
-                  Synchronizuj Excel Online ↻
-                </button>
-                <button
-                  onClick={() => setActiveTab("single")}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[var(--accent)] to-[var(--burgundy)] shadow-[var(--shadow-pop)] hover:opacity-95"
-                >
-                  ＋ Nowa kreacja wideo
-                </button>
-              </div>
-            </div>
-
-            {/* Campaign Banner */}
-            <div className="p-8 rounded-3xl border relative overflow-hidden bg-gradient-to-r from-[var(--bg-elevated)] to-[var(--bg-card)] border-[var(--border-strong)]">
-              <div className="max-w-xl relative z-10 space-y-3">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-[var(--accent-soft)] text-[var(--accent)]">
-                  <span>●</span> AKTYWNY PROJEKT KR-042 · JESIEŃ/ZIMA 2026
-                </div>
-                <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-[var(--ink-primary)]">
-                  Jedwab &amp; Kaszmir — Kolekcja Kapsułowa
-                </h2>
-                <p className="text-sm text-[var(--ink-secondary)]">
-                  Jedna generacja bazowa 9:16 ze Smart Cropem do 4:5 i 1:1. Zmniejszono koszt wywołań wideo AI o 66%.
-                </p>
-                <div className="flex flex-wrap gap-2 pt-2">
-                  <span className="px-3 py-1 rounded-full text-xs font-bold border bg-[var(--bg-card)] border-[var(--border-strong)] text-[var(--ink-primary)]">
-                    MDK: 001KR-83X
-                  </span>
-                  <span className="px-3 py-1 rounded-full text-xs font-bold border bg-[var(--bg-card)] border-[var(--border-strong)] text-[var(--ink-primary)]">
-                    Silnik: Seedance 2.0
-                  </span>
-                  <span className="px-3 py-1 rounded-full text-xs font-bold border bg-[var(--bg-card)] border-[var(--border-strong)] text-[var(--ink-primary)]">
-                    Lektor: ElevenLabs
-                  </span>
-                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-[var(--status-ok-bg)] text-[var(--status-ok-ink)]">
-                    Oszczędność API: −66%
-                  </span>
-                </div>
-                <div className="pt-2 flex gap-3">
-                  <button
-                    onClick={() => setActiveTab("single")}
-                    className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[var(--accent)] hover:opacity-95"
-                  >
-                    Otwórz Studio TikTok ↗
-                  </button>
-                  <button
-                    onClick={() => setActiveTab("post")}
-                    className="px-4 py-2 rounded-xl text-xs font-bold border bg-[var(--bg-card)] border-[var(--border-strong)] hover:border-[var(--accent)] text-[var(--ink-primary)]"
-                  >
-                    Montaż napisów i logo
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick KPI */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="p-5 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)]">
-                <div className="text-xs uppercase font-extrabold text-[var(--ink-muted)]">Aktywne warianty</div>
-                <div className="text-3xl font-extrabold mt-1 text-[var(--ink-primary)]">06 MP4</div>
-                <div className="text-xs text-[var(--ink-secondary)] mt-1">3 formaty × 2 języki</div>
-              </div>
-              <div className="p-5 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)]">
-                <div className="text-xs uppercase font-extrabold text-[var(--ink-muted)]">Kolejka Batchowa</div>
-                <div className="text-3xl font-extrabold mt-1 text-[var(--ink-primary)]">03 MDK</div>
-                <div className="text-xs text-[var(--ink-secondary)] mt-1">Połączenie z PCM API</div>
-              </div>
-              <div className="p-5 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)]">
-                <div className="text-xs uppercase font-extrabold text-[var(--ink-muted)]">Rynki językowe</div>
-                <div className="text-3xl font-extrabold mt-1 text-[var(--ink-primary)]">05 Rynków</div>
-                <div className="text-xs text-[var(--ink-secondary)] mt-1">CEE &amp; DACH (Excel Online)</div>
-              </div>
-              <div className="p-5 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)]">
-                <div className="text-xs uppercase font-extrabold text-[var(--ink-muted)]">Oszczędność API</div>
-                <div className="text-3xl font-extrabold mt-1 text-[var(--status-ok-ink)]">−66%</div>
-                <div className="text-xs text-[var(--ink-secondary)] mt-1">Dzięki technologii Smart Crop</div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* VIEW 2: STUDIO TIKTOK */}
+        {/* VIEW 1: STUDIO TIKTOK */}
         {activeTab === "single" && (
           <StudioTikTokView
             productId={productId}
