@@ -96,13 +96,13 @@ export const LocalizationView: React.FC<LocalizationViewProps> = ({ showToast })
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <span className="text-xs uppercase tracking-widest font-extrabold text-[var(--accent)]">
-            05 / LOKALIZACJA &amp; MICROSOFT EXCEL ONLINE
+            05 / TŁUMACZENIA &amp; MICROSOFT EXCEL ONLINE
           </span>
           <h1 className="text-3xl font-extrabold tracking-tight mt-1 text-[var(--ink-primary)]">
-            Żywa synchronizacja z arkuszem tłumaczy.
+            Tłumaczenia &amp; Żywa synchronizacja z arkuszem SharePoint.
           </h1>
           <p className="text-sm text-[var(--ink-secondary)]">
-            Połączenie dwukierunkowe przez Microsoft Graph API: edytuj teksty, kontroluj limity znaków na żywo i zatwierdzaj rynki.
+            Oficjalna matryca 28 rynków Sinsay: edytuj teksty, kontroluj limity znaków na żywo i weryfikuj pokrycie językowe.
           </p>
         </div>
         <div className="flex gap-2">

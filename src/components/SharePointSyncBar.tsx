@@ -89,14 +89,14 @@ export default function SharePointSyncBar({ onSyncComplete }: SharePointSyncBarP
   return (
     <>
       {/* Top Bar Indicator Button */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5 shrink-0">
         <button
           onClick={() => setIsSettingsOpen(true)}
-          className="flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border border-[#dfd5c6] dark:border-[#38302b] bg-white dark:bg-[#211d1a] hover:border-[#c84b31] dark:hover:border-[#e56b4e] transition-colors shadow-sm"
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border border-[#dfd5c6] dark:border-[#38302b] bg-white dark:bg-[#211d1a] hover:border-[#c84b31] dark:hover:border-[#e56b4e] transition-colors shadow-xs"
           title="Kliknij, aby skonfigurować połączenie ze skoroszytem SharePoint"
         >
           <span
-            className={`w-2 h-2 rounded-full ${
+            className={`w-2 h-2 rounded-full shrink-0 ${
               isSyncing
                 ? "bg-[#c84b31] animate-ping"
                 : isAutoSync
@@ -104,14 +104,14 @@ export default function SharePointSyncBar({ onSyncComplete }: SharePointSyncBarP
                 : "bg-[#877b72]"
             }`}
           />
-          <span className="text-[#1c1816] dark:text-[#f7f3ec] font-semibold hidden md:inline">
-            SharePoint LPP:
+          <span className="text-[#1c1816] dark:text-[#f7f3ec] font-semibold text-xs">
+            SharePoint
           </span>
-          <span className="text-[#655a53] dark:text-[#b8aea4]">
-            {isSyncing ? "Pobieranie..." : lastSyncTime ? `Zsynchronizowano: ${lastSyncTime}` : "Sinsay_TRANSLATIONS"}
+          <span className="text-[#655a53] dark:text-[#b8aea4] font-mono text-[11px] hidden 2xl:inline">
+            {isSyncing ? "..." : lastSyncTime || "Auto"}
           </span>
-          <span className="text-[10px] text-[#877b72] dark:text-[#8e8379] bg-[#f2ece1] dark:bg-[#292420] px-1.5 py-0.5 rounded">
-            ⚙ Konfiguracja
+          <span className="text-[10px] text-[#877b72] dark:text-[#8e8379]">
+            ⚙
           </span>
         </button>
 
@@ -119,16 +119,16 @@ export default function SharePointSyncBar({ onSyncComplete }: SharePointSyncBarP
           href={sharepointUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="hidden lg:inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border border-[#dfd5c6] dark:border-[#38302b] bg-white dark:bg-[#211d1a] hover:bg-[#faf7f2] dark:hover:bg-[#292420] text-[#1c1816] dark:text-[#f7f3ec] transition-colors"
+          className="hidden 2xl:inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border border-[#dfd5c6] dark:border-[#38302b] bg-white dark:bg-[#211d1a] hover:bg-[#faf7f2] dark:hover:bg-[#292420] text-[#1c1816] dark:text-[#f7f3ec] transition-colors"
           title="Otwórz plik Sinsay_TRANSLATIONS.xlsx w SharePoint w nowej karcie"
         >
-          <span>Sinsay_TRANSLATIONS.xlsx ↗</span>
+          <span>Arkusz ↗</span>
         </a>
 
         <button
           onClick={triggerSync}
           disabled={isSyncing}
-          className="p-1.5 rounded-full border border-[#dfd5c6] dark:border-[#38302b] bg-white dark:bg-[#211d1a] hover:bg-[#faf7f2] dark:hover:bg-[#292420] text-[#1c1816] dark:text-[#f7f3ec] text-xs transition-colors shadow-sm disabled:opacity-50"
+          className="w-7 h-7 rounded-full border border-[#dfd5c6] dark:border-[#38302b] bg-white dark:bg-[#211d1a] hover:bg-[#faf7f2] dark:hover:bg-[#292420] text-[#1c1816] dark:text-[#f7f3ec] text-xs transition-colors shadow-xs disabled:opacity-50 grid place-items-center shrink-0"
           title="Wymuś synchronizację z SharePoint teraz"
         >
           <span className={`inline-block ${isSyncing ? "animate-spin" : ""}`}>↻</span>

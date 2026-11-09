@@ -12,3 +12,8 @@
 8. **Code Quality & Stability**: Preserve existing functionality and follow professional, production-grade development standards.
 9. **Safety Guardrails**: Never deploy to production or perform destructive operations without explicit user approval.
 10. **Communication Language & Style**: Communicate with the user in Polish, using simple language and concise explanations.
+
+## Domain & Creative Guidelines
+- **Product Fidelity ("Produkt jest święty")**: Garment, cut, colors, prints, and texture from reference packshots (PSH) must remain accurate and faithful.
+- **AI Prompts**: Always generate prompts in English, formatted in clean ready-to-copy blocks, with clear aspect ratios (e.g. 9:16 vertical, 3:4), lighting and camera details.
+- **Production Workflows**: Maintain robust batch queues, CSV ingestion (MDK, AI instructions), and side-by-side review standards.

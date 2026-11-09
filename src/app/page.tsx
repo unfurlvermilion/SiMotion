@@ -159,71 +159,76 @@ export default function SiMotionApp() {
     <AccessGate>
       <div className="min-h-screen flex flex-col transition-colors duration-200">
       {/* TOPBAR */}
-      <header className="sticky top-0 z-30 px-6 py-3 border-b flex items-center justify-between gap-4 flex-wrap backdrop-blur-md bg-[var(--bg-glass)] border-[var(--border-subtle)]">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--accent)] to-[var(--burgundy)] text-white font-extrabold text-lg grid place-items-center shadow-[var(--shadow-pop)]">
-            S
+      <header className="sticky top-0 z-30 border-b backdrop-blur-md bg-[var(--bg-glass)] border-[var(--border-subtle)]">
+        <div className="px-6 py-2.5 flex items-center justify-between gap-4">
+          {/* Logo & Product Code */}
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[var(--accent)] to-[var(--burgundy)] text-white font-extrabold text-base grid place-items-center shadow-[var(--shadow-pop)]">
+              S
+            </div>
+            <div>
+              <b className="block text-sm font-extrabold tracking-tight leading-none text-[var(--ink-primary)]">
+                SiMotion
+              </b>
+              <small className="block text-[9px] tracking-widest uppercase font-bold text-[var(--ink-muted)] mt-0.5">
+                FASHION &amp; VIDEO STUDIO
+              </small>
+            </div>
+            <span className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-[var(--ink-secondary)]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--status-ok-ink)] shadow-[0_0_0_2px_var(--status-ok-bg)]" />
+              KR-042 · {activeTab === "local" ? "TŁUMACZENIA" : activeTab.toUpperCase()}
+            </span>
           </div>
-          <div>
-            <b className="block text-base font-extrabold tracking-tight leading-none text-[var(--ink-primary)]">
-              SiMotion
-            </b>
-            <small className="block text-[10px] tracking-widest uppercase font-bold text-[var(--ink-muted)] mt-0.5">
-              FASHION &amp; VIDEO STUDIO
-            </small>
-          </div>
-          <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-[var(--ink-secondary)]">
-            <span className="w-2 h-2 rounded-full bg-[var(--status-ok-ink)] shadow-[0_0_0_2px_var(--status-ok-bg)]" />
-            KR-042 · {activeTab.toUpperCase()}
-          </span>
-        </div>
 
-        {/* 9 Tabs Navbar */}
-        <nav className="flex items-center gap-1 p-1 rounded-full overflow-x-auto max-w-full bg-[var(--bg-elevated)] border border-[var(--border-subtle)]">
-          {(
-            [
-              ["vision", "Pulpit"],
-              ["single", "Studio TikTok"],
-              ["batch", "Produkcja batchowa"],
-              ["post", "Napisy i logo"],
-              ["assets", "Materiały"],
-              ["static", "Grafiki statyczne"],
-              ["local", "Lokalizacja"],
-              ["export", "Eksport i paczki"],
-              ["integrations", "Integracje & API"],
-            ] as const
-          ).map(([key, label]) => (
+          {/* Centered Navigation Bar */}
+          <div className="flex-1 flex justify-center px-2 min-w-0">
+            <nav className="flex items-center gap-1 p-1 rounded-full overflow-x-auto max-w-full bg-[var(--bg-elevated)] border border-[var(--border-subtle)] shadow-xs">
+              {(
+                [
+                  ["vision", "Pulpit"],
+                  ["single", "Studio TikTok"],
+                  ["batch", "Produkcja batchowa"],
+                  ["post", "Napisy i logo"],
+                  ["assets", "Materiały"],
+                  ["static", "Grafiki statyczne"],
+                  ["local", "Tłumaczenia"],
+                  ["export", "Eksport i paczki"],
+                  ["integrations", "Integracje & API"],
+                ] as const
+              ).map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => setActiveTab(key)}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+                    activeTab === key
+                      ? "bg-[var(--bg-card)] text-[var(--ink-primary)] shadow-sm font-bold border border-[var(--border-strong)]"
+                      : "text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] hover:bg-[var(--bg-card)]"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </nav>
+          </div>
+
+          {/* Actions & Theme toggle */}
+          <div className="flex items-center gap-2 shrink-0">
+            <SharePointSyncBar
+              onSyncComplete={(data) => {
+                // optional live notification
+              }}
+            />
             <button
-              key={key}
-              onClick={() => setActiveTab(key)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
-                activeTab === key
-                  ? "bg-[var(--bg-card)] text-[var(--ink-primary)] shadow-sm font-bold border border-[var(--border-strong)]"
-                  : "text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] hover:bg-[var(--bg-card)]"
-              }`}
+              onClick={toggleTheme}
+              className="px-2.5 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 bg-[var(--bg-card)] border-[var(--border-subtle)] hover:border-[var(--accent)] transition-colors text-[var(--ink-primary)]"
+              title="Przełącz motyw"
             >
-              {label}
+              <span>{theme === "dark" ? "☀" : "☾"}</span>
+              <span className="hidden sm:inline">{theme === "dark" ? "Jasny" : "Ciemny"}</span>
             </button>
-          ))}
-        </nav>
-
-        {/* Actions & Theme toggle */}
-        <div className="flex items-center gap-2.5">
-          <SharePointSyncBar
-            onSyncComplete={(data) => {
-              // optional live notification
-            }}
-          />
-          <button
-            onClick={toggleTheme}
-            className="px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 bg-[var(--bg-card)] border-[var(--border-subtle)] hover:border-[var(--accent)] transition-colors text-[var(--ink-primary)]"
-            title="Przełącz motyw"
-          >
-            <span>{theme === "dark" ? "☀" : "☾"}</span>
-            <span>{theme === "dark" ? "Jasny" : "Ciemny"}</span>
-          </button>
-          <div className="w-8 h-8 rounded-full grid place-items-center bg-[var(--burgundy)] text-white text-xs font-bold border-2 border-[var(--champagne)]">
-            SM
+            <div className="w-8 h-8 rounded-full grid place-items-center bg-[var(--burgundy)] text-white text-xs font-bold border-2 border-[var(--champagne)] shrink-0">
+              SM
+            </div>
           </div>
         </div>
       </header>

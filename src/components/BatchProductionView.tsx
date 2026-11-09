@@ -320,49 +320,6 @@ export default function BatchProductionView() {
     }
   };
 
-  const addSinsayFastProducts = () => {
-    const fresh: BatchItem[] = [
-      {
-        id: `fresh-${Date.now()}-1`,
-        mdk: "108KR-99X",
-        name: "Sukienka z wiskozy z motywem kwiatowym",
-        category: "Sukienki / Nowości",
-        markets: ["PL", "RO", "CZ", "DE", "HU", "IT", "HR"],
-        formats: ["9:16", "4:5", "1:1"],
-        pcmStatus: "ready",
-        qaStatus: "passed",
-        progress: 0,
-        status: "queued",
-      },
-      {
-        id: `fresh-${Date.now()}-2`,
-        mdk: "204KR-41A",
-        name: "Kurtka pikowana z kapturem Sinsay",
-        category: "Kurtki / Bestsellery",
-        markets: ["PL", "RO", "DE", "SK", "CZ"],
-        formats: ["9:16", "4:5", "1:1"],
-        pcmStatus: "ready",
-        qaStatus: "passed",
-        progress: 0,
-        status: "queued",
-      },
-      {
-        id: `fresh-${Date.now()}-3`,
-        mdk: "319KR-05B",
-        name: "Jeansy wide leg z wysokim stanem",
-        category: "Jeans / Denim",
-        markets: ["PL", "CZ", "RO", "HU", "IT"],
-        formats: ["9:16", "4:5", "1:1"],
-        pcmStatus: "ready",
-        qaStatus: "passed",
-        progress: 0,
-        status: "queued",
-      },
-    ];
-    setItems((prev) => [...fresh, ...prev]);
-    addLog(`Dodano 3 nowe bestsellery Sinsay do kolejki renderu!`);
-  };
-
   const filteredItems = items.filter((item) => {
     const matchesSearch =
       item.mdk.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -414,12 +371,6 @@ export default function BatchProductionView() {
               className="hidden"
             />
           </label>
-          <button
-            onClick={addSinsayFastProducts}
-            className="px-3 py-2 text-xs font-semibold rounded-lg border border-[#c84b31]/40 bg-[#fceee9] dark:bg-[#38211c] text-[#c84b31] dark:text-[#e56b4e] hover:bg-[#c84b31] hover:text-white transition-all shadow-sm"
-          >
-            ＋ Bestsellery Sinsay
-          </button>
           <button
             onClick={loadPresetCSV}
             className="px-3 py-2 text-xs font-medium rounded-lg border border-dashed border-[#bfa890] dark:border-[#5c4d42] text-[#655a53] dark:text-[#b8aea4] hover:text-[#1c1816] dark:hover:text-[#f7f3ec] transition-colors"
