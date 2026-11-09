@@ -163,15 +163,15 @@ export default function SiMotionApp() {
         <div className="px-6 py-2.5 flex items-center justify-between gap-4">
           {/* Logo */}
           <div className="flex items-center gap-3 shrink-0">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[var(--accent)] to-[var(--burgundy)] text-white font-extrabold text-base grid place-items-center shadow-[var(--shadow-pop)]">
-              S
+            <div className="h-9 px-2.5 rounded-xl bg-gradient-to-br from-[var(--accent)] to-[var(--burgundy)] text-white font-sinsay font-bold text-xs tracking-tight flex items-center justify-center shadow-[var(--shadow-pop)] border border-white/15">
+              SiMo
             </div>
             <div>
-              <b className="block text-sm font-extrabold tracking-tight leading-none text-[var(--ink-primary)]">
+              <b className="block text-sm font-extrabold tracking-tight leading-none text-[var(--ink-primary)] font-sinsay">
                 SiMotion
               </b>
-              <small className="block text-[9px] tracking-widest uppercase font-bold text-[var(--ink-muted)] mt-0.5">
-                FASHION &amp; VIDEO STUDIO
+              <small className="block text-[9px] tracking-wider uppercase font-bold text-[var(--ink-muted)] mt-0.5 font-sinsay">
+                Sinsay Motion Studio
               </small>
             </div>
           </div>

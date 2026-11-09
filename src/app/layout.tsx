@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SiMotion — Fashion & Video Creative Studio",
-  description: "Autonomiczne studio kreacji wideo i lookbooków: Seedance, Higgsfield, ElevenLabs, Smart Crop i Microsoft Excel Online.",
+  title: "SiMotion — Sinsay Motion Studio",
+  description: "Autonomiczne studio kreacji wideo i lookbooków Sinsay: Seedance, Higgsfield, ElevenLabs, Smart Crop i Microsoft SharePoint Excel Online.",
 };
 
 export default function RootLayout({

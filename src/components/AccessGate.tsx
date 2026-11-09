@@ -58,14 +58,14 @@ export default function AccessGate({ children }: AccessGateProps) {
 
         <div className="w-full max-w-md p-8 rounded-2xl border border-[#38302b] bg-[#1a1714]/90 backdrop-blur-xl shadow-2xl space-y-6 relative z-10">
           <div className="text-center space-y-2">
-            <div className="w-12 h-12 mx-auto rounded-xl bg-gradient-to-br from-[#c84b31] to-[#6e1d2f] text-white font-serif font-bold text-2xl grid place-items-center shadow-lg">
-              S
+            <div className="h-12 px-4 mx-auto w-fit rounded-xl bg-gradient-to-br from-[#c84b31] to-[#6e1d2f] text-white font-sinsay font-bold text-base tracking-tight flex items-center justify-center shadow-lg border border-white/15">
+              SiMo
             </div>
-            <h1 className="text-2xl font-serif tracking-tight text-[#f7f3ec] pt-2">
-              SiMotion Atelier
+            <h1 className="text-2xl font-sinsay font-bold tracking-tight text-[#f7f3ec] pt-2">
+              SiMotion
             </h1>
-            <p className="text-xs text-[#b8aea4]">
-              System zamknięty · Autoryzacja zespołu produkcyjnego
+            <p className="text-xs font-sinsay text-[#b8aea4] uppercase tracking-wider">
+              Sinsay Motion Studio
             </p>
           </div>
 
