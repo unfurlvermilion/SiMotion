@@ -731,225 +731,259 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                 </h3>
               </div>
 
-              {/* Upload custom test video */}
-              <label className="px-3 py-1.5 rounded-xl text-xs font-bold border border-dashed border-[var(--border-strong)] bg-[var(--bg-subtle)] hover:border-[var(--accent)] cursor-pointer text-[var(--ink-primary)]">
-                <span>↑ Wgraj własne wideo</span>
-                <input
-                  type="file"
-                  accept="video/*"
-                  onChange={handleVideoUpload}
-                  className="hidden"
-                />
-              </label>
+              <div className="flex items-center gap-2">
+                {/* Direct Safe Area Toggle */}
+                <button
+                  type="button"
+                  onClick={() => setShowSafeAreas(!showSafeAreas)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 ${
+                    showSafeAreas
+                      ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-600 dark:text-emerald-400"
+                      : "bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-muted)] hover:text-[var(--ink-primary)]"
+                  }`}
+                  title="Włącz/wyłącz siatki ochronne pod interfejsy aplikacji"
+                >
+                  <span>{showSafeAreas ? "✓ Siatki Safe Area" : "○ Bez siatek"}</span>
+                </button>
+
+                {/* Upload custom test video */}
+                <label className="px-3 py-1.5 rounded-xl text-xs font-bold border border-dashed border-[var(--border-strong)] bg-[var(--bg-subtle)] hover:border-[var(--accent)] cursor-pointer text-[var(--ink-primary)] transition-colors">
+                  <span>↑ Wgraj wideo</span>
+                  <input
+                    type="file"
+                    accept="video/*"
+                    onChange={handleVideoUpload}
+                    className="hidden"
+                  />
+                </label>
+              </div>
             </div>
 
             {/* Stage Container */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-b from-[var(--champagne)] to-[var(--bg-elevated)] border border-[var(--border-subtle)] grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 place-items-center min-h-[360px] overflow-hidden">
+            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-b from-[var(--champagne)] to-[var(--bg-elevated)] border border-[var(--border-subtle)] grid grid-cols-2 lg:grid-cols-4 gap-3 place-items-end min-h-[360px] overflow-hidden">
               {/* 1. 3:4 MASTER BAZA */}
-              <div className="w-full max-w-[155px] aspect-[3/4] rounded-2xl border-4 border-[#c84b31] bg-black p-2 flex flex-col justify-between text-center relative overflow-hidden shadow-2xl ring-2 ring-[#c84b31]/30">
-                {videoFile ? (
-                  <video
-                    ref={videoRef}
-                    src={videoFile}
-                    loop
-                    muted
-                    playsInline
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
-                ) : (
-                  <div
-                    className="absolute inset-0 bg-gradient-to-tr from-[#3a151e] via-[#6e1d2f] to-[#c84b31] transition-transform duration-100"
-                    style={{ transform: `scale(${1 + Math.sin(currentTime) * 0.05})` }}
-                  >
-                    <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_50%_40%,#ffeedd_0%,transparent_60%)]" />
-                  </div>
-                )}
-
-                <div className="relative z-10 flex justify-between items-center text-[8px] font-bold text-white">
-                  <span className="px-1.5 py-0.5 rounded bg-[#c84b31] text-white">3:4 MASTER</span>
-                  <span className="px-1.5 py-0.5 rounded bg-black/70">
-                    {currentTime.toFixed(1)}s
+              <div className="flex flex-col items-center gap-1.5 w-full">
+                <div className="flex items-center justify-between w-full max-w-[155px] px-1 text-[10px] font-bold text-[var(--ink-secondary)]">
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-[#c84b31]" />
+                    <span className="text-[#c84b31]">3:4 Master</span>
                   </span>
+                  <span className="text-[9px] font-mono text-[var(--ink-muted)]">1440×1920</span>
                 </div>
 
-                {/* Safe Area Guides showing crop lines for 9:16 and 1:1 */}
-                {showSafeAreas && <SocialSafeAreaOverlay format="master-3x4" />}
-
-                {/* Sinsay Animated Logo Outro Overlay */}
-                {isLogoOutroEnabled && (previewOutroForce || (duration > 0 && currentTime >= Math.max(0, duration - selectedLogo.durationSec))) && (
-                  <div className="absolute inset-0 z-30 bg-black/90 flex flex-col items-center justify-center p-3 transition-all">
-                    <img
-                      src={selectedLogo.gifPath}
-                      alt={selectedLogo.name}
-                      className="max-h-[50%] max-w-[80%] object-contain drop-shadow-xl"
+                <div className="w-full max-w-[155px] aspect-[3/4] rounded-2xl border-2 border-[#c84b31] bg-black flex flex-col justify-end text-center relative overflow-hidden shadow-xl ring-1 ring-[#c84b31]/30">
+                  {videoFile ? (
+                    <video
+                      ref={videoRef}
+                      src={videoFile}
+                      loop
+                      muted
+                      playsInline
+                      className="absolute inset-0 w-full h-full object-cover"
                     />
-                    <span className="text-[7px] font-mono tracking-widest text-[#e56b4e] uppercase block mt-1">
-                      {selectedLogo.name}
-                    </span>
-                  </div>
-                )}
+                  ) : (
+                    <div
+                      className="absolute inset-0 bg-gradient-to-tr from-[#3a151e] via-[#6e1d2f] to-[#c84b31] transition-transform duration-100"
+                      style={{ transform: `scale(${1 + Math.sin(currentTime) * 0.05})` }}
+                    >
+                      <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_50%_40%,#ffeedd_0%,transparent_60%)]" />
+                    </div>
+                  )}
 
-                <div className={`relative z-10 transition-all ${showSafeAreas ? "mb-10" : ""}`}>
-                  <p className="text-[9px] font-bold text-white leading-tight drop-shadow-md font-sinsay tracking-wide">
-                    Nowa kolekcja<br />na Twój sposób
-                  </p>
+                  {/* Safe Area Guides showing crop lines for 9:16 and 1:1 */}
+                  {showSafeAreas && <SocialSafeAreaOverlay format="master-3x4" />}
+
+                  {/* Sinsay Animated Logo Outro Overlay */}
+                  {isLogoOutroEnabled && (previewOutroForce || (duration > 0 && currentTime >= Math.max(0, duration - selectedLogo.durationSec))) && (
+                    <div className="absolute inset-0 z-30 bg-black/90 flex flex-col items-center justify-center p-3 transition-all">
+                      <img
+                        src={selectedLogo.gifPath}
+                        alt={selectedLogo.name}
+                        className="max-h-[50%] max-w-[80%] object-contain drop-shadow-xl"
+                      />
+                      <span className="text-[7px] font-mono tracking-widest text-[#e56b4e] uppercase block mt-1">
+                        {selectedLogo.name}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className={`relative z-10 p-2 transition-all ${showSafeAreas ? "mb-6" : ""}`}>
+                    <p className="text-[9px] font-bold text-white leading-tight drop-shadow-md font-sinsay tracking-wide">
+                      Nowa kolekcja<br />na Twój sposób
+                    </p>
+                  </div>
                 </div>
               </div>
 
               {/* 2. 9:16 TikTok / Reels Frame (Side Crop with offset) */}
-              <div className="w-full max-w-[130px] aspect-[9/16] rounded-2xl border-4 border-black bg-black p-2 flex flex-col justify-between text-center relative overflow-hidden shadow-2xl">
-                {videoFile ? (
-                  <video
-                    src={videoFile}
-                    loop
-                    muted
-                    playsInline
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-150"
-                    style={{ transform: `translateX(${cropOffset * 0.9}%)` }}
-                  />
-                ) : (
-                  <div
-                    className="absolute inset-0 bg-gradient-to-tr from-[#3a151e] via-[#6e1d2f] to-[#c84b31] transition-transform duration-150"
-                    style={{
-                      transform: `translateX(${cropOffset * 0.9}%) scale(${
-                        1 + Math.sin(currentTime) * 0.05
-                      })`,
-                    }}
-                  >
-                    <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_50%_40%,#ffeedd_0%,transparent_60%)]" />
-                  </div>
-                )}
-
-                <div className="relative z-10 flex justify-between items-center text-[8px] font-bold text-white">
-                  <span className="px-1.5 py-0.5 rounded bg-black/70">9:16 CROP</span>
-                  <span className="px-1.5 py-0.5 rounded bg-[var(--accent)]">TikTok</span>
+              <div className="flex flex-col items-center gap-1.5 w-full">
+                <div className="flex items-center justify-between w-full max-w-[130px] px-1 text-[10px] font-bold text-[var(--ink-secondary)]">
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-[var(--accent)]" />
+                    <span>9:16 TikTok</span>
+                  </span>
+                  <span className="text-[9px] font-mono text-[var(--ink-muted)]">1080×1920</span>
                 </div>
 
-                {/* TikTok 9:16 In-Feed Safe Area Overlay (2025/2026) */}
-                {showSafeAreas && <SocialSafeAreaOverlay format="tiktok-9x16" />}
-
-                {/* Sinsay Animated Logo Outro Overlay */}
-                {isLogoOutroEnabled && (previewOutroForce || (duration > 0 && currentTime >= Math.max(0, duration - selectedLogo.durationSec))) && (
-                  <div className="absolute inset-0 z-30 bg-black/90 flex flex-col items-center justify-center p-3 transition-all">
-                    <img
-                      src={selectedLogo.gifPath}
-                      alt={selectedLogo.name}
-                      className="max-h-[50%] max-w-[80%] object-contain drop-shadow-xl"
+                <div className="w-full max-w-[130px] aspect-[9/16] rounded-2xl border-2 border-black/80 dark:border-white/20 bg-black flex flex-col justify-end text-center relative overflow-hidden shadow-xl">
+                  {videoFile ? (
+                    <video
+                      src={videoFile}
+                      loop
+                      muted
+                      playsInline
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-150"
+                      style={{ transform: `translateX(${cropOffset * 0.9}%)` }}
                     />
-                    <span className="text-[7px] font-mono tracking-widest text-[#e56b4e] uppercase block mt-1">
-                      {selectedLogo.name}
-                    </span>
-                  </div>
-                )}
+                  ) : (
+                    <div
+                      className="absolute inset-0 bg-gradient-to-tr from-[#3a151e] via-[#6e1d2f] to-[#c84b31] transition-transform duration-150"
+                      style={{
+                        transform: `translateX(${cropOffset * 0.9}%) scale(${
+                          1 + Math.sin(currentTime) * 0.05
+                        })`,
+                      }}
+                    >
+                      <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_50%_40%,#ffeedd_0%,transparent_60%)]" />
+                    </div>
+                  )}
 
-                <div className={`relative z-10 transition-all ${showSafeAreas ? "mb-10" : ""}`}>
-                  <p className="text-[9px] font-bold text-white leading-tight drop-shadow-md font-sinsay tracking-wide">
-                    Nowa kolekcja<br />na Twój sposób
-                  </p>
+                  {/* TikTok 9:16 In-Feed Safe Area Overlay (2025/2026) */}
+                  {showSafeAreas && <SocialSafeAreaOverlay format="tiktok-9x16" />}
+
+                  {/* Sinsay Animated Logo Outro Overlay */}
+                  {isLogoOutroEnabled && (previewOutroForce || (duration > 0 && currentTime >= Math.max(0, duration - selectedLogo.durationSec))) && (
+                    <div className="absolute inset-0 z-30 bg-black/90 flex flex-col items-center justify-center p-3 transition-all">
+                      <img
+                        src={selectedLogo.gifPath}
+                        alt={selectedLogo.name}
+                        className="max-h-[50%] max-w-[80%] object-contain drop-shadow-xl"
+                      />
+                      <span className="text-[7px] font-mono tracking-widest text-[#e56b4e] uppercase block mt-1">
+                        {selectedLogo.name}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className={`relative z-10 p-2 transition-all ${showSafeAreas ? "mb-8" : ""}`}>
+                    <p className="text-[9px] font-bold text-white leading-tight drop-shadow-md font-sinsay tracking-wide">
+                      Nowa kolekcja<br />na Twój sposób
+                    </p>
+                  </div>
                 </div>
               </div>
 
               {/* 3. 4:5 Frame (Meta Feed Smart Crop) */}
-              <div className="w-full max-w-[145px] aspect-[4/5] rounded-2xl border-4 border-black bg-black p-2 flex flex-col justify-between text-center relative overflow-hidden shadow-2xl">
-                {videoFile ? (
-                  <video
-                    src={videoFile}
-                    loop
-                    muted
-                    playsInline
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-150"
-                    style={{ transform: `translateX(${cropOffset * 0.4}%)` }}
-                  />
-                ) : (
-                  <div
-                    className="absolute inset-0 bg-gradient-to-tr from-[#3a151e] via-[#6e1d2f] to-[#c84b31] transition-transform duration-150"
-                    style={{
-                      transform: `translateX(${cropOffset * 0.4}%) scale(${
-                        1 + Math.sin(currentTime) * 0.05
-                      })`,
-                    }}
-                  >
-                    <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_50%_40%,#ffeedd_0%,transparent_60%)]" />
-                  </div>
-                )}
-
-                <div className="relative z-10 flex justify-between items-center text-[8px] font-bold text-white">
-                  <span className="px-1.5 py-0.5 rounded bg-black/70">4:5 CROP</span>
-                  <span className="px-1.5 py-0.5 rounded bg-[var(--accent)]">Feed IG</span>
+              <div className="flex flex-col items-center gap-1.5 w-full">
+                <div className="flex items-center justify-between w-full max-w-[145px] px-1 text-[10px] font-bold text-[var(--ink-secondary)]">
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-[var(--accent)]" />
+                    <span>4:5 Feed IG</span>
+                  </span>
+                  <span className="text-[9px] font-mono text-[var(--ink-muted)]">1080×1350</span>
                 </div>
 
-                {/* Meta Feed 4:5 Safe Area Overlay */}
-                {showSafeAreas && <SocialSafeAreaOverlay format="feed-4x5" />}
-
-                {/* Sinsay Animated Logo Outro Overlay */}
-                {isLogoOutroEnabled && (previewOutroForce || (duration > 0 && currentTime >= Math.max(0, duration - selectedLogo.durationSec))) && (
-                  <div className="absolute inset-0 z-30 bg-black/90 flex flex-col items-center justify-center p-3 transition-all">
-                    <img
-                      src={selectedLogo.gifPath}
-                      alt={selectedLogo.name}
-                      className="max-h-[50%] max-w-[80%] object-contain drop-shadow-xl"
+                <div className="w-full max-w-[145px] aspect-[4/5] rounded-2xl border-2 border-black/80 dark:border-white/20 bg-black flex flex-col justify-end text-center relative overflow-hidden shadow-xl">
+                  {videoFile ? (
+                    <video
+                      src={videoFile}
+                      loop
+                      muted
+                      playsInline
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-150"
+                      style={{ transform: `translateX(${cropOffset * 0.4}%)` }}
                     />
-                    <span className="text-[7px] font-mono tracking-widest text-[#e56b4e] uppercase block mt-1">
-                      {selectedLogo.name}
-                    </span>
-                  </div>
-                )}
+                  ) : (
+                    <div
+                      className="absolute inset-0 bg-gradient-to-tr from-[#3a151e] via-[#6e1d2f] to-[#c84b31] transition-transform duration-150"
+                      style={{
+                        transform: `translateX(${cropOffset * 0.4}%) scale(${
+                          1 + Math.sin(currentTime) * 0.05
+                        })`,
+                      }}
+                    >
+                      <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_50%_40%,#ffeedd_0%,transparent_60%)]" />
+                    </div>
+                  )}
 
-                <div className={`relative z-10 transition-all ${showSafeAreas ? "mb-10" : ""}`}>
-                  <p className="text-[9px] font-bold text-white leading-tight drop-shadow-md font-sinsay tracking-wide">
-                    Nowa kolekcja<br />na Twój sposób
-                  </p>
+                  {/* Meta Feed 4:5 Safe Area Overlay */}
+                  {showSafeAreas && <SocialSafeAreaOverlay format="feed-4x5" />}
+
+                  {/* Sinsay Animated Logo Outro Overlay */}
+                  {isLogoOutroEnabled && (previewOutroForce || (duration > 0 && currentTime >= Math.max(0, duration - selectedLogo.durationSec))) && (
+                    <div className="absolute inset-0 z-30 bg-black/90 flex flex-col items-center justify-center p-3 transition-all">
+                      <img
+                        src={selectedLogo.gifPath}
+                        alt={selectedLogo.name}
+                        className="max-h-[50%] max-w-[80%] object-contain drop-shadow-xl"
+                      />
+                      <span className="text-[7px] font-mono tracking-widest text-[#e56b4e] uppercase block mt-1">
+                        {selectedLogo.name}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className={`relative z-10 p-2 transition-all ${showSafeAreas ? "mb-5" : ""}`}>
+                    <p className="text-[9px] font-bold text-white leading-tight drop-shadow-md font-sinsay tracking-wide">
+                      Nowa kolekcja<br />na Twój sposób
+                    </p>
+                  </div>
                 </div>
               </div>
 
               {/* 4. 1:1 Frame (Catalog / Square Carousel) */}
-              <div className="w-full max-w-[150px] aspect-square rounded-2xl border-4 border-black bg-black p-2 flex flex-col justify-between text-center relative overflow-hidden shadow-2xl">
-                {videoFile ? (
-                  <video
-                    src={videoFile}
-                    loop
-                    muted
-                    playsInline
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-150"
-                    style={{ transform: `scale(1.05)` }}
-                  />
-                ) : (
-                  <div
-                    className="absolute inset-0 bg-gradient-to-tr from-[#3a151e] via-[#6e1d2f] to-[#c84b31] transition-transform duration-150"
-                    style={{
-                      transform: `scale(${1 + Math.sin(currentTime) * 0.05})`,
-                    }}
-                  >
-                    <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_50%_40%,#ffeedd_0%,transparent_60%)]" />
-                  </div>
-                )}
-
-                <div className="relative z-10 flex justify-between items-center text-[8px] font-bold text-white">
-                  <span className="px-1.5 py-0.5 rounded bg-black/70">1:1 CROP</span>
-                  <span className="px-1.5 py-0.5 rounded bg-[var(--accent)]">Kwadrat</span>
+              <div className="flex flex-col items-center gap-1.5 w-full">
+                <div className="flex items-center justify-between w-full max-w-[150px] px-1 text-[10px] font-bold text-[var(--ink-secondary)]">
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-[var(--accent)]" />
+                    <span>1:1 Kwadrat</span>
+                  </span>
+                  <span className="text-[9px] font-mono text-[var(--ink-muted)]">1080×1080</span>
                 </div>
 
-                {/* Square 1:1 Safe Area Overlay */}
-                {showSafeAreas && <SocialSafeAreaOverlay format="square-1x1" />}
-
-                {/* Sinsay Animated Logo Outro Overlay */}
-                {isLogoOutroEnabled && (previewOutroForce || (duration > 0 && currentTime >= Math.max(0, duration - selectedLogo.durationSec))) && (
-                  <div className="absolute inset-0 z-30 bg-black/90 flex flex-col items-center justify-center p-3 transition-all">
-                    <img
-                      src={selectedLogo.gifPath}
-                      alt={selectedLogo.name}
-                      className="max-h-[50%] max-w-[80%] object-contain drop-shadow-xl"
+                <div className="w-full max-w-[150px] aspect-square rounded-2xl border-2 border-black/80 dark:border-white/20 bg-black flex flex-col justify-end text-center relative overflow-hidden shadow-xl">
+                  {videoFile ? (
+                    <video
+                      src={videoFile}
+                      loop
+                      muted
+                      playsInline
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-150"
+                      style={{ transform: `scale(1.05)` }}
                     />
-                    <span className="text-[7px] font-mono tracking-widest text-[#e56b4e] uppercase block mt-1">
-                      {selectedLogo.name}
-                    </span>
-                  </div>
-                )}
+                  ) : (
+                    <div
+                      className="absolute inset-0 bg-gradient-to-tr from-[#3a151e] via-[#6e1d2f] to-[#c84b31] transition-transform duration-150"
+                      style={{
+                        transform: `scale(${1 + Math.sin(currentTime) * 0.05})`,
+                      }}
+                    >
+                      <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_50%_40%,#ffeedd_0%,transparent_60%)]" />
+                    </div>
+                  )}
 
-                <div className={`relative z-10 transition-all ${showSafeAreas ? "mb-10" : ""}`}>
-                  <p className="text-[9px] font-bold text-white leading-tight drop-shadow-md font-sinsay tracking-wide">
-                    Nowa kolekcja<br />na Twój sposób
-                  </p>
+                  {/* Square 1:1 Safe Area Overlay */}
+                  {showSafeAreas && <SocialSafeAreaOverlay format="square-1x1" />}
+
+                  {/* Sinsay Animated Logo Outro Overlay */}
+                  {isLogoOutroEnabled && (previewOutroForce || (duration > 0 && currentTime >= Math.max(0, duration - selectedLogo.durationSec))) && (
+                    <div className="absolute inset-0 z-30 bg-black/90 flex flex-col items-center justify-center p-3 transition-all">
+                      <img
+                        src={selectedLogo.gifPath}
+                        alt={selectedLogo.name}
+                        className="max-h-[50%] max-w-[80%] object-contain drop-shadow-xl"
+                      />
+                      <span className="text-[7px] font-mono tracking-widest text-[#e56b4e] uppercase block mt-1">
+                        {selectedLogo.name}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className={`relative z-10 p-2 transition-all ${showSafeAreas ? "mb-4" : ""}`}>
+                    <p className="text-[9px] font-bold text-white leading-tight drop-shadow-md font-sinsay tracking-wide">
+                      Nowa kolekcja<br />na Twój sposób
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
