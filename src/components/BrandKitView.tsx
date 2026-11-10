@@ -1,7 +1,13 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { BrandAsset } from "@/app/page";
+import {
+  saveStoredAsset,
+  deleteStoredAsset,
+  loadStoredAssets,
+  fileToDataUrl,
+} from "@/lib/brandStorage";
 
 interface BrandKitViewProps {
   assets: BrandAsset[];
@@ -30,17 +36,21 @@ export const BrandKitView: React.FC<BrandKitViewProps> = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [editingAsset, setEditingAsset] = useState<BrandAsset | null>(null);
 
-  const handleDeleteAsset = (id: string, name: string) => {
+  const handleDeleteAsset = async (id: string, name: string) => {
     setAssets((prev) => prev.filter((a) => a.id !== id));
     setSelectedIds((prev) => prev.filter((item) => item !== id));
     if (selectedVideoAssetId === id) setSelectedVideoAssetId(null);
     if (selectedStaticAssetId === id) setSelectedStaticAssetId(null);
+    await deleteStoredAsset(id);
     showToast(`Usunięto materiał: "${name}"`);
   };
 
-  const handleBulkDelete = () => {
+  const handleBulkDelete = async () => {
     if (!selectedIds.length) return;
     const count = selectedIds.length;
+    for (const id of selectedIds) {
+      await deleteStoredAsset(id);
+    }
     setAssets((prev) => prev.filter((a) => !selectedIds.includes(a.id)));
     if (selectedVideoAssetId && selectedIds.includes(selectedVideoAssetId)) {
       setSelectedVideoAssetId(null);
@@ -66,33 +76,48 @@ export const BrandKitView: React.FC<BrandKitViewProps> = ({
     }
   };
 
-  const handleSaveEdit = (e: React.FormEvent) => {
+  const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingAsset) return;
     setAssets((prev) =>
       prev.map((a) => (a.id === editingAsset.id ? editingAsset : a))
     );
+    await saveStoredAsset(editingAsset);
     showToast(`Zaktualizowano materiał: "${editingAsset.name}"`);
     setEditingAsset(null);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
 
-    const newUploaded: BrandAsset[] = files.map((f, i) => ({
-      id: `custom-${Date.now()}-${i}`,
-      name: f.name.replace(/\.[^/.]+$/, ""),
-      kind: "both",
-      type: "image",
-      url: URL.createObjectURL(f),
-    }));
+    const newUploaded: BrandAsset[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      try {
+        const dataUrl = await fileToDataUrl(f);
+        const item: BrandAsset = {
+          id: `custom-${Date.now()}-${i}`,
+          name: f.name.replace(/\.[^/.]+$/, ""),
+          kind: "both",
+          type: "image",
+          url: dataUrl,
+        };
+        await saveStoredAsset(item);
+        newUploaded.push(item);
+      } catch (err) {
+        console.error("Błąd zapisu pliku do pamięci trwałej:", err);
+      }
+    }
 
-    setAssets((prev) => [...prev, ...newUploaded]);
-    showToast(`Dodano ${files.length} plików do Brand Kitu.`);
+    if (newUploaded.length > 0) {
+      setAssets((prev) => [...prev, ...newUploaded]);
+      showToast(`Zapisano na stałe ${newUploaded.length} plików w Brand Kit.`);
+    }
+    e.target.value = "";
   };
 
-  const handleAddCustomBadge = (e: React.FormEvent) => {
+  const handleAddCustomBadge = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newAssetName.trim()) return;
 
@@ -104,10 +129,11 @@ export const BrandKitView: React.FC<BrandKitViewProps> = ({
       text: newAssetText.trim() || newAssetName.trim().toUpperCase(),
     };
 
+    await saveStoredAsset(newBadge);
     setAssets((prev) => [...prev, newBadge]);
     setNewAssetName("");
     setNewAssetText("");
-    showToast(`Utworzono badge: ${newBadge.name}`);
+    showToast(`Utworzono i zapisano badge: ${newBadge.name}`);
   };
 
   const filteredAssets = assets.filter((a) => {

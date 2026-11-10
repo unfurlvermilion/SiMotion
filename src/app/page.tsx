@@ -10,6 +10,7 @@ import BatchProductionView from "@/components/BatchProductionView";
 import ExportView from "@/components/ExportView";
 import IntegrationsView from "@/components/IntegrationsView";
 import SharePointSyncBar from "@/components/SharePointSyncBar";
+import { loadStoredAssets } from "@/lib/brandStorage";
 
 export type ViewTab =
   | "single"
@@ -92,6 +93,27 @@ export default function SiMotionApp() {
     { id: "star", name: "Sygnet Kolekcji ✳", kind: "static", type: "star", text: "✳" },
   ]);
   const [selectedStaticAssetId, setSelectedStaticAssetId] = useState<string | null>("star");
+
+  // Load custom stored assets from IndexedDB on startup
+  useEffect(() => {
+    loadStoredAssets().then((stored) => {
+      if (stored && stored.length > 0) {
+        setAssets((prev) => {
+          const defaultIds = new Set(["badge", "cta", "frame", "star"]);
+          const filteredPrev = prev.filter((a) => defaultIds.has(a.id));
+          const mapped: BrandAsset[] = stored.map((s) => ({
+            id: s.id,
+            name: s.name,
+            kind: s.kind,
+            type: s.type,
+            text: s.text,
+            url: s.url || s.dataUrl,
+          }));
+          return [...filteredPrev, ...mapped];
+        });
+      }
+    });
+  }, []);
 
   // Static state
   const [staticTexts, setStaticTexts] = useState<Record<string, { headline: string; subline: string }>>({

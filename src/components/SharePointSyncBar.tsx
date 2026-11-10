@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import * as XLSX from "xlsx";
 
 interface SharePointSyncBarProps {
   onSyncComplete?: (data: any) => void;
@@ -68,22 +69,67 @@ export default function SharePointSyncBar({ onSyncComplete }: SharePointSyncBarP
   };
 
   const downloadExcelTemplate = () => {
-    const csvContent =
-      "MDK,Nazwa_Produktu,Kategoria,Rynki,Formaty,Status_Produkcji,Link_Wideo,Ostatnia_Zmiana\n" +
-      "001KR-83X,Jedwab & Kaszmir — Płaszcz Camel,Outerwear / Premium,PL+DE+CZ+RO+HU,9:16+4:5+1:1,Zatwierdzony,https://si-motion.vercel.app/preview/001KR-83X.mp4,2026-11-06 08:30\n" +
-      "002KR-91Y,Koszula Silk Minimalist Ecru,Shirts / Atelier,PL+DE+RO,9:16+4:5,W trakcie renderu,,2026-11-06 09:12\n" +
-      "003KR-14A,Spodnie Wide Leg Wool Taupe,Pants / Sartorial,PL+DE+CZ,9:16+1:1,Czeka na packshot PCM,,2026-11-06 09:45\n" +
-      "004KR-55C,Sukienka Maxi Velvet Burgundy,Dresses / Evening,PL+DE+CZ+RO+HU,9:16+4:5+1:1,Kolejka batchowa,,2026-11-06 10:05\n";
+    try {
+      const templateData = [
+        {
+          MDK: "001KR-83X",
+          Nazwa_Produktu: "Jedwab & Kaszmir — Płaszcz Camel",
+          Kategoria: "Outerwear / Premium",
+          Rynki: "PL+DE+CZ+RO+HU",
+          Formaty: "9:16+4:5+1:1",
+          Status_Produkcji: "Zatwierdzony",
+          Link_Wideo: "https://si-motion.vercel.app/preview/001KR-83X.mp4",
+          Ostatnia_Zmiana: "2026-11-10 08:30",
+        },
+        {
+          MDK: "002KR-91Y",
+          Nazwa_Produktu: "Koszula Silk Minimalist Ecru",
+          Kategoria: "Shirts / Atelier",
+          Rynki: "PL+DE+RO",
+          Formaty: "9:16+4:5",
+          Status_Produkcji: "W trakcie renderu",
+          Link_Wideo: "",
+          Ostatnia_Zmiana: "2026-11-10 09:12",
+        },
+        {
+          MDK: "003KR-14A",
+          Nazwa_Produktu: "Spodnie Wide Leg Wool Taupe",
+          Kategoria: "Pants / Sartorial",
+          Rynki: "PL+DE+CZ",
+          Formaty: "9:16+1:1",
+          Status_Produkcji: "Czeka na packshot PCM",
+          Link_Wideo: "",
+          Ostatnia_Zmiana: "2026-11-10 09:45",
+        },
+        {
+          MDK: "004KR-55C",
+          Nazwa_Produktu: "Sukienka Maxi Velvet Burgundy",
+          Kategoria: "Dresses / Evening",
+          Rynki: "PL+DE+CZ+RO+HU",
+          Formaty: "9:16+4:5+1:1",
+          Status_Produkcji: "Kolejka batchowa",
+          Link_Wideo: "",
+          Ostatnia_Zmiana: "2026-11-10 10:05",
+        },
+      ];
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "Szablon_Excel_SharePoint_SiMotion.csv";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+      const worksheet = XLSX.utils.json_to_sheet(templateData);
+      worksheet["!cols"] = [
+        { wch: 14 },
+        { wch: 32 },
+        { wch: 22 },
+        { wch: 18 },
+        { wch: 16 },
+        { wch: 22 },
+        { wch: 40 },
+        { wch: 18 },
+      ];
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "MediaPlan_Sinsay");
+      XLSX.writeFile(workbook, "Szablon_Excel_SharePoint_SiMotion.xlsx");
+    } catch (e) {
+      console.error("Błąd pobierania szablonu Excel:", e);
+    }
   };
 
   return (
