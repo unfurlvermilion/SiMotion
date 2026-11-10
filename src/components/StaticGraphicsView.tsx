@@ -47,7 +47,7 @@ export const StaticGraphicsView: React.FC<StaticGraphicsViewProps> = ({
     }
   };
 
-  // HTML5 Canvas direct PNG Export
+  // HTML5 Canvas direct PNG Export (100% client-side, zero API)
   const exportPNG = () => {
     const canvas = document.createElement("canvas");
     const width = 1080;
@@ -58,60 +58,86 @@ export const StaticGraphicsView: React.FC<StaticGraphicsViewProps> = ({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Draw Background
-    const grad = ctx.createLinearGradient(0, 0, width, height);
-    if (selectedBgStyle === "atelier") {
-      grad.addColorStop(0, "#e8d7c3");
-      grad.addColorStop(0.55, "#b58c75");
-      grad.addColorStop(1, "#541826");
-    } else if (selectedBgStyle === "silk") {
-      grad.addColorStop(0, "#f7eee3");
-      grad.addColorStop(0.6, "#c84b31");
-      grad.addColorStop(1, "#2b1016");
+    const renderContent = (imgObj?: HTMLImageElement) => {
+      // Draw Background
+      const grad = ctx.createLinearGradient(0, 0, width, height);
+      if (selectedBgStyle === "atelier") {
+        grad.addColorStop(0, "#e8d7c3");
+        grad.addColorStop(0.55, "#b58c75");
+        grad.addColorStop(1, "#541826");
+      } else if (selectedBgStyle === "silk") {
+        grad.addColorStop(0, "#f7eee3");
+        grad.addColorStop(0.6, "#c84b31");
+        grad.addColorStop(1, "#2b1016");
+      } else {
+        grad.addColorStop(0, "#211d1a");
+        grad.addColorStop(0.7, "#14110f");
+        grad.addColorStop(1, "#0a0807");
+      }
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, width, height);
+
+      // Draw uploaded image with cover fit if present
+      if (imgObj) {
+        const imgRatio = imgObj.width / imgObj.height;
+        const targetRatio = width / height;
+        let sx = 0, sy = 0, sw = imgObj.width, sh = imgObj.height;
+        if (imgRatio > targetRatio) {
+          sw = imgObj.height * targetRatio;
+          sx = (imgObj.width - sw) / 2;
+        } else {
+          sh = imgObj.width / targetRatio;
+          sy = (imgObj.height - sh) / 2;
+        }
+        ctx.drawImage(imgObj, sx, sy, sw, sh, 0, 0, width, height);
+      }
+
+      // Overlay shade for text readability
+      const shade = ctx.createLinearGradient(0, height * 0.45, 0, height);
+      shade.addColorStop(0, "rgba(20, 14, 12, 0)");
+      shade.addColorStop(1, "rgba(20, 14, 12, 0.85)");
+      ctx.fillStyle = shade;
+      ctx.fillRect(0, height * 0.45, width, height * 0.55);
+
+      // Brand tag
+      ctx.fillStyle = "#fffaf5";
+      ctx.font = '700 28px "Euclid Circular B", sans-serif';
+      ctx.fillText("SINSAY / AUTUMN ATELIER 2026", 75, height - 310);
+
+      // Headline
+      ctx.font = '700 76px "Euclid Circular B", sans-serif';
+      ctx.fillText(activeCopy.headline, 75, height - 200);
+
+      // Subline
+      ctx.font = '500 36px "Euclid Circular B", sans-serif';
+      ctx.fillText(activeCopy.subline, 75, height - 130);
+
+      // Badge if active
+      if (activeAsset) {
+        ctx.fillStyle = "#6e1d2f";
+        ctx.fillRect(width - 320, 75, 245, 80);
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "800 32px sans-serif";
+        ctx.fillText(activeAsset.text || "AW26", width - 290, 128);
+      }
+
+      // Trigger download
+      const link = document.createElement("a");
+      link.download = `SiMotion_${activeStaticLang}_${staticRatio.replace(":", "x")}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+
+      showToast(`Wygenerowano i pobrano plik PNG (${width}×${height}px).`);
+    };
+
+    if (uploadedImage) {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => renderContent(img);
+      img.src = uploadedImage;
     } else {
-      grad.addColorStop(0, "#211d1a");
-      grad.addColorStop(0.7, "#14110f");
-      grad.addColorStop(1, "#0a0807");
+      renderContent();
     }
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, width, height);
-
-    // Overlay shade
-    const shade = ctx.createLinearGradient(0, height * 0.4, 0, height);
-    shade.addColorStop(0, "rgba(20, 14, 12, 0)");
-    shade.addColorStop(1, "rgba(20, 14, 12, 0.88)");
-    ctx.fillStyle = shade;
-    ctx.fillRect(0, height * 0.4, width, height * 0.6);
-
-    // Brand tag
-    ctx.fillStyle = "#fffaf5";
-    ctx.font = '700 32px "Euclid Circular B", sans-serif';
-    ctx.fillText("SINSAY / AUTUMN ATELIER 2026", 75, height - 310);
-
-    // Headline
-    ctx.font = '700 80px "Euclid Circular B", sans-serif';
-    ctx.fillText(activeCopy.headline, 75, height - 200);
-
-    // Subline
-    ctx.font = '500 38px "Euclid Circular B", sans-serif';
-    ctx.fillText(activeCopy.subline, 75, height - 130);
-
-    // Badge if active
-    if (activeAsset) {
-      ctx.fillStyle = "#6e1d2f";
-      ctx.fillRect(width - 320, 75, 245, 80);
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "800 32px sans-serif";
-      ctx.fillText(activeAsset.text || "AW26", width - 290, 128);
-    }
-
-    // Trigger download
-    const link = document.createElement("a");
-    link.download = `SiMotion_${activeStaticLang}_${staticRatio.replace(":", "x")}.png`;
-    link.href = canvas.toDataURL("image/png");
-    link.click();
-
-    showToast(`Wygenerowano i pobrano plik PNG (${width}×${height}px).`);
   };
 
   return (
