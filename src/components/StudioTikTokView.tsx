@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import JSZip from "jszip";
-import SinsayPhraseAssistant, { SINSAY_MARKETS } from "./SinsayPhraseAssistant";
+import SinsayPhraseAssistant, { SINSAY_MARKETS, SinsayMatchItem } from "./SinsayPhraseAssistant";
 import AnimatedLogoModal, { SelectedLogoConfig, LOGO_VARIANTS } from "./AnimatedLogoModal";
 import { SocialSafeAreaOverlay } from "./SocialSafeAreaOverlay";
 
@@ -50,6 +50,64 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
   const [selectedBgm, setSelectedBgm] = useState("runway");
   const [selectedDubLangs, setSelectedDubLangs] = useState<string[]>(["PL", "ENG"]);
   const [crossDubs, setCrossDubs] = useState(false);
+
+  // Subtitles Copy Matrix per Market (Sinsay 4524 phrases integration)
+  const [videoCaptions, setVideoCaptions] = useState<Record<string, { line1: string; line2: string }>>({
+    PL: { line1: "Nowa kolekcja", line2: "na Twój sposób" },
+    ENG: { line1: "New Collection", line2: "your way" },
+    DE: { line1: "Neue Kollektion", line2: "dein Stil" },
+    RO: { line1: "Colecție nouă", line2: "în stilul tău" },
+    CZ: { line1: "Nová kolekce", line2: "po tvém" },
+    SK: { line1: "Nová kolekcia", line2: "podľa teba" },
+    HU: { line1: "Új kollekció", line2: "a te stílusodban" },
+    IT: { line1: "Nuova collezione", line2: "a modo tuo" },
+    GR: { line1: "Νέα συλλογή", line2: "με το δικό σου στυλ" },
+    HR: { line1: "Nova kolekcija", line2: "na tvoj način" },
+    BG: { line1: "Нова колекция", line2: "по твоя начин" },
+    SI: { line1: "Nova kolekcija", line2: "po tvoje" },
+    UA: { line1: "Нова колекція", line2: "на твій смак" },
+  });
+  const [previewLang, setPreviewLang] = useState<string>("PL");
+  const [showPhraseAssistant, setShowPhraseAssistant] = useState<boolean>(false);
+
+  const currentCaption = videoCaptions[previewLang] || videoCaptions["PL"] || {
+    line1: "Nowa kolekcja",
+    line2: "na Twój sposób",
+  };
+
+  const handleApplyPhrase = (item: SinsayMatchItem) => {
+    const newCaptions: Record<string, { line1: string; line2: string }> = { ...videoCaptions };
+
+    const splitText = (txt: string) => {
+      const clean = (txt || "").trim();
+      const parts = clean.split(/[,·•|-]/);
+      if (parts.length >= 2 && parts[0].trim() && parts[1].trim()) {
+        return { line1: parts[0].trim(), line2: parts.slice(1).join(" ").trim() };
+      }
+      const words = clean.split(" ");
+      if (words.length >= 4) {
+        const mid = Math.ceil(words.length / 2);
+        return { line1: words.slice(0, mid).join(" "), line2: words.slice(mid).join(" ") };
+      }
+      return { line1: clean, line2: "" };
+    };
+
+    newCaptions["PL"] = splitText(item.pl);
+    const enText = item.en || item.translations?.["ENG"] || item.pl;
+    newCaptions["ENG"] = splitText(enText);
+
+    if (item.translations) {
+      Object.entries(item.translations).forEach(([mCode, trans]) => {
+        if (trans) {
+          newCaptions[mCode] = splitText(trans);
+        }
+      });
+    }
+
+    setVideoCaptions(newCaptions);
+    setShowPhraseAssistant(false);
+    showToast(`Zastosowano hasło Sinsay: "${item.pl}" dla wszystkich rynków!`);
+  };
 
   // Video Playback State
   const [isPlaying, setIsPlaying] = useState(false);
@@ -126,9 +184,12 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
 
       // 3. Subtitles SRT & VTT files for languages in Euclid Circular B
       selectedTextLangs.forEach((lang) => {
-        const srtContent = `1\n00:00:00,000 --> 00:00:02,500\nNowa kolekcja na Twój sposób.\n\n2\n00:00:02,550 --> 00:00:05,200\nSinsay — modne stylizacje w najlepszych cenach.\n\n3\n00:00:05,300 --> 00:00:0${Math.floor(duration)},000\nOdkryj w aplikacji i salonach stacjonarnych.\n`;
-        root.file(`subtitles/subtitles_${lang}_euclid.srt`, srtContent);
-        root.file(`subtitles/subtitles_${lang}_euclid.vtt`, `WEBVTT\n\n1\n00:00:00.000 --> 00:00:02.500\nNowa kolekcja na Twój sposób.\n\n2\n00:00:02.550 --> 00:00:05.200\nSinsay — modne stylizacje w najlepszych cenach.\n`);
+        const cap = videoCaptions[lang] || videoCaptions["PL"] || { line1: "Nowa kolekcja", line2: "na Twój sposób" };
+        const line1 = cap.line1 || "Nowa kolekcja";
+        const line2 = cap.line2 || "na Twój sposób";
+        const srtContent = `1\n00:00:00,000 --> 00:00:02,500\n${line1}\n${line2}\n\n2\n00:00:02,550 --> 00:00:05,200\nSinsay — modne stylizacje w najlepszych cenach.\n\n3\n00:00:05,300 --> 00:00:0${Math.floor(duration)},000\nOdkryj w aplikacji i salonach stacjonarnych.\n`;
+        root.file(`subtitles/subtitles_${lang.toLowerCase()}_euclid.srt`, srtContent);
+        root.file(`subtitles/subtitles_${lang.toLowerCase()}_euclid.vtt`, `WEBVTT\n\n1\n00:00:00.000 --> 00:00:02.500\n${line1}\n${line2}\n\n2\n00:00:02.550 --> 00:00:05.200\nSinsay — modne stylizacje w najlepszych cenach.\n`);
       });
 
       // 4. Video files
@@ -599,23 +660,89 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
               <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)]">
                 {SINSAY_MARKETS.map((m) => {
                   const isSelected = selectedTextLangs.includes(m.code);
+                  const isPreview = previewLang === m.code;
                   return (
                     <button
                       key={m.code}
                       type="button"
-                      onClick={() => toggleTextLang(m.code)}
+                      onClick={() => {
+                        toggleTextLang(m.code);
+                        setPreviewLang(m.code);
+                      }}
                       className={`px-2 py-0.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1 ${
-                        isSelected
-                          ? "bg-[var(--accent-soft)] border-[var(--accent)] text-[var(--accent)] font-extrabold shadow-xs"
-                          : "bg-[var(--bg-card)] border-[var(--border-subtle)] text-[var(--ink-secondary)] opacity-70 hover:opacity-100"
+                        isPreview
+                          ? "ring-2 ring-[var(--accent)] bg-[var(--accent-soft)] border-[var(--accent)] text-[var(--accent)] font-extrabold shadow-sm"
+                          : isSelected
+                          ? "bg-[var(--accent-soft)]/50 border-[var(--accent)]/50 text-[var(--accent)] font-bold"
+                          : "bg-[var(--bg-card)] border-[var(--border-subtle)] text-[var(--ink-secondary)] opacity-60 hover:opacity-100"
                       }`}
-                      title={`${m.name} (${m.region})`}
+                      title={`${m.name} (${m.region}) - kliknij aby edytować i podejrzeć`}
                     >
                       <span>{m.flag}</span>
                       <span>{m.code}</span>
                     </button>
                   );
                 })}
+              </div>
+
+              {/* Sinsay Phrase Assistant Trigger & Subtitle Inputs */}
+              <div className="mt-3 pt-2.5 border-t border-[var(--border-subtle)] space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-[var(--ink-primary)]">
+                    Napis dla rynku: <b className="text-[var(--accent)]">{previewLang}</b>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowPhraseAssistant((prev) => !prev)}
+                    className="text-xs font-bold text-[var(--accent)] hover:underline flex items-center gap-1"
+                  >
+                    <span>✦ Hasła Sinsay (4 524)</span>
+                    <span>{showPhraseAssistant ? "▲" : "▼"}</span>
+                  </button>
+                </div>
+
+                {showPhraseAssistant && (
+                  <div className="p-3 rounded-xl border border-[var(--border-strong)] bg-[var(--bg-subtle)]">
+                    <SinsayPhraseAssistant onSelectPhrase={handleApplyPhrase} />
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[10px] font-bold text-[var(--ink-secondary)] block mb-1">
+                      Linia 1 (Główne hasło)
+                    </label>
+                    <input
+                      type="text"
+                      value={currentCaption.line1}
+                      onChange={(e) =>
+                        setVideoCaptions({
+                          ...videoCaptions,
+                          [previewLang]: { ...currentCaption, line1: e.target.value },
+                        })
+                      }
+                      placeholder="np. Nowa kolekcja"
+                      className="w-full px-3 py-1.5 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)] font-bold font-sinsay"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-[var(--ink-secondary)] block mb-1">
+                      Linia 2 (Podtytuł / CTA)
+                    </label>
+                    <input
+                      type="text"
+                      value={currentCaption.line2}
+                      onChange={(e) =>
+                        setVideoCaptions({
+                          ...videoCaptions,
+                          [previewLang]: { ...currentCaption, line2: e.target.value },
+                        })
+                      }
+                      placeholder="np. na Twój sposób"
+                      className="w-full px-3 py-1.5 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)] font-bold font-sinsay"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -836,6 +963,39 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
               </div>
             </div>
 
+            {/* Live Language Selector for Preview */}
+            <div className="flex items-center justify-between flex-wrap gap-2 pt-2 border-t border-[var(--border-subtle)]">
+              <span className="text-xs font-bold text-[var(--ink-secondary)] flex items-center gap-1.5">
+                <span>Podgląd na wideo:</span>
+                <span className="px-1.5 py-0.5 rounded bg-[var(--accent-soft)] text-[var(--accent)] font-extrabold text-[11px]">
+                  {previewLang}
+                </span>
+              </span>
+
+              <div className="flex items-center gap-1 overflow-x-auto max-w-full pb-0.5">
+                {selectedTextLangs.map((code) => {
+                  const m = SINSAY_MARKETS.find((item) => item.code === code);
+                  const isActive = previewLang === code;
+                  return (
+                    <button
+                      key={code}
+                      type="button"
+                      onClick={() => setPreviewLang(code)}
+                      className={`px-2 py-0.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1 shrink-0 ${
+                        isActive
+                          ? "bg-[var(--accent)] text-white border-[var(--accent)] shadow-sm"
+                          : "bg-[var(--bg-subtle)] border-[var(--border-subtle)] text-[var(--ink-secondary)] hover:text-[var(--ink-primary)]"
+                      }`}
+                      title={m?.name || code}
+                    >
+                      <span>{m?.flag || "🌐"}</span>
+                      <span>{code}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Stage Container - Perfectly Centered in Vertical & Horizontal */}
             <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-b from-[var(--champagne)] to-[var(--bg-elevated)] border border-[var(--border-subtle)] grid grid-cols-2 lg:grid-cols-4 gap-4 items-center justify-items-center min-h-[400px] overflow-hidden">
               {/* 1. 3:4 MASTER BAZA */}
@@ -887,7 +1047,8 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                   {/* Text safely anchored in lower-third */}
                   <div className="absolute inset-x-2 bottom-[24%] z-10 text-center pointer-events-none">
                     <p className="text-[9px] font-bold text-white leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] font-sinsay tracking-wide">
-                      Nowa kolekcja<br />na Twój sposób
+                      {currentCaption.line1}
+                      {currentCaption.line2 && <><br />{currentCaption.line2}</>}
                     </p>
                   </div>
                 </div>
@@ -946,7 +1107,8 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                   {/* Text strictly inside Safe Zone (bottom 28% > bottom 25.2% UI) */}
                   <div className="absolute inset-x-2 bottom-[28%] z-10 text-center pointer-events-none">
                     <p className="text-[9px] font-bold text-white leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] font-sinsay tracking-wide">
-                      Nowa kolekcja<br />na Twój sposób
+                      {currentCaption.line1}
+                      {currentCaption.line2 && <><br />{currentCaption.line2}</>}
                     </p>
                   </div>
                 </div>
@@ -1005,7 +1167,8 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                   {/* Text safely anchored in Feed Safe Zone */}
                   <div className="absolute inset-x-2 bottom-[14%] z-10 text-center pointer-events-none">
                     <p className="text-[9px] font-bold text-white leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] font-sinsay tracking-wide">
-                      Nowa kolekcja<br />na Twój sposób
+                      {currentCaption.line1}
+                      {currentCaption.line2 && <><br />{currentCaption.line2}</>}
                     </p>
                   </div>
                 </div>
@@ -1062,7 +1225,8 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                   {/* Text safely anchored in Square Safe Zone */}
                   <div className="absolute inset-x-2 bottom-[12%] z-10 text-center pointer-events-none">
                     <p className="text-[9px] font-bold text-white leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] font-sinsay tracking-wide">
-                      Nowa kolekcja<br />na Twój sposób
+                      {currentCaption.line1}
+                      {currentCaption.line2 && <><br />{currentCaption.line2}</>}
                     </p>
                   </div>
                 </div>
