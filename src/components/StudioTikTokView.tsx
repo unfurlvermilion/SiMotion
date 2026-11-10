@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import JSZip from "jszip";
-import SinsayPhraseAssistant from "./SinsayPhraseAssistant";
+import SinsayPhraseAssistant, { SINSAY_MARKETS } from "./SinsayPhraseAssistant";
 import AnimatedLogoModal, { SelectedLogoConfig, LOGO_VARIANTS } from "./AnimatedLogoModal";
 import { SocialSafeAreaOverlay } from "./SocialSafeAreaOverlay";
 
@@ -43,12 +43,12 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
   const [showSafeAreas, setShowSafeAreas] = useState(true);
   const [separateRender, setSeparateRender] = useState(false);
 
-  // Audio & Languages
-  const [selectedTextLangs, setSelectedTextLangs] = useState<string[]>(["pl-PL", "en-US"]);
+  // Audio & Languages - Sinsay 28 Markets
+  const [selectedTextLangs, setSelectedTextLangs] = useState<string[]>(["PL", "ENG", "DE", "RO", "CZ"]);
   const [isDubEnabled, setIsDubEnabled] = useState(true);
   const [selectedVoice, setSelectedVoice] = useState("maja");
   const [selectedBgm, setSelectedBgm] = useState("runway");
-  const [selectedDubLangs, setSelectedDubLangs] = useState<string[]>(["pl-PL", "en-US"]);
+  const [selectedDubLangs, setSelectedDubLangs] = useState<string[]>(["PL", "ENG"]);
   const [crossDubs, setCrossDubs] = useState(false);
 
   // Video Playback State
@@ -564,23 +564,58 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
             </h2>
 
             <div>
-              <span className="text-xs font-bold block text-[var(--ink-primary)] mb-1.5">
-                Napisy:
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                {["pl-PL", "en-US", "de-DE", "cs-CZ", "ro-RO"].map((lang) => (
+              <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1">
+                <span className="text-xs font-bold text-[var(--ink-primary)]">
+                  Napisy ({selectedTextLangs.length} z {SINSAY_MARKETS.length} rynków):
+                </span>
+                <div className="flex items-center gap-1.5 text-[10px]">
                   <button
-                    key={lang}
-                    onClick={() => toggleTextLang(lang)}
-                    className={`px-3 py-1 rounded-full text-xs font-bold border ${
-                      selectedTextLangs.includes(lang)
-                        ? "bg-[var(--accent-soft)] border-[var(--accent)] text-[var(--accent)]"
-                        : "bg-[var(--bg-subtle)] border-[var(--border-subtle)] text-[var(--ink-secondary)]"
-                    }`}
+                    type="button"
+                    onClick={() => setSelectedTextLangs(["PL", "RO", "CZ", "SK", "HU"])}
+                    className="text-[var(--accent)] hover:underline font-bold"
                   >
-                    {lang.split("-")[0].toUpperCase()}
+                    Top 5 CEE
                   </button>
-                ))}
+                  <span className="text-[var(--ink-muted)]">·</span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTextLangs(SINSAY_MARKETS.map((m) => m.code))}
+                    className="text-[var(--accent)] hover:underline font-bold"
+                  >
+                    Wszystkie 28
+                  </button>
+                  <span className="text-[var(--ink-muted)]">·</span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTextLangs(["PL"])}
+                    className="text-[var(--ink-muted)] hover:underline"
+                  >
+                    Tylko PL
+                  </button>
+                </div>
+              </div>
+
+              {/* All 28 Sinsay Markets Pills */}
+              <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)]">
+                {SINSAY_MARKETS.map((m) => {
+                  const isSelected = selectedTextLangs.includes(m.code);
+                  return (
+                    <button
+                      key={m.code}
+                      type="button"
+                      onClick={() => toggleTextLang(m.code)}
+                      className={`px-2 py-0.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1 ${
+                        isSelected
+                          ? "bg-[var(--accent-soft)] border-[var(--accent)] text-[var(--accent)] font-extrabold shadow-xs"
+                          : "bg-[var(--bg-card)] border-[var(--border-subtle)] text-[var(--ink-secondary)] opacity-70 hover:opacity-100"
+                      }`}
+                      title={`${m.name} (${m.region})`}
+                    >
+                      <span>{m.flag}</span>
+                      <span>{m.code}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -589,6 +624,9 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                 <b className="text-xs block text-[var(--ink-primary)]">
                   Lektor (ElevenLabs)
                 </b>
+                <span className="text-[10px] text-[var(--ink-muted)] block">
+                  Dubbing audio w Euclid TTS
+                </span>
               </div>
               <input
                 type="checkbox"
@@ -599,34 +637,73 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
             </div>
 
             {isDubEnabled && (
-              <div className="grid grid-cols-2 gap-3 pt-1">
-                <div>
-                  <label className="text-xs font-bold text-[var(--ink-primary)] block mb-1">
-                    Głos lektora
-                  </label>
-                  <select
-                    value={selectedVoice}
-                    onChange={(e) => setSelectedVoice(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)]"
-                  >
-                    <option value="maja">Maja · Ciepły Editorial</option>
-                    <option value="adam">Adam · Dynamiczny Runway</option>
-                    <option value="claire">Claire · Luxury Fashion</option>
-                  </select>
+              <div className="space-y-3 pt-1">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-bold text-[var(--ink-primary)] block mb-1">
+                      Głos lektora
+                    </label>
+                    <select
+                      value={selectedVoice}
+                      onChange={(e) => setSelectedVoice(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)]"
+                    >
+                      <option value="maja">Maja · Ciepły Editorial</option>
+                      <option value="adam">Adam · Dynamiczny Runway</option>
+                      <option value="claire">Claire · Luxury Fashion</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-[var(--ink-primary)] block mb-1">
+                      Muzyka BGM (Brand Kit)
+                    </label>
+                    <select
+                      value={selectedBgm}
+                      onChange={(e) => setSelectedBgm(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)]"
+                    >
+                      <option value="runway">Warm Runway House (122 BPM)</option>
+                      <option value="minimal">Atelier Lo-Fi (98 BPM)</option>
+                      <option value="none">Bez muzyki</option>
+                    </select>
+                  </div>
                 </div>
+
+                {/* Dubbed voiceover languages selection */}
                 <div>
-                  <label className="text-xs font-bold text-[var(--ink-primary)] block mb-1">
-                    Muzyka BGM (Brand Kit)
-                  </label>
-                  <select
-                    value={selectedBgm}
-                    onChange={(e) => setSelectedBgm(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)]"
-                  >
-                    <option value="runway">Warm Runway House (122 BPM)</option>
-                    <option value="minimal">Atelier Lo-Fi (98 BPM)</option>
-                    <option value="none">Bez muzyki</option>
-                  </select>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-bold text-[var(--ink-primary)]">
+                      Lektor dla rynków ({selectedDubLangs.length} z {selectedTextLangs.length}):
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedDubLangs([...selectedTextLangs])}
+                      className="text-[10px] text-[var(--accent)] hover:underline font-bold"
+                    >
+                      Wszystkie wybrane z napisów
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {selectedTextLangs.map((code) => {
+                      const isDubSelected = selectedDubLangs.includes(code);
+                      const market = SINSAY_MARKETS.find((m) => m.code === code);
+                      return (
+                        <button
+                          key={code}
+                          type="button"
+                          onClick={() => toggleDubLang(code)}
+                          className={`px-2 py-0.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1 ${
+                            isDubSelected
+                              ? "bg-[var(--accent-soft)] border-[var(--accent)] text-[var(--accent)] font-extrabold"
+                              : "bg-[var(--bg-subtle)] border-[var(--border-subtle)] text-[var(--ink-muted)] hover:text-[var(--ink-secondary)]"
+                          }`}
+                        >
+                          <span>{market?.flag || "🌐"}</span>
+                          <span>{code}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             )}
