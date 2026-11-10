@@ -759,10 +759,10 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
               </div>
             </div>
 
-            {/* Stage Container */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-b from-[var(--champagne)] to-[var(--bg-elevated)] border border-[var(--border-subtle)] grid grid-cols-2 lg:grid-cols-4 gap-3 place-items-end min-h-[360px] overflow-hidden">
+            {/* Stage Container - Perfectly Centered in Vertical & Horizontal */}
+            <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-b from-[var(--champagne)] to-[var(--bg-elevated)] border border-[var(--border-subtle)] grid grid-cols-2 lg:grid-cols-4 gap-4 items-center justify-items-center min-h-[400px] overflow-hidden">
               {/* 1. 3:4 MASTER BAZA */}
-              <div className="flex flex-col items-center gap-1.5 w-full">
+              <div className="flex flex-col items-center gap-2 w-full">
                 <div className="flex items-center justify-between w-full max-w-[155px] px-1 text-[10px] font-bold text-[var(--ink-secondary)]">
                   <span className="flex items-center gap-1">
                     <span className="w-2 h-2 rounded-full bg-[#c84b31]" />
@@ -771,7 +771,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                   <span className="text-[9px] font-mono text-[var(--ink-muted)]">1440×1920</span>
                 </div>
 
-                <div className="w-full max-w-[155px] aspect-[3/4] rounded-2xl border-2 border-[#c84b31] bg-black flex flex-col justify-end text-center relative overflow-hidden shadow-xl ring-1 ring-[#c84b31]/30">
+                <div className="w-full max-w-[155px] aspect-[3/4] rounded-2xl border-2 border-[#c84b31] bg-black relative overflow-hidden shadow-xl ring-1 ring-[#c84b31]/30">
                   {videoFile ? (
                     <video
                       ref={videoRef}
@@ -807,8 +807,9 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                     </div>
                   )}
 
-                  <div className={`relative z-10 p-2 transition-all ${showSafeAreas ? "mb-6" : ""}`}>
-                    <p className="text-[9px] font-bold text-white leading-tight drop-shadow-md font-sinsay tracking-wide">
+                  {/* Text safely anchored in lower-third */}
+                  <div className="absolute inset-x-2 bottom-[24%] z-10 text-center pointer-events-none">
+                    <p className="text-[9px] font-bold text-white leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] font-sinsay tracking-wide">
                       Nowa kolekcja<br />na Twój sposób
                     </p>
                   </div>
@@ -816,7 +817,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
               </div>
 
               {/* 2. 9:16 TikTok / Reels Frame (Side Crop with offset) */}
-              <div className="flex flex-col items-center gap-1.5 w-full">
+              <div className="flex flex-col items-center gap-2 w-full">
                 <div className="flex items-center justify-between w-full max-w-[130px] px-1 text-[10px] font-bold text-[var(--ink-secondary)]">
                   <span className="flex items-center gap-1">
                     <span className="w-2 h-2 rounded-full bg-[var(--accent)]" />
@@ -825,7 +826,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                   <span className="text-[9px] font-mono text-[var(--ink-muted)]">1080×1920</span>
                 </div>
 
-                <div className="w-full max-w-[130px] aspect-[9/16] rounded-2xl border-2 border-black/80 dark:border-white/20 bg-black flex flex-col justify-end text-center relative overflow-hidden shadow-xl">
+                <div className="w-full max-w-[130px] aspect-[9/16] rounded-2xl border-2 border-black/80 dark:border-white/20 bg-black relative overflow-hidden shadow-xl">
                   {videoFile ? (
                     <video
                       src={videoFile}
@@ -865,8 +866,9 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                     </div>
                   )}
 
-                  <div className={`relative z-10 p-2 transition-all ${showSafeAreas ? "mb-8" : ""}`}>
-                    <p className="text-[9px] font-bold text-white leading-tight drop-shadow-md font-sinsay tracking-wide">
+                  {/* Text strictly inside Safe Zone (bottom 28% > bottom 25.2% UI) */}
+                  <div className="absolute inset-x-2 bottom-[28%] z-10 text-center pointer-events-none">
+                    <p className="text-[9px] font-bold text-white leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] font-sinsay tracking-wide">
                       Nowa kolekcja<br />na Twój sposób
                     </p>
                   </div>
@@ -874,7 +876,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
               </div>
 
               {/* 3. 4:5 Frame (Meta Feed Smart Crop) */}
-              <div className="flex flex-col items-center gap-1.5 w-full">
+              <div className="flex flex-col items-center gap-2 w-full">
                 <div className="flex items-center justify-between w-full max-w-[145px] px-1 text-[10px] font-bold text-[var(--ink-secondary)]">
                   <span className="flex items-center gap-1">
                     <span className="w-2 h-2 rounded-full bg-[var(--accent)]" />
@@ -883,7 +885,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                   <span className="text-[9px] font-mono text-[var(--ink-muted)]">1080×1350</span>
                 </div>
 
-                <div className="w-full max-w-[145px] aspect-[4/5] rounded-2xl border-2 border-black/80 dark:border-white/20 bg-black flex flex-col justify-end text-center relative overflow-hidden shadow-xl">
+                <div className="w-full max-w-[145px] aspect-[4/5] rounded-2xl border-2 border-black/80 dark:border-white/20 bg-black relative overflow-hidden shadow-xl">
                   {videoFile ? (
                     <video
                       src={videoFile}
@@ -923,8 +925,9 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                     </div>
                   )}
 
-                  <div className={`relative z-10 p-2 transition-all ${showSafeAreas ? "mb-5" : ""}`}>
-                    <p className="text-[9px] font-bold text-white leading-tight drop-shadow-md font-sinsay tracking-wide">
+                  {/* Text safely anchored in Feed Safe Zone */}
+                  <div className="absolute inset-x-2 bottom-[14%] z-10 text-center pointer-events-none">
+                    <p className="text-[9px] font-bold text-white leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] font-sinsay tracking-wide">
                       Nowa kolekcja<br />na Twój sposób
                     </p>
                   </div>
@@ -932,7 +935,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
               </div>
 
               {/* 4. 1:1 Frame (Catalog / Square Carousel) */}
-              <div className="flex flex-col items-center gap-1.5 w-full">
+              <div className="flex flex-col items-center gap-2 w-full">
                 <div className="flex items-center justify-between w-full max-w-[150px] px-1 text-[10px] font-bold text-[var(--ink-secondary)]">
                   <span className="flex items-center gap-1">
                     <span className="w-2 h-2 rounded-full bg-[var(--accent)]" />
@@ -941,7 +944,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                   <span className="text-[9px] font-mono text-[var(--ink-muted)]">1080×1080</span>
                 </div>
 
-                <div className="w-full max-w-[150px] aspect-square rounded-2xl border-2 border-black/80 dark:border-white/20 bg-black flex flex-col justify-end text-center relative overflow-hidden shadow-xl">
+                <div className="w-full max-w-[150px] aspect-square rounded-2xl border-2 border-black/80 dark:border-white/20 bg-black relative overflow-hidden shadow-xl">
                   {videoFile ? (
                     <video
                       src={videoFile}
@@ -979,8 +982,9 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                     </div>
                   )}
 
-                  <div className={`relative z-10 p-2 transition-all ${showSafeAreas ? "mb-4" : ""}`}>
-                    <p className="text-[9px] font-bold text-white leading-tight drop-shadow-md font-sinsay tracking-wide">
+                  {/* Text safely anchored in Square Safe Zone */}
+                  <div className="absolute inset-x-2 bottom-[12%] z-10 text-center pointer-events-none">
+                    <p className="text-[9px] font-bold text-white leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] font-sinsay tracking-wide">
                       Nowa kolekcja<br />na Twój sposób
                     </p>
                   </div>
