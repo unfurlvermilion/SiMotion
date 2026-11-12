@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import {
+  FASHION_CATEGORIES,
+  normalizeForSearch,
+  repairPolishText,
+  detectFashionContext,
+  FashionCategory,
+} from "@/lib/fashionClassifier";
 
 // Cached memory index of Sinsay phrases
 let cachedEntries: any[] | null = null;
@@ -18,117 +25,128 @@ function getSinsayEntries() {
   }
 }
 
-// Tokenize and clean text into normalized words
-function tokenize(text: string): string[] {
-  return text
-    .toLowerCase()
-    .replace(/[^a-ząćęłńóśźż0-9\s]/gi, " ")
-    .split(/\s+/)
-    .filter((w) => w.length > 2);
-}
-
-// Fashion & Retail Keyword Category Dictionaries for Context Matching
-const CATEGORY_MAP: Record<string, string[]> = {
-  "Trendy & Nowości": ["nowości", "nowa", "nowy", "nowe", "trend", "trendy", "must", "have", "kolekcja", "capsule", "hit", "top"],
-  "Promocje & Ceny": ["cena", "cenach", "rabat", "promocja", "wyprzedaż", "okazja", "tylko", "teraz", "kup", "taniej", "super"],
-  "Sezon & Święta": ["jesień", "jesienne", "zima", "zimowe", "wiosna", "lato", "święta", "wielkanoc", "matki", "kobiet", "walentynki", "halloween"],
-  "Kategorie & Styl": ["sukienka", "płaszcz", "kurtka", "koszula", "spodnie", "jeans", "denim", "buty", "kaszmir", "jedwab", "wełna", "elegancki", "casual"],
-  "Dla Kogo": ["dla ciebie", "dla niej", "dla niego", "dziecko", "dzieci", "ona", "on", "mama"],
-};
-
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { query, categoryHint, limit = 20 } = body;
+    const {
+      query = "",
+      categoryId = null,
+      filename = "",
+      colorTone = "",
+      limit = 20,
+    } = body;
 
     const entries = getSinsayEntries();
     if (!entries || entries.length === 0) {
-      return NextResponse.json({ status: "error", message: "Baza haseł jest pusta" }, { status: 500 });
+      return NextResponse.json(
+        { status: "error", message: "Baza haseł Sinsay jest pusta" },
+        { status: 500 }
+      );
+    }
+
+    // 1. Detect or apply fashion context & season
+    let activeCategory: FashionCategory | undefined;
+    if (categoryId) {
+      activeCategory = FASHION_CATEGORIES.find((c) => c.id === categoryId);
+    }
+
+    const detectedContext = detectFashionContext({
+      filename,
+      prompt: query,
+      colorTone,
+    });
+
+    if (!activeCategory) {
+      activeCategory = detectedContext.category;
     }
 
     const cleanQuery = (query || "").trim();
-    const queryTokens = tokenize(cleanQuery);
+    const normalizedQuery = normalizeForSearch(cleanQuery);
+    const queryTokens = normalizedQuery.split(/\s+/).filter((w) => w.length > 2);
 
-    // If query is empty, return 20 popular flagship Sinsay slogans
-    if (queryTokens.length === 0) {
-      const topDefaults = entries.slice(0, limit).map((e: any, idx: number) => ({
-        id: e.id,
-        pl: e.pl,
-        en: e.en,
-        score: Math.max(75, 99 - idx * 2),
-        category: "Bestseller Sinsay",
-        translations: e.translations,
-      }));
-      return NextResponse.json({
-        status: "success",
-        query: "",
-        totalMatched: topDefaults.length,
-        results: topDefaults,
-      });
-    }
-
-    // Scoring algorithm for each entry
+    // 2. Score each phrase from the 4,524 database entries
     const scored = entries.map((entry: any) => {
       let score = 0;
-      const plLower = entry.pl.toLowerCase();
-      const enLower = (entry.en || "").toLowerCase();
-      const entryTokens = tokenize(entry.pl + " " + (entry.en || ""));
+      const plRepaired = repairPolishText(entry.pl);
+      const plNorm = normalizeForSearch(plRepaired);
+      const enNorm = normalizeForSearch(entry.en || "");
+      const combinedNorm = `${plNorm} ${enNorm}`;
 
-      // 1. Direct exact or substring phrase match (+50..80 points)
-      if (plLower.includes(cleanQuery.toLowerCase())) {
-        score += 70;
-      }
-      if (enLower.includes(cleanQuery.toLowerCase())) {
-        score += 50;
-      }
+      // A. Category & Season Boosting (The core requirement for sunglasses -> summer, winter boots/jacket -> winter)
+      if (activeCategory) {
+        // Boost keywords (e.g. kurtk, jacket, zima, zimow, okulary, summer, etc.)
+        for (const bk of activeCategory.boostKeywords) {
+          const normBk = normalizeForSearch(bk);
+          if (plNorm.includes(normBk) || enNorm.includes(normBk)) {
+            score += 55;
+            break;
+          }
+        }
 
-      // 2. Token overlap (+15 points per matched word)
-      queryTokens.forEach((qt) => {
-        if (plLower.includes(qt)) score += 20;
-        if (enLower.includes(qt)) score += 12;
-        if (entryTokens.includes(qt)) score += 10;
-      });
-
-      // 3. Category hint boost
-      let matchedCategory = "Ogólne";
-      for (const [catName, keywords] of Object.entries(CATEGORY_MAP)) {
-        const queryHasCat = keywords.some((kw) => cleanQuery.toLowerCase().includes(kw));
-        const entryHasCat = keywords.some((kw) => plLower.includes(kw));
-        if (queryHasCat && entryHasCat) {
-          score += 25;
-          matchedCategory = catName;
-          break;
-        } else if (entryHasCat) {
-          matchedCategory = catName;
+        // Secondary category keywords
+        for (const kw of activeCategory.sinsayQueryKeywords) {
+          const normKw = normalizeForSearch(kw);
+          if (combinedNorm.includes(normKw)) {
+            score += 20;
+          }
         }
       }
 
-      // Length penalty for excessively long text when looking for short copy slogans
-      if (entry.pl.length > 60) score -= 8;
+      // B. Query matching if user typed a specific query
+      if (cleanQuery.length > 0 && cleanQuery !== activeCategory?.suggestedQuery) {
+        if (plNorm.includes(normalizedQuery)) {
+          score += 60;
+        } else if (enNorm.includes(normalizedQuery)) {
+          score += 45;
+        }
+
+        queryTokens.forEach((qt) => {
+          if (plNorm.includes(qt)) score += 18;
+          if (enNorm.includes(qt)) score += 12;
+        });
+      }
+
+      // C. Market coverage bonus (phrases translated to many markets are better)
+      const marketCount = entry.translations ? Object.keys(entry.translations).length : 1;
+      if (marketCount >= 20) score += 12;
+      else if (marketCount >= 10) score += 6;
+
+      // D. Clean slogan length bonus (fashion copy should be catchy, not an essay)
+      if (plRepaired.length >= 8 && plRepaired.length <= 48) {
+        score += 8;
+      } else if (plRepaired.length > 65) {
+        score -= 10;
+      }
 
       return {
         id: entry.id,
-        pl: entry.pl,
-        en: entry.en,
+        pl: plRepaired,
+        en: entry.en || "",
         rawScore: score,
-        category: matchedCategory,
-        translations: entry.translations,
+        category: activeCategory?.label || "Bestsellery Sinsay",
+        season: activeCategory?.seasonLabel || "Całoroczne",
+        seasonIcon: activeCategory?.seasonIcon || "✨",
+        translations: entry.translations || {},
       };
     });
 
-    // Sort descending by score
+    // 3. Sort descending by score
     scored.sort((a, b) => b.rawScore - a.rawScore);
 
-    // Pick top 20
-    const top20 = scored.slice(0, limit).map((item, idx) => {
-      // Normalize score into realistic percentage 78%..99%
-      const normalizedPercentage = Math.min(99, Math.max(70, 98 - idx * 2 + (item.rawScore > 60 ? 2 : 0)));
+    // 4. Return top recommendations with clean scores 80..99%
+    const results = scored.slice(0, limit).map((item, idx) => {
+      const normalizedPercentage = Math.min(
+        99,
+        Math.max(78, 98 - idx * 1.5 + (item.rawScore > 80 ? 2 : 0))
+      );
       return {
         id: item.id,
         pl: item.pl,
         en: item.en,
-        score: normalizedPercentage,
+        score: Math.round(normalizedPercentage),
         category: item.category,
+        season: item.season,
+        seasonIcon: item.seasonIcon,
         translations: item.translations,
       };
     });
@@ -136,10 +154,21 @@ export async function POST(req: Request) {
     return NextResponse.json({
       status: "success",
       query: cleanQuery,
-      totalMatched: top20.length,
-      results: top20,
+      activeCategory: {
+        id: activeCategory.id,
+        label: activeCategory.label,
+        shortLabel: activeCategory.shortLabel,
+        seasonId: activeCategory.seasonId,
+        seasonLabel: activeCategory.seasonLabel,
+        seasonIcon: activeCategory.seasonIcon,
+        icon: activeCategory.icon,
+      },
+      detectedContext,
+      totalMatched: results.length,
+      results,
     });
   } catch (err: any) {
+    console.error("sinsay-match route error:", err);
     return NextResponse.json({ status: "error", message: err.message }, { status: 500 });
   }
 }

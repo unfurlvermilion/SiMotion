@@ -703,7 +703,10 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
 
                 {showPhraseAssistant && (
                   <div className="p-3 rounded-xl border border-[var(--border-strong)] bg-[var(--bg-subtle)]">
-                    <SinsayPhraseAssistant onSelectPhrase={handleApplyPhrase} />
+                    <SinsayPhraseAssistant
+                      onSelectPhrase={handleApplyPhrase}
+                      currentPrompt={currentCaption.line1 || prompt}
+                    />
                   </div>
                 )}
 

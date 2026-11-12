@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import {
+  FASHION_CATEGORIES,
+  FashionCategory,
+  detectFashionContext,
+  DetectedFashionContext,
+} from "@/lib/fashionClassifier";
 
 export interface SinsayMarket {
   code: string;
@@ -51,23 +57,30 @@ export interface SinsayMatchItem {
   en: string;
   score: number;
   category: string;
+  season?: string;
+  seasonIcon?: string;
   translations: Record<string, string>;
 }
 
 interface SinsayPhraseAssistantProps {
   onSelectPhrase?: (phrase: SinsayMatchItem) => void;
   currentPrompt?: string;
+  initialImage?: string;
 }
 
 export default function SinsayPhraseAssistant({
   onSelectPhrase,
   currentPrompt = "",
+  initialImage = "",
 }: SinsayPhraseAssistantProps) {
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("sunglasses_accessories");
   const [query, setQuery] = useState<string>(
-    currentPrompt || "Jedwabna sukienka na wieczór, elegancka nowa kolekcja"
+    currentPrompt || "Okulary przeciwsłoneczne, modne oprawki i letnie trendy"
   );
   const [uploadedImageName, setUploadedImageName] = useState<string | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(initialImage || null);
+  const [detectedProfile, setDetectedProfile] = useState<DetectedFashionContext | null>(null);
+  const [colorAnalysis, setColorAnalysis] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [results, setResults] = useState<SinsayMatchItem[]>([]);
   const [selectedItem, setSelectedItem] = useState<SinsayMatchItem | null>(null);
@@ -75,20 +88,82 @@ export default function SinsayPhraseAssistant({
   const [isFullMatrixOpen, setIsFullMatrixOpen] = useState<boolean>(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  const handleSearch = async (searchQuery?: string) => {
+  // Hidden canvas for quick color palette check
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // Analyze uploaded image tone
+  const analyzeImageColor = (imgSrc: string) => {
+    try {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        const canvas = canvasRef.current || document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        canvas.width = 32;
+        canvas.height = 32;
+        ctx.drawImage(img, 0, 0, 32, 32);
+        const data = ctx.getImageData(0, 0, 32, 32).data;
+        let rTotal = 0, gTotal = 0, bTotal = 0, count = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          rTotal += data[i];
+          gTotal += data[i + 1];
+          bTotal += data[i + 2];
+          count++;
+        }
+        const rAvg = Math.round(rTotal / count);
+        const gAvg = Math.round(gTotal / count);
+        const bAvg = Math.round(bTotal / count);
+        const brightness = Math.round((rAvg * 299 + gAvg * 587 + bAvg * 114) / 1000);
+
+        let toneDesc = "";
+        if (brightness > 175) {
+          toneDesc = "Jasna, słoneczna paleta (Wiosna / Lato)";
+        } else if (brightness < 80) {
+          toneDesc = "Głęboka, ciemna tonacja (Zima / Wieczór)";
+        } else if (rAvg > bAvg + 20) {
+          toneDesc = "Ciepłe barwy ziemi (Jesień / Lato)";
+        } else {
+          toneDesc = "Chłodna, wyważona tonacja (Casual / Zima)";
+        }
+        setColorAnalysis(toneDesc);
+      };
+      img.src = imgSrc;
+    } catch {
+      // Non-blocking
+    }
+  };
+
+  const handleSearch = async (
+    targetQuery?: string,
+    targetCategoryId?: string,
+    targetFilename?: string
+  ) => {
     setIsSearching(true);
-    const q = searchQuery !== undefined ? searchQuery : query;
+    const q = targetQuery !== undefined ? targetQuery : query;
+    const catId = targetCategoryId !== undefined ? targetCategoryId : selectedCategoryId;
+    const fname = targetFilename !== undefined ? targetFilename : (uploadedImageName || "");
+
     try {
       const res = await fetch("/api/sinsay-match", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: q, limit: 20 }),
+        body: JSON.stringify({
+          query: q,
+          categoryId: catId,
+          filename: fname,
+          colorTone: colorAnalysis || "",
+          limit: 20,
+        }),
       });
       const data = await res.json();
       if (data && data.results) {
         setResults(data.results);
         if (data.results.length > 0) {
           setSelectedItem(data.results[0]);
+        }
+        if (data.detectedContext) {
+          setDetectedProfile(data.detectedContext);
         }
       }
     } catch (err) {
@@ -98,6 +173,12 @@ export default function SinsayPhraseAssistant({
     }
   };
 
+  const handleSelectCategoryChip = (cat: FashionCategory) => {
+    setSelectedCategoryId(cat.id);
+    setQuery(cat.suggestedQuery);
+    handleSearch(cat.suggestedQuery, cat.id);
+  };
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -105,19 +186,30 @@ export default function SinsayPhraseAssistant({
     setUploadedImageName(file.name);
     const reader = new FileReader();
     reader.onload = (event) => {
-      setImagePreview(event.target?.result as string);
+      const src = event.target?.result as string;
+      setImagePreview(src);
+      analyzeImageColor(src);
     };
     reader.readAsDataURL(file);
 
-    const cleanName = file.name
-      .replace(/\.[^/.]+$/, "")
-      .replace(/[-_]/g, " ")
-      .toLowerCase();
+    // Run semantic detection from filename
+    const detected = detectFashionContext({
+      filename: file.name,
+      prompt: query,
+    });
 
-    const inferredQuery = `${cleanName} nowości trendy moda sinsay`;
-    setQuery(inferredQuery);
-    handleSearch(inferredQuery);
+    setDetectedProfile(detected);
+    setSelectedCategoryId(detected.category.id);
+    setQuery(detected.category.suggestedQuery);
+
+    handleSearch(detected.category.suggestedQuery, detected.category.id, file.name);
   };
+
+  // Initial fetch on mount
+  useEffect(() => {
+    handleSearch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const activeMarket =
     SINSAY_MARKETS.find((m) => m.code === selectedMarketCode) || SINSAY_MARKETS[1];
@@ -144,6 +236,8 @@ export default function SinsayPhraseAssistant({
 
   return (
     <div className="rounded-2xl border border-[#dfd5c6] dark:border-[#38302b] bg-white dark:bg-[#211d1a] p-6 shadow-sm space-y-6">
+      <canvas ref={canvasRef} className="hidden" />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#dfd5c6] dark:border-[#38302b] pb-4">
         <div className="flex items-center gap-3">
@@ -153,14 +247,14 @@ export default function SinsayPhraseAssistant({
           <div>
             <div className="flex items-center gap-2">
               <h3 className="font-serif text-lg text-[#1c1816] dark:text-[#f7f3ec]">
-                Asystent Haseł Sinsay (Top 20 Rekomendacji AI)
+                Inteligentny Dobór Haseł Sinsay do Produktu & Sezonu
               </h3>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#e6f4ed] dark:bg-[#193328] text-[#1d6346] dark:text-[#75d9ae]">
                 4 524 haseł · 28 rynków
               </span>
             </div>
             <p className="text-xs text-[#655a53] dark:text-[#b8aea4]">
-              Wpisz prompt wideo lub wgraj packshot produktu – algorytm dopasuje 20 najbardziej trafnych haseł z matrycy Sinsay.
+              Wrzuć packshot produktu (np. okulary → Wiosna/Lato, kurtka lub buty zimowe → Zima) lub wybierz kategorię.
             </p>
           </div>
         </div>
@@ -168,25 +262,67 @@ export default function SinsayPhraseAssistant({
         <button
           onClick={() => handleSearch()}
           disabled={isSearching}
-          className="px-5 py-2.5 text-xs font-semibold rounded-xl bg-[#c84b31] dark:bg-[#e56b4e] hover:opacity-90 disabled:opacity-50 text-white shadow-sm transition-all flex items-center justify-center gap-2"
+          className="px-5 py-2.5 text-xs font-semibold rounded-xl bg-[#c84b31] dark:bg-[#e56b4e] hover:opacity-90 disabled:opacity-50 text-white shadow-sm transition-all flex items-center justify-center gap-2 flex-shrink-0"
         >
           {isSearching ? (
             <>
               <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              <span>Dopasowywanie 20 haseł...</span>
+              <span>Dopasowywanie haseł...</span>
             </>
           ) : (
-            <span>✦ Znajdź 20 haseł Sinsay</span>
+            <span>✦ Szukaj haseł Sinsay</span>
           )}
         </button>
       </div>
 
-      {/* Input Row: Prompt / Features & Image Upload */}
+      {/* Interactive Category & Season Chips (Quick One-Click Filters) */}
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-[#877b72] dark:text-[#8e8379]">
+            Wybierz kategorię produktu lub sezon (1-klik):
+          </span>
+          <span className="text-[11px] text-[#655a53] dark:text-[#b8aea4]">
+            Automatyczne reguły sezonowości
+          </span>
+        </div>
+
+        <div className="flex flex-wrap gap-1.5">
+          {FASHION_CATEGORIES.map((cat) => {
+            const isActive = selectedCategoryId === cat.id;
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => handleSelectCategoryChip(cat)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                  isActive
+                    ? "bg-[#c84b31] text-white shadow-sm scale-[1.02]"
+                    : "bg-[#faf7f2] dark:bg-[#1a1714] border border-[#dfd5c6] dark:border-[#38302b] text-[#655a53] dark:text-[#b8aea4] hover:border-[#c84b31] hover:text-[#1c1816] dark:hover:text-[#f7f3ec]"
+                }`}
+              >
+                <span>{cat.icon}</span>
+                <span>{cat.shortLabel}</span>
+                <span
+                  className={`text-[9px] px-1 py-0.2 rounded font-normal ${
+                    isActive
+                      ? "bg-white/20 text-white"
+                      : "bg-[#e8e2d8] dark:bg-[#2b2521] text-[#877b72] dark:text-[#8e8379]"
+                  }`}
+                >
+                  {cat.seasonLabel}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Input Row: Prompt / Features & Image Packshot Upload */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Prompt Input */}
+        {/* Prompt Input & Search */}
         <div className="lg:col-span-2 space-y-2">
           <label className="text-xs font-medium text-[#1c1816] dark:text-[#f7f3ec] block">
-            Prompt wideo, cechy produktu lub opis kampanii:
+            Prompt wideo, cechy ubioru lub fraza kampanijna:
           </label>
           <div className="flex gap-2">
             <input
@@ -194,56 +330,62 @@ export default function SinsayPhraseAssistant({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              placeholder="np. jedwabna sukienka koktajlowa, jesienny camelowy płaszcz, nowości w super cenie..."
+              placeholder="np. okulary przeciwsłoneczne, kurtka zimowa puffer, sukienka satynowa..."
               className="flex-1 px-4 py-2.5 rounded-xl border border-[#dfd5c6] dark:border-[#38302b] bg-[#faf7f2] dark:bg-[#1a1714] text-xs text-[#1c1816] dark:text-[#f7f3ec] focus:outline-none focus:border-[#c84b31]"
             />
           </div>
-          <div className="flex flex-wrap gap-1.5 pt-1">
-            <span className="text-[11px] text-[#877b72] dark:text-[#8e8379] mr-1">Szybkie presety:</span>
-            {[
-              "Nowości w najlepszych cenach",
-              "Dla Niej · Sukienki & Elegancja",
-              "Otul się ciepłem · Płaszcze & Swetry",
-              "Specjalnie dla Ciebie",
-              "Wielka wyprzedaż sezonowa",
-            ].map((preset) => (
-              <button
-                key={preset}
-                onClick={() => {
-                  setQuery(preset);
-                  handleSearch(preset);
-                }}
-                className="px-2.5 py-0.5 rounded-lg text-[11px] bg-[#f2ece1] dark:bg-[#292420] text-[#655a53] dark:text-[#b8aea4] hover:text-[#1c1816] dark:hover:text-[#f7f3ec] transition-colors"
-              >
-                {preset}
-              </button>
-            ))}
-          </div>
+
+          {/* AI Detected Profile Banner */}
+          {detectedProfile && (
+            <div className="p-3 rounded-xl border border-[#1d6346]/30 bg-[#e6f4ed]/60 dark:bg-[#193328]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="text-base">{detectedProfile.seasonIcon}</span>
+                <div>
+                  <span className="font-bold text-[#1d6346] dark:text-[#75d9ae]">
+                    Wykryto: {detectedProfile.category.label}
+                  </span>
+                  <p className="text-[11px] text-[#2e5241] dark:text-[#a0dbc0]">
+                    {detectedProfile.matchReason}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#1d6346] text-white">
+                  Sezon: {detectedProfile.seasonLabel}
+                </span>
+                {colorAnalysis && (
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-white/70 dark:bg-black/40 text-[#655a53] dark:text-[#b8aea4]">
+                    {colorAnalysis}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Image Packshot Drop / Upload */}
         <div className="space-y-2">
           <label className="text-xs font-medium text-[#1c1816] dark:text-[#f7f3ec] block">
-            Lub przeciągnij zdjęcie packshotu / lookbooku:
+            Przeciągnij zdjęcie packshotu produktu (PSH):
           </label>
           <label className="flex items-center gap-3 p-2.5 rounded-xl border border-dashed border-[#bfa890] dark:border-[#5c4d42] bg-[#faf7f2]/70 dark:bg-[#1a1714]/60 hover:bg-[#f2ece1] dark:hover:bg-[#211d1a] cursor-pointer transition-colors">
             {imagePreview ? (
               <img
                 src={imagePreview}
-                alt="Uploaded packshot"
-                className="w-12 h-12 object-cover rounded-lg border border-[#dfd5c6] dark:border-[#38302b]"
+                alt="Packshot preview"
+                className="w-14 h-14 object-cover rounded-lg border border-[#dfd5c6] dark:border-[#38302b]"
               />
             ) : (
-              <div className="w-12 h-12 rounded-lg bg-[#f2ece1] dark:bg-[#292420] text-[#877b72] dark:text-[#8e8379] grid place-items-center text-xl">
+              <div className="w-14 h-14 rounded-lg bg-[#f2ece1] dark:bg-[#292420] text-[#877b72] dark:text-[#8e8379] grid place-items-center text-2xl flex-shrink-0">
                 📷
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-[#1c1816] dark:text-[#f7f3ec] truncate">
-                {uploadedImageName || "Wybierz plik ze zdjęciem"}
+              <p className="text-xs font-semibold text-[#1c1816] dark:text-[#f7f3ec] truncate">
+                {uploadedImageName || "Kliknij lub upuść plik ze zdjęciem"}
               </p>
               <p className="text-[10px] text-[#877b72] dark:text-[#8e8379]">
-                PNG, JPG · Analiza cech i kolorystyki
+                Automatycznie rozpozna: okulary, kurtki, buty, płaszcze, sezon
               </p>
             </div>
             <input
@@ -263,14 +405,14 @@ export default function SinsayPhraseAssistant({
           <div className="lg:col-span-6 space-y-2">
             <div className="flex items-center justify-between pb-1">
               <span className="text-xs font-semibold uppercase tracking-wider text-[#877b72] dark:text-[#8e8379]">
-                Top 20 rekomendacji dopasowanych do promptu:
+                Top 20 rekomendacji dopasowanych do produktu:
               </span>
               <span className="text-xs text-[#655a53] dark:text-[#b8aea4]">
-                Wybierz hasło
+                Kliknij, aby podglądnąć
               </span>
             </div>
 
-            <div className="space-y-1.5 max-h-[420px] overflow-y-auto pr-1">
+            <div className="space-y-1.5 max-h-[460px] overflow-y-auto pr-1">
               {results.map((item, index) => {
                 const isSelected = selectedItem?.id === item.id;
                 return (
@@ -279,7 +421,7 @@ export default function SinsayPhraseAssistant({
                     onClick={() => setSelectedItem(item)}
                     className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between gap-3 ${
                       isSelected
-                        ? "border-[#c84b31] dark:border-[#e56b4e] bg-[#fceee9]/40 dark:bg-[#38211c]/30 shadow-sm"
+                        ? "border-[#c84b31] dark:border-[#e56b4e] bg-[#fceee9]/50 dark:bg-[#38211c]/40 shadow-sm"
                         : "border-[#dfd5c6] dark:border-[#38302b] bg-[#faf7f2]/40 dark:bg-[#1a1714]/30 hover:bg-[#faf7f2] dark:hover:bg-[#1a1714]"
                     }`}
                   >
@@ -288,21 +430,30 @@ export default function SinsayPhraseAssistant({
                         {index + 1}
                       </span>
                       <div className="min-w-0">
-                        <p className="text-xs font-semibold text-[#1c1816] dark:text-[#f7f3ec] truncate">
-                          {item.pl}
-                        </p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-xs font-semibold text-[#1c1816] dark:text-[#f7f3ec] truncate">
+                            {item.pl}
+                          </p>
+                        </div>
                         {item.en && (
                           <p className="text-[11px] text-[#877b72] dark:text-[#8e8379] truncate">
-                            {item.en}
+                            ENG: {item.en}
                           </p>
                         )}
                       </div>
                     </div>
 
                     <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-[#e6f4ed] dark:bg-[#193328] text-[#1d6346] dark:text-[#75d9ae]">
-                        {item.score}% Match
-                      </span>
+                      <div className="flex items-center gap-1">
+                        {item.season && (
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-[#faf7f2] dark:bg-[#211d1a] border border-[#dfd5c6] dark:border-[#38302b] text-[#655a53] dark:text-[#b8aea4]">
+                            {item.seasonIcon} {item.season}
+                          </span>
+                        )}
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#e6f4ed] dark:bg-[#193328] text-[#1d6346] dark:text-[#75d9ae]">
+                          {item.score}%
+                        </span>
+                      </div>
                       {(() => {
                         const count = countAvailableMarkets(item.translations);
                         return (
@@ -333,7 +484,7 @@ export default function SinsayPhraseAssistant({
                 <div className="border-b border-[#dfd5c6] dark:border-[#38302b] pb-3">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] uppercase font-bold tracking-wider text-[#c84b31] dark:text-[#e56b4e]">
-                      Wybrane hasło z matrycy Sinsay
+                      Oficjalne hasło Sinsay z matrycy LPP
                     </span>
                     <span className="text-xs font-bold text-[#1d6346] dark:text-[#75d9ae]">
                       {selectedItem.score}% Dopasowania
@@ -364,7 +515,7 @@ export default function SinsayPhraseAssistant({
                     </button>
                   </div>
 
-                  {/* Clean Dropdown with Optgroups & Translation Availability Dots */}
+                  {/* Clean Dropdown with Optgroups */}
                   <div className="relative">
                     <select
                       value={selectedMarketCode}
@@ -475,7 +626,7 @@ export default function SinsayPhraseAssistant({
                       onSelectPhrase(selectedItem);
                     }
                   }}
-                  className="w-full py-2.5 rounded-xl text-xs font-semibold bg-[#1d6346] hover:bg-[#164e37] text-white shadow-sm transition-colors flex items-center justify-center gap-2 mt-4"
+                  className="w-full py-2.5 rounded-xl text-xs font-semibold bg-[#1d6346] hover:bg-[#164e37] text-white shadow-sm transition-colors flex items-center justify-center gap-2 mt-4 cursor-pointer"
                 >
                   <span>✓ Zastosuj to hasło we wszystkich językach kreacji</span>
                 </button>
@@ -503,7 +654,7 @@ export default function SinsayPhraseAssistant({
             </div>
             <button
               onClick={() => setIsFullMatrixOpen(false)}
-              className="text-xs font-semibold text-[#877b72] hover:text-[#1c1816] dark:hover:text-[#f7f3ec]"
+              className="text-xs font-semibold text-[#877b72] hover:text-[#1c1816] dark:hover:text-[#f7f3ec] cursor-pointer"
             >
               Zamknij widok matrycy ✕
             </button>
@@ -529,7 +680,7 @@ export default function SinsayPhraseAssistant({
                     </span>
                     <button
                       onClick={() => copyToClipboard(text, m.code)}
-                      className="text-[10px] text-[#c84b31] dark:text-[#e56b4e] hover:underline"
+                      className="text-[10px] text-[#c84b31] dark:text-[#e56b4e] hover:underline cursor-pointer"
                     >
                       {isCopied ? "✓" : "Kopiuj"}
                     </button>

@@ -527,7 +527,11 @@ export const StaticGraphicsView: React.FC<StaticGraphicsViewProps> = ({
             {/* Sinsay Assistant Drawer */}
             {showPhraseAssistant && (
               <div className="p-3 rounded-xl border border-[var(--border-strong)] bg-[var(--bg-subtle)]">
-                <SinsayPhraseAssistant onSelectPhrase={handleApplyPhrase} />
+                <SinsayPhraseAssistant
+                  onSelectPhrase={handleApplyPhrase}
+                  initialImage={uploadedImage || ""}
+                  currentPrompt={activeCopy.headline}
+                />
               </div>
             )}
 
