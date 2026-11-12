@@ -5,6 +5,7 @@ import {
   FASHION_CATEGORIES,
   normalizeForSearch,
   repairPolishText,
+  repairMultilingualText,
   detectFashionContext,
   FashionCategory,
 } from "@/lib/fashionClassifier";
@@ -118,15 +119,34 @@ export async function POST(req: Request) {
         score -= 10;
       }
 
+      // E. Clean multilingual translations (repair special characters and handle corrupted scripts)
+      const cleanTranslations: Record<string, string> = {};
+      const enClean = entry.en ? repairMultilingualText(entry.en, "ENG") : "";
+      if (entry.translations && typeof entry.translations === "object") {
+        for (const [mCode, rawVal] of Object.entries(entry.translations)) {
+          if (typeof rawVal === "string" && rawVal.trim()) {
+            const repaired = repairMultilingualText(rawVal, mCode);
+            // If repaired text is clean and doesn't have broken ? characters, keep it
+            if (repaired && !repaired.includes("?")) {
+              cleanTranslations[mCode] = repaired;
+            } else if (enClean && !enClean.includes("?")) {
+              cleanTranslations[mCode] = enClean;
+            } else {
+              cleanTranslations[mCode] = plRepaired;
+            }
+          }
+        }
+      }
+
       return {
         id: entry.id,
         pl: plRepaired,
-        en: entry.en || "",
+        en: enClean || plRepaired,
         rawScore: score,
         category: activeCategory?.label || "Bestsellery Sinsay",
         season: activeCategory?.seasonLabel || "Całoroczne",
         seasonIcon: activeCategory?.seasonIcon || "✨",
-        translations: entry.translations || {},
+        translations: cleanTranslations,
       };
     });
 

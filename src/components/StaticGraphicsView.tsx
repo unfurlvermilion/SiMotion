@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import JSZip from "jszip";
 import { BrandAsset } from "@/app/page";
 import SinsayPhraseAssistant, { SINSAY_MARKETS, SinsayMatchItem } from "./SinsayPhraseAssistant";
+import { repairMultilingualText } from "@/lib/fashionClassifier";
 
 export const STATIC_RATIOS = [
   { id: "1:1", label: "1:1 · Kwadrat", width: 1080, height: 1080, aspectClass: "aspect-square" },
@@ -102,11 +103,12 @@ export const StaticGraphicsView: React.FC<StaticGraphicsViewProps> = ({
     const newTexts: Record<string, { headline: string; subline: string }> = { ...staticTexts };
     
     // Polish
-    newTexts["PL"] = { headline: item.pl, subline: "Kolekcja na Twój sposób · Sinsay" };
-    newTexts["pl-PL"] = { headline: item.pl, subline: "Kolekcja na Twój sposób · Sinsay" };
+    const plClean = repairMultilingualText(item.pl, "PL");
+    newTexts["PL"] = { headline: plClean, subline: "Kolekcja na Twój sposób · Sinsay" };
+    newTexts["pl-PL"] = { headline: plClean, subline: "Kolekcja na Twój sposób · Sinsay" };
 
     // English
-    const enText = item.en || item.translations["ENG"] || item.pl;
+    const enText = repairMultilingualText(item.en || item.translations["ENG"] || item.pl, "ENG") || plClean;
     newTexts["ENG"] = { headline: enText, subline: "New Collection, your way · Sinsay" };
     newTexts["en-US"] = { headline: enText, subline: "New Collection, your way · Sinsay" };
 
@@ -114,8 +116,9 @@ export const StaticGraphicsView: React.FC<StaticGraphicsViewProps> = ({
     if (item.translations) {
       Object.entries(item.translations).forEach(([mCode, translatedText]) => {
         if (translatedText) {
+          const repaired = repairMultilingualText(translatedText, mCode);
           newTexts[mCode] = {
-            headline: translatedText,
+            headline: (repaired && !repaired.includes("?")) ? repaired : enText,
             subline: "Sinsay · Nowości",
           };
         }
@@ -124,7 +127,7 @@ export const StaticGraphicsView: React.FC<StaticGraphicsViewProps> = ({
 
     setStaticTexts(newTexts);
     setShowPhraseAssistant(false);
-    showToast(`Zastosowano hasło Sinsay: "${item.pl}" dla wszystkich rynków!`);
+    showToast(`Zastosowano hasło Sinsay: "${plClean}" dla wszystkich rynków!`);
   };
 
   // Compute target canvas width and height based on selected ratio

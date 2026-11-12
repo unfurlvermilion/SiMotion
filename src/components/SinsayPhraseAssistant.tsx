@@ -6,6 +6,7 @@ import {
   FashionCategory,
   detectFashionContext,
   DetectedFashionContext,
+  repairMultilingualText,
 } from "@/lib/fashionClassifier";
 
 export interface SinsayMarket {
@@ -214,15 +215,20 @@ export default function SinsayPhraseAssistant({
   const activeMarket =
     SINSAY_MARKETS.find((m) => m.code === selectedMarketCode) || SINSAY_MARKETS[1];
 
+  const rawOfficialText = selectedItem?.translations[selectedMarketCode] || "";
+  const cleanedOfficialText = rawOfficialText
+    ? repairMultilingualText(rawOfficialText, selectedMarketCode)
+    : "";
+
   const hasOfficialTranslation = Boolean(
-    selectedItem && selectedItem.translations[selectedMarketCode]
+    cleanedOfficialText && !cleanedOfficialText.includes("?")
   );
 
-  const officialText = selectedItem?.translations[selectedMarketCode] || "";
-  const fallbackText =
+  const rawFallbackText =
     selectedItem?.translations["ENG"] || selectedItem?.pl || "";
+  const cleanedFallbackText = repairMultilingualText(rawFallbackText, "ENG") || selectedItem?.pl || "";
 
-  const activeTranslation = hasOfficialTranslation ? officialText : fallbackText;
+  const activeTranslation = hasOfficialTranslation ? cleanedOfficialText : cleanedFallbackText;
 
   const countAvailableMarkets = (translations: Record<string, string>) => {
     return SINSAY_MARKETS.filter((m) => Boolean(translations[m.code])).length;
@@ -663,10 +669,10 @@ export default function SinsayPhraseAssistant({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-[360px] overflow-y-auto pr-1">
             {SINSAY_MARKETS.map((m) => {
-              const text =
-                selectedItem.translations[m.code] ||
-                selectedItem.translations["ENG"] ||
-                selectedItem.pl;
+              const rawMarketText = selectedItem.translations[m.code] || "";
+              const cleanedMarket = rawMarketText ? repairMultilingualText(rawMarketText, m.code) : "";
+              const fallback = repairMultilingualText(selectedItem.translations["ENG"] || selectedItem.pl, "ENG") || selectedItem.pl;
+              const text = (cleanedMarket && !cleanedMarket.includes("?")) ? cleanedMarket : fallback;
               const isCopied = copiedKey === m.code;
 
               return (

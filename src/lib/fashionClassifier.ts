@@ -210,65 +210,271 @@ export function normalizeForSearch(str: string): string {
     .trim();
 }
 
+function fixWordCase(match: string, replacement: string): string {
+  if (match[0] === match[0].toUpperCase()) {
+    return replacement[0].toUpperCase() + replacement.slice(1);
+  }
+  return replacement;
+}
+
+/**
+ * Repairs known encoding artifacts in legacy Sinsay multilingual translations (PL, RO, CZ, SK, DE)
+ * and detects corrupted non-Latin scripts (Cyrillic/Greek exported as "???? ???") to trigger clean fallbacks.
+ */
+export function repairMultilingualText(text: string, lang: string = "PL"): string {
+  if (!text || typeof text !== "string") return "";
+  let s = text.trim();
+  if (!s) return "";
+
+  // Check if completely corrupted non-Latin script (UA, BG, GR, MK, KZ, GE) exported as "??? ????"
+  const qCount = (s.match(/\?/g) || []).length;
+  if (
+    s.includes("???") ||
+    (s.length > 3 && qCount / s.length > 0.25) ||
+    (qCount >= 3 && s.split(/\s+/).every((w) => w.includes("?")))
+  ) {
+    return ""; // signal corruption to trigger clean fallback (e.g. ENG or PL)
+  }
+
+  const upperLang = (lang || "PL").toUpperCase();
+
+  // POLISH
+  if (upperLang === "PL" || upperLang === "PL-PL") {
+    // 1. Abstract nouns ending in -ość
+    s = s.replace(/([a-zA-ZąćęłńóśźżĄĆĘŁŃÓŚŹŻ]+)o\?\?/gi, (_m, root) => root + "ość");
+
+    // 2. Imperatives ending in -dź, -ź, -ń
+    s = s.replace(/([a-zA-ZąćęłńóśźżĄĆĘŁŃÓŚŹŻ]+)d\?([ ,.!?:;]|$)/gi, (_m, root, punct) => root + "dź" + punct);
+    s = s.replace(/(^|\s)we\?([ ,.!?:;]|$)/gi, "$1weź$2");
+    s = s.replace(/(^|\s)zosta\?([ ,.!?:;]|$)/gi, "$1zostań$2");
+    s = s.replace(/(^|\s)b\?d\?([ ,.!?:;]|$)/gi, "$1bądź$2");
+
+    // 3. Whole words and high-frequency stems
+    s = s.replace(/ca\?ej/gi, (m) => fixWordCase(m, "całej"));
+    s = s.replace(/ca\?y/gi, (m) => fixWordCase(m, "cały"));
+    s = s.replace(/ca\?a/gi, (m) => fixWordCase(m, "cała"));
+    s = s.replace(/ca\?e/gi, (m) => fixWordCase(m, "całe"));
+    s = s.replace(/ca\?ego/gi, (m) => fixWordCase(m, "całego"));
+    s = s.replace(/ca\?ym/gi, (m) => fixWordCase(m, "całym"));
+    s = s.replace(/pe\?ne/gi, (m) => fixWordCase(m, "pełne"));
+    s = s.replace(/pe\?na/gi, (m) => fixWordCase(m, "pełna"));
+    s = s.replace(/pe\?en/gi, (m) => fixWordCase(m, "pełen"));
+    s = s.replace(/pe\?ny/gi, (m) => fixWordCase(m, "pełny"));
+    s = s.replace(/ciep\?e/gi, (m) => fixWordCase(m, "ciepłe"));
+    s = s.replace(/ciep\?o/gi, (m) => fixWordCase(m, "ciepło"));
+    s = s.replace(/ciep\?y/gi, (m) => fixWordCase(m, "ciepły"));
+    s = s.replace(/ciep\?a/gi, (m) => fixWordCase(m, "ciepła"));
+    s = s.replace(/szko\?y/gi, (m) => fixWordCase(m, "szkoły"));
+    s = s.replace(/szko\?a/gi, (m) => fixWordCase(m, "szkoła"));
+    s = s.replace(/szko\?e/gi, (m) => fixWordCase(m, "szkole"));
+    s = s.replace(/ka\?deg/gi, (m) => fixWordCase(m, "każdeg"));
+    s = s.replace(/ka\?dej/gi, (m) => fixWordCase(m, "każdej"));
+    s = s.replace(/ka\?dym/gi, (m) => fixWordCase(m, "każdym"));
+    s = s.replace(/ka\?dy/gi, (m) => fixWordCase(m, "każdy"));
+    s = s.replace(/ka\?da/gi, (m) => fixWordCase(m, "każda"));
+    s = s.replace(/ka\?de/gi, (m) => fixWordCase(m, "każde"));
+    s = s.replace(/ka\?d\?/gi, (m) => fixWordCase(m, "każdą"));
+    s = s.replace(/(^|\s|[(\["'])co\?([ ,.!?:;]|$)/gi, "$1coś$2");
+    s = s.replace(/(^|\s|[(\["'])kto\?([ ,.!?:;]|$)/gi, "$1ktoś$2");
+    s = s.replace(/(^|\s|[(\["'])komu\?([ ,.!?:;]|$)/gi, "$1komuś$2");
+    s = s.replace(/(^|\s|[(\["'])\?e([ ,.!?:;]|$)/gi, "$1że$2");
+    s = s.replace(/jesie\?/gi, (m) => fixWordCase(m, "jesień"));
+    s = s.replace(/dzie\?/gi, (m) => fixWordCase(m, "dzień"));
+    s = s.replace(/przestrze\?/gi, (m) => fixWordCase(m, "przestrzeń"));
+    s = s.replace(/niezb\?dn/gi, (m) => fixWordCase(m, "niezbędn"));
+    s = s.replace(/wn\?trz/gi, (m) => fixWordCase(m, "wnętrz"));
+    s = s.replace(/zewn\?trz/gi, (m) => fixWordCase(m, "zewnętrz"));
+    s = s.replace(/wyj\?tkow/gi, (m) => fixWordCase(m, "wyjątkow"));
+    s = s.replace(/przyj\?c/gi, (m) => fixWordCase(m, "przyjęc"));
+    s = s.replace(/(^|\s|[(\["'])\?lub/gi, "$1ślub");
+    s = s.replace(/(^|\s|[(\["'])\?wi\?t/gi, "$1święt");
+    s = s.replace(/(^|\s|[(\["'])\?wie\?/gi, "$1śwież");
+    s = s.replace(/(^|\s|[(\["'])\?wiec/gi, "$1świec");
+    s = s.replace(/(^|\s|[(\["'])\?wiat/gi, "$1świat");
+    s = s.replace(/(^|\s|[(\["'])\?niadan/gi, "$1śniadan");
+    s = s.replace(/(^|\s|[(\["'])\?led/gi, "$1śled");
+    s = s.replace(/(^|\s|[(\["'])\?yci/gi, "$1życi");
+    s = s.replace(/(^|\s|[(\["'])\?yj/gi, "$1żyj");
+    s = s.replace(/(^|\s|[(\["'])\?ycz/gi, "$1życz");
+    s = s.replace(/czu\?o\?ci/gi, (m) => fixWordCase(m, "czułości"));
+    s = s.replace(/czu\?o\?c/gi, (m) => fixWordCase(m, "czułość"));
+    s = s.replace(/korzy\?ci/gi, (m) => fixWordCase(m, "korzyści"));
+    s = s.replace(/korzy\?c/gi, (m) => fixWordCase(m, "korzyść"));
+    s = s.replace(/mi\?o\?ci/gi, (m) => fixWordCase(m, "miłości"));
+    s = s.replace(/mi\?o\?c/gi, (m) => fixWordCase(m, "miłość"));
+    s = s.replace(/mi\?kk/gi, (m) => fixWordCase(m, "miękk"));
+    s = s.replace(/pla\?ow/gi, (m) => fixWordCase(m, "plażow"));
+    s = s.replace(/pla\?([ ,.!?:;]|$)/gi, "plaż$1");
+    s = s.replace(/sprzeda\?([ ,.!?:;]|$)/gi, "sprzedaż$1");
+    s = s.replace(/bieli\?n/gi, (m) => fixWordCase(m, "bielizn"));
+    s = s.replace(/bi\?uter/gi, (m) => fixWordCase(m, "biżuter"));
+    s = s.replace(/p\?aszcz/gi, (m) => fixWordCase(m, "płaszcz"));
+    s = s.replace(/g\?ówn/gi, (m) => fixWordCase(m, "główn"));
+    s = s.replace(/po\?\?cz/gi, (m) => fixWordCase(m, "połącz"));
+    s = s.replace(/(^|\s)\?\?cz/gi, "$1łącz");
+    s = s.replace(/w\?\?cz/gi, (m) => fixWordCase(m, "włącz"));
+    s = s.replace(/jeste\?my/gi, (m) => fixWordCase(m, "jesteśmy"));
+    s = s.replace(/niemowl\?t/gi, (m) => fixWordCase(m, "niemowląt"));
+    s = s.replace(/dziewcz\?t/gi, (m) => fixWordCase(m, "dziewcząt"));
+    s = s.replace(/ch\?op/gi, (m) => fixWordCase(m, "chłop"));
+    s = s.replace(/najm\?odsz/gi, (m) => fixWordCase(m, "najmłodsz"));
+    s = s.replace(/stó\?/gi, (m) => fixWordCase(m, "stół"));
+    s = s.replace(/porz\?dk/gi, (m) => fixWordCase(m, "porządk"));
+    s = s.replace(/pi\?am/gi, (m) => fixWordCase(m, "piżam"));
+    s = s.replace(/dzieci\?c/gi, (m) => fixWordCase(m, "dziecięc"));
+    s = s.replace(/m\?sk/gi, (m) => fixWordCase(m, "męsk"));
+    s = s.replace(/czekaj\?/gi, (m) => fixWordCase(m, "czekają"));
+    s = s.replace(/si\?([ ,.!?:;]|$)/gi, "się$1");
+    s = s.replace(/ju\?([ ,.!?:;]|$)/gi, "już$1");
+    s = s.replace(/dzi\?([ ,.!?:;]|$)/gi, "dziś$1");
+    s = s.replace(/te\?([ ,.!?:;]|$)/gi, "też$1");
+    s = s.replace(/wiosn\?([ ,.!?:;]|$)/gi, "wiosnę$1");
+    s = s.replace(/zim\?([ ,.!?:;]|$)/gi, "zimę$1");
+    s = s.replace(/ofert\?([ ,.!?:;]|$)/gi, "ofertę$1");
+    s = s.replace(/zabaw\?([ ,.!?:;]|$)/gi, "zabawę$1");
+    s = s.replace(/okazj\?([ ,.!?:;]|$)/gi, "okazję$1");
+    s = s.replace(/pogod\?([ ,.!?:;]|$)/gi, "pogodę$1");
+    s = s.replace(/swoj\?([ ,.!?:;]|$)/gi, "swoją$1");
+    s = s.replace(/twoj\?([ ,.!?:;]|$)/gi, "Twoją$1");
+    s = s.replace(/now\?([ ,.!?:;]|$)/gi, "nową$1");
+    s = s.replace(/r\?k/gi, (m) => fixWordCase(m, "ręk"));
+    s = s.replace(/wy\?wietl/gi, (m) => fixWordCase(m, "wyświetl"));
+    s = s.replace(/przegl\?d/gi, (m) => fixWordCase(m, "przegląd"));
+    s = s.replace(/pomys\?/gi, (m) => fixWordCase(m, "pomysł"));
+    s = s.replace(/zmys\?/gi, (m) => fixWordCase(m, "zmysł"));
+    s = s.replace(/w\?asn/gi, (m) => fixWordCase(m, "własn"));
+    s = s.replace(/zasi\?g/gi, (m) => fixWordCase(m, "zasięg"));
+    s = s.replace(/niespodziank\?/gi, (m) => fixWordCase(m, "niespodziankę"));
+    s = s.replace(/bie\?\?co/gi, (m) => fixWordCase(m, "bieżąco"));
+    s = s.replace(/nasz\?([ ,.!?:;]|$)/gi, "naszą$1");
+    s = s.replace(/wasz\?([ ,.!?:;]|$)/gi, "waszą$1");
+    s = s.replace(/kobiet\?([ ,.!?:;]|$)/gi, "kobietą$1");
+    s = s.replace(/szaf\?([ ,.!?:;]|$)/gi, "szafę$1");
+    s = s.replace(/list\?([ ,.!?:;]|$)/gi, "listę$1");
+    s = s.replace(/urz\?d/gi, (m) => fixWordCase(m, "urząd"));
+    s = s.replace(/k\?t([ ,.!?:;]|$)/gi, "kąt$1");
+    s = s.replace(/wi\?c([ ,.!?:;]|$)/gi, "więc$1");
+    s = s.replace(/wi\?cej/gi, (m) => fixWordCase(m, "więcej"));
+    s = s.replace(/dzi\?k/gi, (m) => fixWordCase(m, "dzięk"));
+    s = s.replace(/b\?d/gi, (m) => fixWordCase(m, "będ"));
+    s = s.replace(/pi\?kn/gi, (m) => fixWordCase(m, "piękn"));
+    s = s.replace(/kupuj\?([ ,.!?:;]|$)/gi, "kupuję$1");
+    s = s.replace(/z\s+aplikacj\?/gi, "z aplikacją");
+    s = s.replace(/aplikacj\?([ ,.!?:;]|$)/gi, "aplikację$1");
+    s = s.replace(/kolekcj\?([ ,.!?:;]|$)/gi, "kolekcję$1");
+    s = s.replace(/stylizacj\?([ ,.!?:;]|$)/gi, "stylizację$1");
+    s = s.replace(/promocj\?([ ,.!?:;]|$)/gi, "promocję$1");
+    s = s.replace(/inspiracj\?([ ,.!?:;]|$)/gi, "inspirację$1");
+    s = s.replace(/([a-zA-ZąćęłńóśźżĄĆĘŁŃÓŚŹŻ]+)n\?([ ,.!?:;]|$)/gi, (_m, root, p) => root + "ną" + p);
+    s = s.replace(/([a-zA-ZąćęłńóśźżĄĆĘŁŃÓŚŹŻ]+)k\?([ ,.!?:;]|$)/gi, (_m, root, p) => root + "kę" + p);
+    s = s.replace(/by\?o([ ,.!?:;]|$)/gi, "było$1");
+    s = s.replace(/by\?a([ ,.!?:;]|$)/gi, "była$1");
+    s = s.replace(/by\?([ ,.!?:;]|$)/gi, "był$1");
+    s = s.replace(/marze\?([ ,.!?:;]|$)/gi, "marzeń$1");
+    s = s.replace(/(^|\s)\?azienk/gi, "$1łazienk");
+  }
+
+  // ROMANIAN
+  if (upperLang === "RO") {
+    s = s.replace(/(^|\s|[(\["'])\?i([ ,.!?:;]|$)/gi, "$1și$2");
+    s = s.replace(/var\?([ ,.!?:;]|$)/gi, "vară$1");
+    s = s.replace(/iarn\?([ ,.!?:;]|$)/gi, "iarnă$1");
+    s = s.replace(/toamn\?([ ,.!?:;]|$)/gi, "toamnă$1");
+    s = s.replace(/prim\?var\?([ ,.!?:;]|$)/gi, "primăvară$1");
+    s = s.replace(/prim\?var/gi, (m) => fixWordCase(m, "primăvar"));
+    s = s.replace(/tendin\?e/gi, (m) => fixWordCase(m, "tendințe"));
+    s = s.replace(/tendin\?a/gi, (m) => fixWordCase(m, "tendința"));
+    s = s.replace(/colec\?ia/gi, (m) => fixWordCase(m, "colecția"));
+    s = s.replace(/colec\?ie/gi, (m) => fixWordCase(m, "colecție"));
+    s = s.replace(/colec\?ii/gi, (m) => fixWordCase(m, "colecții"));
+    s = s.replace(/cr\?ciun/gi, (m) => fixWordCase(m, "crăciun"));
+    s = s.replace(/(^|\s|[(\["'])\?inut/gi, "$1ținut");
+    s = s.replace(/(^|\s|[(\["'])\?coal/gi, "$1școal");
+    s = s.replace(/(^|\s|[(\["'])s\?([ ,.!?:;]|$)/gi, "$1să$2");
+    s = s.replace(/t\?u([ ,.!?:;]|$)/gi, "tău$1");
+    s = s.replace(/plaj\?([ ,.!?:;]|$)/gi, "plajă$1");
+    s = s.replace(/cas\?([ ,.!?:;]|$)/gi, "casă$1");
+    s = s.replace(/acas\?([ ,.!?:;]|$)/gi, "acasă$1");
+    s = s.replace(/mod\?([ ,.!?:;]|$)/gi, "modă$1");
+    s = s.replace(/descoper\?([ ,.!?:;]|$)/gi, "descoperă$1");
+    s = s.replace(/pa\?te/gi, (m) => fixWordCase(m, "paște"));
+    s = s.replace(/distrac\?ie/gi, (m) => fixWordCase(m, "distracție"));
+    s = s.replace(/decora\?iun/gi, (m) => fixWordCase(m, "decorațiun"));
+    s = s.replace(/plin\?([ ,.!?:;]|$)/gi, "plină$1");
+    s = s.replace(/pre\?uri/gi, (m) => fixWordCase(m, "prețuri"));
+    s = s.replace(/pre\?([ ,.!?:;]|$)/gi, "preț$1");
+    s = s.replace(/creeaz\?([ ,.!?:;]|$)/gi, "creează$1");
+    s = s.replace(/vacan\?\?([ ,.!?:;]|$)/gi, "vacanță$1");
+    s = s.replace(/(^|\s)î\?i([ ,.!?:;]|$)/gi, "$1îți$2");
+    s = s.replace(/c\?ldur/gi, (m) => fixWordCase(m, "căldur"));
+    s = s.replace(/verific\?([ ,.!?:;]|$)/gi, "verifică$1");
+    s = s.replace(/atmosfer\?([ ,.!?:;]|$)/gi, "atmosferă$1");
+    s = s.replace(/elegant\?([ ,.!?:;]|$)/gi, "elegantă$1");
+    s = s.replace(/elegan\?\?([ ,.!?:;]|$)/gi, "eleganță$1");
+    s = s.replace(/buc\?t\?ri/gi, (m) => fixWordCase(m, "bucătări"));
+    s = s.replace(/perfect\?([ ,.!?:;]|$)/gi, "perfectă$1");
+    s = s.replace(/îmbr\?c\?mint/gi, (m) => fixWordCase(m, "îmbrăcămint"));
+    s = s.replace(/gr\?din\?([ ,.!?:;]|$)/gi, "grădină$1");
+    s = s.replace(/b\?rba\?i/gi, (m) => fixWordCase(m, "bărbați"));
+    s = s.replace(/b\?iat([ ,.!?:;]|$)/gi, "băiat$1");
+    s = s.replace(/b\?ie\?i/gi, (m) => fixWordCase(m, "băieți"));
+    s = s.replace(/feti\?e/gi, (m) => fixWordCase(m, "fetițe"));
+    s = s.replace(/cump\?r/gi, (m) => fixWordCase(m, "cumpăr"));
+    s = s.replace(/preg\?te\?te/gi, (m) => fixWordCase(m, "pregătește"));
+    s = s.replace(/nou\?([ ,.!?:;]|$)/gi, "nouă$1");
+    s = s.replace(/nout\?\?i/gi, (m) => fixWordCase(m, "noutăți"));
+    s = s.replace(/confortabil\?([ ,.!?:;]|$)/gi, "confortabilă$1");
+    s = s.replace(/bebelu\?i/gi, (m) => fixWordCase(m, "bebeluși"));
+    s = s.replace(/edi\?ie/gi, (m) => fixWordCase(m, "ediție"));
+    s = s.replace(/spa\?iu/gi, (m) => fixWordCase(m, "spațiu"));
+    s = s.replace(/e\?ti([ ,.!?:;]|$)/gi, "ești$1");
+    s = s.replace(/aplica\?ie/gi, (m) => fixWordCase(m, "aplicație"));
+    s = s.replace(/toat\?([ ,.!?:;]|$)/gi, "toată$1");
+    s = s.replace(/f\?r\?([ ,.!?:;]|$)/gi, "fără$1");
+    s = s.replace(/mam\?([ ,.!?:;]|$)/gi, "mamă$1");
+    s = s.replace(/g\?se\?te/gi, (m) => fixWordCase(m, "găsește"));
+    s = s.replace(/g\?se\?ti/gi, (m) => fixWordCase(m, "găsești"));
+    s = s.replace(/înc\?l\?\?minte/gi, (m) => fixWordCase(m, "încălțăminte"));
+    s = s.replace(/garderob\?([ ,.!?:;]|$)/gi, "garderobă$1");
+    s = s.replace(/tandre\?e/gi, (m) => fixWordCase(m, "tandrețe"));
+    s = s.replace(/nun\?i/gi, (m) => fixWordCase(m, "nunți"));
+  }
+
+  // CZECH / SLOVAK
+  if (upperLang === "CZ" || upperLang === "SK") {
+    s = s.replace(/speciáln\?/gi, (m) => fixWordCase(m, "speciálně"));
+    s = s.replace(/d\?ti/gi, (m) => fixWordCase(m, "děti"));
+    s = s.replace(/ve\?k/gi, (m) => fixWordCase(m, "veľk"));
+    s = s.replace(/novink\?/gi, (m) => fixWordCase(m, "novinky"));
+    s = s.replace(/kolekc\?/gi, (m) => fixWordCase(m, "kolekci"));
+  }
+
+  // GERMAN
+  if (upperLang === "DE") {
+    s = s.replace(/m\?dchen/gi, (m) => fixWordCase(m, "Mädchen"));
+    s = s.replace(/(^|\s)f\?r([ ,.!?:;]|$)/gi, "$1für$2");
+    s = s.replace(/sch\?n/gi, (m) => fixWordCase(m, "schön"));
+    s = s.replace(/gro\?/gi, (m) => fixWordCase(m, "groß"));
+  }
+
+  // Strip residual internal question mark between letters (e.g. "a?b" -> "ab")
+  s = s.replace(/([a-zA-Z\u00C0-\u024F])\?([a-zA-Z\u00C0-\u024F])/g, "$1$2");
+
+  // If ends with a question mark that is not an actual question (fashion promo banners), remove trailing ?
+  const isQuestion = /^(co|jak|gdzie|kiedy|czy|de ce|cum|unde|what|how|why|where)\b/i.test(s);
+  if (!isQuestion && s.endsWith("?")) {
+    s = s.slice(0, -1).trim();
+  }
+
+  return s;
+}
+
 /**
  * Repairs known encoding artifacts in the legacy Polish Sinsay translation database.
- * Turns strings like "W roli g?ównej: kurtka" into "W roli głównej: kurtka",
- * "Zapisz si?" into "Zapisz się", "zim?" into "zimę", etc.
+ * Preserved for backwards compatibility, delegating to repairMultilingualText.
  */
 export function repairPolishText(text: string): string {
-  if (!text) return "";
-  let s = text;
-  const wordPairs: [RegExp, string][] = [
-    [/(\b|[a-z])si\?(\b|[ ,.!\?:;])/gi, "$1się$2"],
-    [/(\b|[a-z])ju\?(\b|[ ,.!\?:;])/gi, "$1już$2"],
-    [/(\b|[a-z])dzi\?(\b|[ ,.!\?:;])/gi, "$1dziś$2"],
-    [/(\b|[a-z])te\?(\b|[ ,.!\?:;])/gi, "$1też$2"],
-    [/(\b|[a-z])wi\?cej(\b|[ ,.!\?:;])/gi, "$1więcej$2"],
-    [/(\b|[a-z])b\?d\?(\b|[ ,.!\?:;])/gi, "$1bądź$2"],
-    [/(\b|[a-z])we\?(\b|[ ,.!\?:;])/gi, "$1weź$2"],
-    [/(\b)sprawd\?/gi, "Sprawdź"],
-    [/(\b)odkryj\?/gi, "Odkryj"],
-    [/(\b)odwied\?/gi, "Odwiedź"],
-    [/(\b)zosta\?/gi, "Zostań"],
-    [/(\b)dzie\?/gi, "Dzień"],
-    [/kolekcj\?/gi, "kolekcję"],
-    [/wiosn\?/gi, "wiosnę"],
-    [/zim\?/gi, "zimę"],
-    [/jesie\?/gi, "jesień"],
-    [/p\?aszcz/gi, "płaszcz"],
-    [/g\?ówn/gi, "główn"],
-    [/ciep\?/gi, "ciepł"],
-    [/ka\?d/gi, "każd"],
-    [/mi\?o\?c/gi, "miłość"],
-    [/wyj\?tkow/gi, "wyjątkow"],
-    [/pi\?kn/gi, "piękn"],
-    [/ch\?op/gi, "chłop"],
-    [/dziewcz\?t/gi, "dziewcząt"],
-    [/sukienk\?/gi, "sukienkę"],
-    [/torb\?/gi, "torbę"],
-    [/kurtk\?/gi, "kurtkę"],
-    [/koszul\?/gi, "koszulę"],
-    [/zni\?k/gi, "zniżk"],
-    [/pla\?ow/gi, "plażow"],
-    [/\?wi\?t/gi, "Świąt"],
-    [/weso\?ych/gi, "Wesołych"],
-    [/czekaj\?/gi, "czekają"],
-    [/bestseller\?/gi, "bestseller"],
-    [/now\?(\b|\s)/gi, "nową$1"],
-    [/twoj\?(\b|\s)/gi, "Twoją$1"],
-    [/swoj\?(\b|\s)/gi, "swoją$1"],
-    [/najlepsz\?(\b|\s)/gi, "najlepszą$1"],
-    [/letni\?(\b|\s)/gi, "letnią$1"],
-    [/zimow\?(\b|\s)/gi, "zimową$1"],
-    [/wyj\?tkow\?(\b|\s)/gi, "wyjątkową$1"],
-    [/dzieci\?c/gi, "dziecięc"],
-    [/m\?sk/gi, "męsk"],
-    [/\?wie\?/gi, "śwież"]
-  ];
-  for (const [re, rep] of wordPairs) {
-    s = s.replace(re, rep);
-  }
-  return s;
+  return repairMultilingualText(text, "PL");
 }
 
 export interface DetectedFashionContext {
