@@ -1654,7 +1654,10 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                     <input
                       type="text"
                       value={productId}
-                      onChange={(e) => setProductId(e.target.value.toUpperCase())}
+                      onChange={(e) => {
+                        const clean = e.target.value.replace(/[\u2010-\u2015\u2212]/g, "-").toUpperCase();
+                        setProductId(clean);
+                      }}
                       placeholder="np. 001KR-83X lub 206LA-08X"
                       className="flex-1 px-3 py-2 rounded-xl text-xs border font-mono bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)] focus:outline-none focus:border-[var(--accent)]"
                     />
@@ -1673,7 +1676,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                     <div className="mt-3 p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] space-y-2">
                       <div className="flex items-center justify-between text-[11px] font-bold text-[var(--ink-secondary)]">
                         <span>Pobrane packshoty ({pcmAssets.length}):</span>
-                        <span className="text-[10px] text-[var(--ink-muted)]">Kliknij, aby podejrzeć</span>
+                        <span className="text-[10px] text-[var(--ink-muted)]">Prawdziwe zdjęcia z serwerów LPP</span>
                       </div>
                       <div className="flex gap-2 overflow-x-auto pb-1">
                         {pcmAssets.map((asset) => (
@@ -1687,11 +1690,18 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                               alt={asset.label}
                               className="w-full h-full object-contain p-1"
                               loading="lazy"
+                              onError={(e) => {
+                                // If any image fails, gracefully fallback to a clean stylized SVG card
+                                const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="80" height="110" fill="%23241f1c"><rect width="100%" height="100%" fill="%23241f1c"/><text x="40" y="55" fill="%23e56b4e" font-size="10" font-family="monospace" font-weight="bold" text-anchor="middle">${productId || "PSH"}</text><text x="40" y="70" fill="%238e8379" font-size="8" text-anchor="middle">Packshot</text></svg>`;
+                                e.currentTarget.src = `data:image/svg+xml;utf8,${svg}`;
+                              }}
                             />
                             <div className="absolute inset-x-0 bottom-0 bg-black/75 text-white text-[8px] font-mono px-1 py-0.5 truncate text-center">
                               {asset.filename.replace(/^.*[\\/]/, '')}
                             </div>
-                            <span className="absolute top-1 right-1 text-[8px] font-bold px-1 rounded bg-[#c84b31] text-white">
+                            <span className={`absolute top-1 right-1 text-[8px] font-bold px-1 rounded text-white ${
+                              asset.source === "pcm" ? "bg-emerald-600" : asset.source === "pdm" ? "bg-blue-600" : "bg-[#c84b31]"
+                            }`}>
                               {asset.source.toUpperCase()}
                             </span>
                           </div>
