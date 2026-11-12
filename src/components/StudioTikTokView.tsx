@@ -189,9 +189,19 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
         setPcmAssets(data.assets);
         setPcmFetchSource(data.source);
         if (data.pcmFound) {
-          showToast(`✓ Pobrano ${data.assets.length} ujęć packshotów z PCM PROD dla MDK: ${code}!`);
+          // Dynamically update storyboard scenes with the real PCM packshot angles!
+          setScenes((prev) =>
+            prev.map((s, idx) => {
+              const assigned = data.assets[idx % data.assets.length];
+              return {
+                ...s,
+                pcmImage: assigned.label,
+              };
+            })
+          );
+          showToast(`✓ Pobrano ${data.assets.length} unikalnych ujęć z bazy PCM PROD dla MDK: ${code}!`);
         } else {
-          showToast(`PCM (10.255.9.131) wymaga sieci LPP / localhost. Uruchom 'npm run dev' lub użyj 'Z dysku'.`);
+          showToast(data.message || `PCM (10.255.9.131) odpowiada w sieci wewnętrznej LPP.`);
         }
       } else {
         showToast(data.message || "Nie znaleziono zdjęć w PCM dla tego MDK.");
