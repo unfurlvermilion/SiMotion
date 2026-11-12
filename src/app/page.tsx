@@ -42,6 +42,7 @@ export default function SiMotionApp() {
   const [activeTab, setActiveTab] = useState<ViewTab>("single");
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Studio TikTok state
   const [productId, setProductId] = useState("001KR-83X");
@@ -222,7 +223,6 @@ export default function SiMotionApp() {
                   ["assets", "Materiały"],
                   ["local", "Tłumaczenia"],
                   ["export", "Eksport"],
-                  ["integrations", "Integracje"],
                 ] as const
               ).map(([key, label]) => (
                 <button
@@ -254,6 +254,16 @@ export default function SiMotionApp() {
             >
               <span>{theme === "dark" ? "☀" : "☾"}</span>
               <span>{theme === "dark" ? "Jasny" : "Ciemny"}</span>
+            </button>
+
+            {/* Settings & API Integrations Button */}
+            <button
+              onClick={() => setIsSettingsOpen(true)}
+              className="px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 bg-[var(--bg-card)] border-[var(--border-subtle)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-all text-[var(--ink-primary)] cursor-pointer shadow-xs"
+              title="Ustawienia aplikacji i klucze API"
+            >
+              <span className="text-xs">⚙</span>
+              <span className="hidden sm:inline">Ustawienia</span>
             </button>
           </div>
         </div>
@@ -331,6 +341,50 @@ export default function SiMotionApp() {
         {/* VIEW 9: INTEGRACJE & API */}
         {activeTab === "integrations" && <IntegrationsView />}
       </main>
+
+      {/* SETTINGS & INTEGRATIONS MODAL */}
+      {isSettingsOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6"
+          onClick={() => setIsSettingsOpen(false)}
+        >
+          <div
+            className="w-full max-w-4xl max-h-[90vh] flex flex-col rounded-2xl border border-[var(--border-strong)] bg-[var(--bg-card)] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-subtle)] bg-[var(--bg-subtle)]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-[var(--accent)] text-white grid place-items-center font-bold text-sm shadow-sm">
+                  ⚙
+                </div>
+                <div>
+                  <h3 className="font-sinsay font-extrabold text-sm text-[var(--ink-primary)]">
+                    Ustawienia Aplikacji &amp; Integracje API
+                  </h3>
+                  <p className="text-[11px] text-[var(--ink-muted)]">
+                    Klucze API wideo (Seedance / Higgsfield), ElevenLabs, PCM oraz SharePoint
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsSettingsOpen(false)}
+                className="w-7 h-7 rounded-full bg-[var(--bg-card)] border border-[var(--border-strong)] hover:border-[var(--accent)] text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] transition-colors text-xs font-bold grid place-items-center cursor-pointer"
+                title="Zamknij ustawienia"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              <IntegrationsView />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* TOAST NOTIFICATION */}
       {toastMessage && (

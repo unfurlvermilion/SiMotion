@@ -40,7 +40,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
   onProceedToPost,
 }) => {
   // Model & Generation Settings
-  const [aiEngine, setAiEngine] = useState<"comfyui" | "kling" | "seedance" | "higgsfield">("comfyui");
+  const [aiEngine, setAiEngine] = useState<"seedance" | "higgsfield">("seedance");
   const [genMode, setGenMode] = useState<"storyboard" | "single">("storyboard");
   const [template, setTemplate] = useState("TikTok try-on · 6 scen");
   const [prompt, setPrompt] = useState(
@@ -593,7 +593,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
   };
 
   // Cost calculation
-  const ratePerSec = aiEngine === "comfyui" ? 0 : aiEngine === "kling" ? 0.20 : aiEngine === "seedance" ? 0.22 : 0.26;
+  const ratePerSec = aiEngine === "seedance" ? 0.22 : 0.26;
   const renderMultiplier = separateRender ? Math.max(1, selectedRatios.length) : 1;
   const videoCost = duration * ratePerSec * renderMultiplier;
   const ttsCost = (isDubEnabled ? selectedDubLangs.length : 0) * 0.3;
@@ -733,8 +733,6 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                   onChange={(e) => setAiEngine(e.target.value as any)}
                   className="w-full px-3 py-2 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)] font-medium cursor-pointer"
                 >
-                  <option value="comfyui">🖥️ Lokalny ComfyUI (GPU / Biuro) — 0 zł</option>
-                  <option value="kling">🎬 Kling AI 1.5 Video</option>
                   <option value="seedance">⚡ Seedance 2.0 Fashion</option>
                   <option value="higgsfield">🌪️ Higgsfield AI</option>
                 </select>
@@ -1632,21 +1630,15 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
             <div className="p-4 rounded-xl border bg-[var(--accent-soft)] border-[var(--accent)] flex items-center justify-between">
               <div>
                 <div className="text-sm font-extrabold text-[var(--accent)]">
-                  {aiEngine === "comfyui" ? `Lokalne GPU: 0.00 zł ${isDubEnabled ? `(+$${totalCost} TTS)` : ""}` : `Estymowany koszt API: $${totalCost}`}
+                  Estymowany koszt API: ${totalCost}
                 </div>
                 <small className="text-[10px] text-[var(--ink-secondary)] block">
-                  {aiEngine === "comfyui"
-                    ? "Lokalny serwer ComfyUI (GPU / Biuro)"
-                    : aiEngine === "kling"
-                    ? "Kling AI 1.5 Video"
-                    : aiEngine === "seedance"
-                    ? "Seedance 2.0 Fashion"
-                    : "Higgsfield AI"}{" "}
-                  ({duration} s · {renderMultiplier}× render) + {isDubEnabled ? selectedDubLangs.length : 0}× TTS
+                  {aiEngine === "seedance" ? "Seedance 2.0 Fashion" : "Higgsfield AI"} ({duration} s ·{" "}
+                  {renderMultiplier}× render) + {isDubEnabled ? selectedDubLangs.length : 0}× TTS
                 </small>
               </div>
               <span className="text-xs font-extrabold px-3 py-1 rounded-full bg-[var(--bg-card)] text-[var(--accent)] shadow-sm">
-                {aiEngine === "comfyui" ? "Serwer Biurowy" : separateRender ? "Multi-render" : "Smart Crop (−66%)"}
+                {separateRender ? "Multi-render" : "Smart Crop (−66%)"}
               </span>
             </div>
           </div>
