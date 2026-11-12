@@ -21,9 +21,13 @@ export interface TranslationRow {
 
 interface LocalizationViewProps {
   showToast: (msg: string) => void;
+  onApplyToCampaign?: (row: TranslationRow) => void;
 }
 
-export const LocalizationView: React.FC<LocalizationViewProps> = ({ showToast }) => {
+export const LocalizationView: React.FC<LocalizationViewProps> = ({
+  showToast,
+  onApplyToCampaign,
+}) => {
   const [rows, setRows] = useState<TranslationRow[]>([
     {
       key: "hero_01",
@@ -485,7 +489,7 @@ export const LocalizationView: React.FC<LocalizationViewProps> = ({ showToast })
                 <th className="py-2.5 px-3 min-w-[200px]">🇩🇪 Niemiecki (DE)</th>
                 <th className="py-2.5 px-3 min-w-[200px]">🇷🇴 Rumuński (RO)</th>
                 <th className="py-2.5 px-3 min-w-[200px]">🇨🇿 Czeski (CZ)</th>
-                <th className="py-2.5 px-2 text-center w-12">Akcja</th>
+                <th className="py-2.5 px-2 text-center w-32">Akcja</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-subtle)]">
@@ -621,7 +625,19 @@ export const LocalizationView: React.FC<LocalizationViewProps> = ({ showToast })
                     </td>
 
                     {/* Action */}
-                    <td className="py-2 px-2 text-center">
+                    <td className="py-2 px-2 text-center whitespace-nowrap">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (onApplyToCampaign) onApplyToCampaign(r);
+                          showToast(`Zastosowano hasło „${r.pl}” do całej kampanii (Grafiki + Wideo)!`);
+                        }}
+                        className="px-2 py-1 rounded-md text-[10px] font-bold bg-[#1d6346] hover:bg-[#164e37] text-white transition-all mr-1.5 cursor-pointer shadow-xs inline-flex items-center gap-1"
+                        title="Zastosuj to hasło we wszystkich formatach grafik i wideo"
+                      >
+                        <span>✓</span>
+                        <span>Zastosuj</span>
+                      </button>
                       <button
                         type="button"
                         onClick={() => handleDeleteRow(r.key)}

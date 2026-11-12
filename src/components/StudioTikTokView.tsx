@@ -40,13 +40,20 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
   onProceedToPost,
 }) => {
   // Model & Generation Settings
-  const [aiEngine, setAiEngine] = useState<"seedance" | "higgsfield">("seedance");
+  const [aiEngine, setAiEngine] = useState<"comfyui" | "kling" | "seedance" | "higgsfield">("comfyui");
   const [genMode, setGenMode] = useState<"storyboard" | "single">("storyboard");
   const [template, setTemplate] = useState("TikTok try-on · 6 scen");
   const [prompt, setPrompt] = useState(
     "Dynamiczny try-on nowej kolekcji jedwabnej. Zbliżenia na fakturę materiału, naturalny ruch modelki w ciepłym świetle atelier i wyraziste zakończenie z produktem."
   );
   const [duration, setDuration] = useState(10);
+
+  // Subtitle Typography & Positioning System
+  const [captionYPercent, setCaptionYPercent] = useState<number>(64); // 64% is default lower-third safe zone
+  const [captionFont, setCaptionFont] = useState<"euclid" | "sans" | "serif">("euclid");
+  const [captionWeight, setCaptionWeight] = useState<"bold" | "semibold" | "medium">("bold");
+  const [captionStyle, setCaptionStyle] = useState<"pill" | "shadow" | "tiktok_neon" | "clean">("pill");
+  const [captionSize, setCaptionSize] = useState<"sm" | "base" | "lg">("base");
 
   // Formats & Smart Crop
   const [selectedRatios, setSelectedRatios] = useState<string[]>(["3x4", "9x16", "4x5", "1x1"]);
@@ -586,11 +593,30 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
   };
 
   // Cost calculation
-  const ratePerSec = aiEngine === "seedance" ? 0.22 : 0.26;
+  const ratePerSec = aiEngine === "comfyui" ? 0 : aiEngine === "kling" ? 0.20 : aiEngine === "seedance" ? 0.22 : 0.26;
   const renderMultiplier = separateRender ? Math.max(1, selectedRatios.length) : 1;
   const videoCost = duration * ratePerSec * renderMultiplier;
   const ttsCost = (isDubEnabled ? selectedDubLangs.length : 0) * 0.3;
   const totalCost = (videoCost + ttsCost).toFixed(2);
+
+  // Subtitle styling helper
+  const getSubtitleStyleClasses = () => {
+    const fontCls = captionFont === "serif" ? "font-serif" : captionFont === "sans" ? "font-sans" : "font-sinsay";
+    const weightCls = captionWeight === "medium" ? "font-medium" : captionWeight === "semibold" ? "font-semibold" : "font-bold";
+    const sizeCls = captionSize === "sm" ? "text-[8px]" : captionSize === "lg" ? "text-[11px]" : "text-[9.5px]";
+    let boxCls = "";
+    if (captionStyle === "pill") {
+      boxCls = "bg-black/60 text-white border border-white/20 px-2 py-0.5 rounded-lg shadow-md";
+    } else if (captionStyle === "shadow") {
+      boxCls = "text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.95)] drop-shadow-[0_0_10px_rgba(0,0,0,0.9)]";
+    } else if (captionStyle === "tiktok_neon") {
+      boxCls = "bg-[#f8e71c] text-black font-extrabold px-2 py-0.5 rounded shadow-lg";
+    } else {
+      // clean solid
+      boxCls = "bg-black/85 text-white px-2.5 py-1 rounded-md border border-white/10";
+    }
+    return `${fontCls} ${weightCls} ${sizeCls} ${boxCls}`;
+  };
 
   const toggleRatio = (ratio: string) => {
     setSelectedRatios((prev) =>
@@ -631,12 +657,14 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
           >
             <span>{isExportingZip ? "Pakowanie..." : "Pobierz formaty (ZIP)"}</span>
           </button>
-          <button
-            onClick={onProceedToPost}
-            className="px-3.5 py-2 rounded-xl text-xs font-bold border bg-[var(--bg-card)] border-[var(--border-strong)] hover:border-[var(--accent)] text-[var(--ink-primary)]"
-          >
-            Montaż wideo →
-          </button>
+          {onProceedToPost && (
+            <button
+              onClick={onProceedToPost}
+              className="px-3.5 py-2 rounded-xl text-xs font-bold border bg-[var(--bg-card)] border-[var(--border-strong)] hover:border-[var(--accent)] text-[var(--ink-primary)]"
+            >
+              Eksport paczek →
+            </button>
+          )}
           <button
             onClick={() =>
               showToast(
@@ -703,10 +731,12 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                 <select
                   value={aiEngine}
                   onChange={(e) => setAiEngine(e.target.value as any)}
-                  className="w-full px-3 py-2 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)]"
+                  className="w-full px-3 py-2 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)] font-medium cursor-pointer"
                 >
-                  <option value="seedance">Seedance 2.0</option>
-                  <option value="higgsfield">Higgsfield AI</option>
+                  <option value="comfyui">🖥️ Lokalny ComfyUI (GPU / Biuro) — 0 zł</option>
+                  <option value="kling">🎬 Kling AI 1.5 Video</option>
+                  <option value="seedance">⚡ Seedance 2.0 Fashion</option>
+                  <option value="higgsfield">🌪️ Higgsfield AI</option>
                 </select>
               </div>
               <div>
@@ -1342,6 +1372,142 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                     </div>
                   </div>
                 )}
+
+                {/* Subtitle Positioning & Typography Settings */}
+                <div className="p-3.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)]/70 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-[var(--ink-primary)] flex items-center gap-1.5">
+                      <span>🎯</span>
+                      <span>Pozycja w kadrze &amp; Typografia Napisów</span>
+                    </span>
+                    <span className="text-[10px] font-mono font-bold text-[var(--accent)]">
+                      Wysokość: {captionYPercent}%
+                    </span>
+                  </div>
+
+                  {/* Vertical Position Slider & Quick Presets */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="range"
+                        min="20"
+                        max="76"
+                        step="1"
+                        value={captionYPercent}
+                        onChange={(e) => setCaptionYPercent(Number(e.target.value))}
+                        className="flex-1 accent-[var(--accent)] cursor-pointer"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between text-[10px]">
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setCaptionYPercent(64)}
+                          className={`px-2 py-0.5 rounded-md text-[10px] font-bold border transition-all ${
+                            captionYPercent === 64
+                              ? "bg-[var(--accent)] text-white border-[var(--accent)]"
+                              : "bg-[var(--bg-card)] border-[var(--border-subtle)] text-[var(--ink-secondary)] hover:border-[var(--accent)]"
+                          }`}
+                        >
+                          ✓ Dół Safe Zone (64%)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCaptionYPercent(50)}
+                          className={`px-2 py-0.5 rounded-md text-[10px] font-bold border transition-all ${
+                            captionYPercent === 50
+                              ? "bg-[var(--accent)] text-white border-[var(--accent)]"
+                              : "bg-[var(--bg-card)] border-[var(--border-subtle)] text-[var(--ink-secondary)] hover:border-[var(--accent)]"
+                          }`}
+                        >
+                          Centrum (50%)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCaptionYPercent(24)}
+                          className={`px-2 py-0.5 rounded-md text-[10px] font-bold border transition-all ${
+                            captionYPercent === 24
+                              ? "bg-[var(--accent)] text-white border-[var(--accent)]"
+                              : "bg-[var(--bg-card)] border-[var(--border-subtle)] text-[var(--ink-secondary)] hover:border-[var(--accent)]"
+                          }`}
+                        >
+                          Góra (24%)
+                        </button>
+                      </div>
+
+                      {captionYPercent > 72 && (
+                        <span className="text-[10px] font-bold text-rose-500 animate-pulse">
+                          ⚠ Wchodzi w pole UI TikToka!
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Font, Weight, Style & Size selectors */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 border-t border-[var(--border-subtle)]">
+                    <div>
+                      <label className="text-[9px] font-bold text-[var(--ink-muted)] block mb-0.5">
+                        Krój pisma
+                      </label>
+                      <select
+                        value={captionFont}
+                        onChange={(e) => setCaptionFont(e.target.value as any)}
+                        className="w-full px-2 py-1 rounded-lg text-[11px] font-semibold border bg-[var(--bg-card)] border-[var(--border-strong)] text-[var(--ink-primary)] cursor-pointer"
+                      >
+                        <option value="euclid">Euclid Circular B (LPP)</option>
+                        <option value="sans">System Sans</option>
+                        <option value="serif">Editorial Serif</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[9px] font-bold text-[var(--ink-muted)] block mb-0.5">
+                        Waga fontu
+                      </label>
+                      <select
+                        value={captionWeight}
+                        onChange={(e) => setCaptionWeight(e.target.value as any)}
+                        className="w-full px-2 py-1 rounded-lg text-[11px] font-semibold border bg-[var(--bg-card)] border-[var(--border-strong)] text-[var(--ink-primary)] cursor-pointer"
+                      >
+                        <option value="bold">Bold (Mocny)</option>
+                        <option value="semibold">Semibold</option>
+                        <option value="medium">Medium</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[9px] font-bold text-[var(--ink-muted)] block mb-0.5">
+                        Styl maski / tła
+                      </label>
+                      <select
+                        value={captionStyle}
+                        onChange={(e) => setCaptionStyle(e.target.value as any)}
+                        className="w-full px-2 py-1 rounded-lg text-[11px] font-semibold border bg-[var(--bg-card)] border-[var(--border-strong)] text-[var(--ink-primary)] cursor-pointer"
+                      >
+                        <option value="pill">Pill (Półprzezroczysty)</option>
+                        <option value="shadow">Czysty z cieniem</option>
+                        <option value="tiktok_neon">TikTok Żółty Neon</option>
+                        <option value="clean">Ciemna belka</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[9px] font-bold text-[var(--ink-muted)] block mb-0.5">
+                        Wielkość
+                      </label>
+                      <select
+                        value={captionSize}
+                        onChange={(e) => setCaptionSize(e.target.value as any)}
+                        className="w-full px-2 py-1 rounded-lg text-[11px] font-semibold border bg-[var(--bg-card)] border-[var(--border-strong)] text-[var(--ink-primary)] cursor-pointer"
+                      >
+                        <option value="sm">Kompaktowy</option>
+                        <option value="base">Standardowy</option>
+                        <option value="lg">Duży / Hook</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -1466,15 +1632,21 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
             <div className="p-4 rounded-xl border bg-[var(--accent-soft)] border-[var(--accent)] flex items-center justify-between">
               <div>
                 <div className="text-sm font-extrabold text-[var(--accent)]">
-                  Estymowany koszt API: ${totalCost}
+                  {aiEngine === "comfyui" ? `Lokalne GPU: 0.00 zł ${isDubEnabled ? `(+$${totalCost} TTS)` : ""}` : `Estymowany koszt API: $${totalCost}`}
                 </div>
                 <small className="text-[10px] text-[var(--ink-secondary)] block">
-                  {aiEngine === "seedance" ? "Seedance 2.0" : "Higgsfield"} ({duration} s ·{" "}
-                  {renderMultiplier}× render) + {isDubEnabled ? selectedDubLangs.length : 0}× TTS
+                  {aiEngine === "comfyui"
+                    ? "Lokalny serwer ComfyUI (GPU / Biuro)"
+                    : aiEngine === "kling"
+                    ? "Kling AI 1.5 Video"
+                    : aiEngine === "seedance"
+                    ? "Seedance 2.0 Fashion"
+                    : "Higgsfield AI"}{" "}
+                  ({duration} s · {renderMultiplier}× render) + {isDubEnabled ? selectedDubLangs.length : 0}× TTS
                 </small>
               </div>
               <span className="text-xs font-extrabold px-3 py-1 rounded-full bg-[var(--bg-card)] text-[var(--accent)] shadow-sm">
-                {separateRender ? "Multi-render" : "Smart Crop (−66%)"}
+                {aiEngine === "comfyui" ? "Serwer Biurowy" : separateRender ? "Multi-render" : "Smart Crop (−66%)"}
               </span>
             </div>
           </div>
@@ -1671,12 +1843,15 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                     </div>
                   )}
 
-                  {/* Text safely anchored in lower-third */}
+                  {/* Dynamic Subtitle anchored by controllable Y position and typography */}
                   {activeSubtitleText && (
-                    <div className="absolute inset-x-2 bottom-[24%] z-10 text-center pointer-events-none transition-all duration-150">
-                      <p className="text-[9px] font-bold text-white leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] font-sinsay tracking-wide bg-black/45 px-2 py-0.5 rounded-md inline-block border border-white/10">
+                    <div
+                      className="absolute inset-x-2 z-10 text-center pointer-events-none transition-all duration-150"
+                      style={{ top: `${captionYPercent}%`, transform: "translateY(-50%)" }}
+                    >
+                      <p className={`inline-block leading-tight tracking-wide ${getSubtitleStyleClasses()}`}>
                         {activeSubtitleText}
-                        {activeSubtitleLine2 && <><br /><span className="text-[8px] font-medium opacity-90">{activeSubtitleLine2}</span></>}
+                        {activeSubtitleLine2 && <><br /><span className="opacity-90">{activeSubtitleLine2}</span></>}
                       </p>
                     </div>
                   )}
@@ -1733,12 +1908,15 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                     </div>
                   )}
 
-                  {/* Text strictly inside Safe Zone (bottom 28% > bottom 25.2% UI) */}
+                  {/* Dynamic Subtitle strictly following position inside Safe Zone */}
                   {activeSubtitleText && (
-                    <div className="absolute inset-x-2 bottom-[28%] z-10 text-center pointer-events-none transition-all duration-150">
-                      <p className="text-[9px] font-bold text-white leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] font-sinsay tracking-wide bg-black/45 px-2 py-0.5 rounded-md inline-block border border-white/10">
+                    <div
+                      className="absolute inset-x-2 z-10 text-center pointer-events-none transition-all duration-150"
+                      style={{ top: `${captionYPercent}%`, transform: "translateY(-50%)" }}
+                    >
+                      <p className={`inline-block leading-tight tracking-wide ${getSubtitleStyleClasses()}`}>
                         {activeSubtitleText}
-                        {activeSubtitleLine2 && <><br /><span className="text-[8px] font-medium opacity-90">{activeSubtitleLine2}</span></>}
+                        {activeSubtitleLine2 && <><br /><span className="opacity-90">{activeSubtitleLine2}</span></>}
                       </p>
                     </div>
                   )}
@@ -1795,12 +1973,15 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                     </div>
                   )}
 
-                  {/* Text safely anchored in Feed Safe Zone */}
+                  {/* Dynamic Subtitle anchored in Feed Safe Zone */}
                   {activeSubtitleText && (
-                    <div className="absolute inset-x-2 bottom-[14%] z-10 text-center pointer-events-none transition-all duration-150">
-                      <p className="text-[9px] font-bold text-white leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] font-sinsay tracking-wide bg-black/45 px-2 py-0.5 rounded-md inline-block border border-white/10">
+                    <div
+                      className="absolute inset-x-2 z-10 text-center pointer-events-none transition-all duration-150"
+                      style={{ top: `${Math.min(78, captionYPercent + 4)}%`, transform: "translateY(-50%)" }}
+                    >
+                      <p className={`inline-block leading-tight tracking-wide ${getSubtitleStyleClasses()}`}>
                         {activeSubtitleText}
-                        {activeSubtitleLine2 && <><br /><span className="text-[8px] font-medium opacity-90">{activeSubtitleLine2}</span></>}
+                        {activeSubtitleLine2 && <><br /><span className="opacity-90">{activeSubtitleLine2}</span></>}
                       </p>
                     </div>
                   )}
@@ -1855,12 +2036,15 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                     </div>
                   )}
 
-                  {/* Text safely anchored in Square Safe Zone */}
+                  {/* Dynamic Subtitle anchored in Square Safe Zone */}
                   {activeSubtitleText && (
-                    <div className="absolute inset-x-2 bottom-[12%] z-10 text-center pointer-events-none transition-all duration-150">
-                      <p className="text-[9px] font-bold text-white leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] font-sinsay tracking-wide bg-black/45 px-2 py-0.5 rounded-md inline-block border border-white/10">
+                    <div
+                      className="absolute inset-x-2 z-10 text-center pointer-events-none transition-all duration-150"
+                      style={{ top: `${Math.min(80, captionYPercent + 6)}%`, transform: "translateY(-50%)" }}
+                    >
+                      <p className={`inline-block leading-tight tracking-wide ${getSubtitleStyleClasses()}`}>
                         {activeSubtitleText}
-                        {activeSubtitleLine2 && <><br /><span className="text-[8px] font-medium opacity-90">{activeSubtitleLine2}</span></>}
+                        {activeSubtitleLine2 && <><br /><span className="opacity-90">{activeSubtitleLine2}</span></>}
                       </p>
                     </div>
                   )}

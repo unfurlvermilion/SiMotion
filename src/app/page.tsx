@@ -115,15 +115,31 @@ export default function SiMotionApp() {
     });
   }, []);
 
-  // Static state
+  // Static & Campaign State
   const [staticTexts, setStaticTexts] = useState<Record<string, { headline: string; subline: string }>>({
-    "pl-PL": { headline: "Nowa kolekcja", subline: "Odkryj swój styl" },
-    "en-US": { headline: "New collection", subline: "Discover your style" },
-    "de-DE": { headline: "Neue Kollektion", subline: "Entdecke deinen Stil" },
-    "cs-CZ": { headline: "Nová kolekce", subline: "Objev svůj styl" },
+    PL: { headline: "Nowa kolekcja", subline: "Odkryj swój styl" },
+    ENG: { headline: "New collection", subline: "Discover your style" },
+    DE: { headline: "Neue Kollektion", subline: "Entdecke deinen Stil" },
+    RO: { headline: "Colecție nouă", subline: "Descoperă stilul tău" },
+    CZ: { headline: "Nová kolekce", subline: "Objev swój styl" },
   });
-  const [activeStaticLang, setActiveStaticLang] = useState("pl-PL");
+  const [activeStaticLang, setActiveStaticLang] = useState("PL");
   const [staticRatio, setStaticRatio] = useState("1:1");
+
+  // Sync translation row to all campaign formats (Grafiki + Wideo + Eksport)
+  const handleApplyTranslationsToCampaign = (row: any) => {
+    setStaticTexts({
+      PL: { headline: row.pl, subline: "Kolekcja na Twój sposób · Sinsay" },
+      ENG: { headline: row.en || row.pl, subline: "New Collection, your way · Sinsay" },
+      DE: { headline: row.de || row.en || row.pl, subline: "Neue Kollektion, dein Stil · Sinsay" },
+      RO: { headline: row.ro || row.en || row.pl, subline: "Colecție nouă, în stilul tău · Sinsay" },
+      CZ: { headline: row.cs || row.en || row.pl, subline: "Nová kolekce po tvém · Sinsay" },
+      SK: { headline: row.sk || row.cs || row.pl, subline: "Nová kolekcia podľa teba · Sinsay" },
+      HU: { headline: row.hu || row.en || row.pl, subline: "Új kollekció a te stílusodban · Sinsay" },
+      IT: { headline: row.it || row.en || row.pl, subline: "Nuova collezione a modo tuo · Sinsay" },
+    });
+    showToast(`Zastosowano hasło „${row.pl}” do całej kampanii (Grafiki + Wideo)!`);
+  };
 
   // Localization / Approvals state
   const [approvals, setApprovals] = useState([
@@ -200,11 +216,10 @@ export default function SiMotionApp() {
             <nav className="flex items-center gap-1 p-1 rounded-full bg-[var(--bg-elevated)] border border-[var(--border-subtle)] shadow-xs">
               {(
                 [
-                  ["single", "Studio TikTok"],
+                  ["single", "Studio Wideo"],
                   ["batch", "Batch"],
-                  ["post", "Montaż wideo"],
-                  ["assets", "Materiały"],
                   ["static", "Grafiki"],
+                  ["assets", "Materiały"],
                   ["local", "Tłumaczenia"],
                   ["export", "Eksport"],
                   ["integrations", "Integracje"],
@@ -252,7 +267,7 @@ export default function SiMotionApp() {
             productId={productId}
             setProductId={setProductId}
             showToast={showToast}
-            onProceedToPost={() => setActiveTab("post")}
+            onProceedToPost={() => setActiveTab("export")}
           />
         )}
 
@@ -307,11 +322,11 @@ export default function SiMotionApp() {
 
         {/* VIEW 7: LOKALIZACJA */}
         {activeTab === "local" && (
-          <LocalizationView showToast={showToast} />
+          <LocalizationView showToast={showToast} onApplyToCampaign={handleApplyTranslationsToCampaign} />
         )}
 
         {/* VIEW 8: EKSPORT I PACZKI */}
-        {activeTab === "export" && <ExportView />}
+        {activeTab === "export" && <ExportView productId={productId} staticTexts={staticTexts} showToast={showToast} />}
 
         {/* VIEW 9: INTEGRACJE & API */}
         {activeTab === "integrations" && <IntegrationsView />}

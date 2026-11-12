@@ -111,16 +111,11 @@ export default function BatchProductionView() {
     }
   };
 
-  // Auto-sync with SharePoint on mount and every 30 seconds
+  // Initial sync with SharePoint on mount only once to avoid destroying user changes
   React.useEffect(() => {
     fetchSharepointRows();
-    const interval = setInterval(() => {
-      if (!isProcessing) {
-        fetchSharepointRows();
-      }
-    }, 30000);
-    return () => clearInterval(interval);
-  }, [isProcessing]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleStartBatch = () => {
     setIsProcessing(true);

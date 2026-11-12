@@ -16,8 +16,29 @@ export interface ExportFileItem {
   realFile?: File;
 }
 
-export default function ExportView() {
-  const [mdkCode, setMdkCode] = useState<string>("001KR-83X");
+interface ExportViewProps {
+  productId?: string;
+  staticTexts?: Record<string, { headline: string; subline: string }>;
+  showToast?: (msg: string) => void;
+}
+
+export default function ExportView({
+  productId = "001KR-83X",
+  staticTexts = {
+    PL: { headline: "Nowa kolekcja", subline: "Odkryj swój styl" },
+    ENG: { headline: "New collection", subline: "Discover your style" },
+    DE: { headline: "Neue Kollektion", subline: "Entdecke deinen Stil" },
+    RO: { headline: "Colecție nouă", subline: "Descoperă stilul tău" },
+    CZ: { headline: "Nová kolekce", subline: "Objev svůj styl" },
+  },
+  showToast,
+}: ExportViewProps) {
+  const [mdkCode, setMdkCode] = useState<string>(productId);
+
+  // Sync if parent productId updates
+  React.useEffect(() => {
+    if (productId) setMdkCode(productId);
+  }, [productId]);
   const [campaignName, setCampaignName] = useState<string>("Kolekcja Kapsułowa FW26");
   const [folderStructure, setFolderStructure] = useState<string>("mdk_format_lang");
   const [namingConvention, setNamingConvention] = useState<string>("{MDK}_{RATIO}_{LANG}");
@@ -268,14 +289,23 @@ export default function ExportView() {
         } else if (file.blob) {
           rootFolder.file(`${folderPath}${file.filename}`, file.blob);
         } else if (file.type === "subtitles") {
-          // Real timed subtitles in Euclid Circular B
+          // Real timed subtitles tailored to the specific target language
+          const langText =
+            staticTexts[file.language]?.headline ||
+            staticTexts["PL"]?.headline ||
+            "Nowa kolekcja na Twój sposób";
+          const langSub =
+            staticTexts[file.language]?.subline ||
+            staticTexts["PL"]?.subline ||
+            "Sinsay — modne stylizacje w najlepszych cenach.";
+
           const srtData =
-            `1\n00:00:00,000 --> 00:00:02,500\nNowa kolekcja na Twój sposób.\n\n` +
-            `2\n00:00:02,550 --> 00:00:05,200\nSinsay — modne stylizacje w najlepszych cenach.\n\n` +
-            `3\n00:00:05,300 --> 00:00:09,500\nOdkryj w aplikacji i salonach stacjonarnych.\n`;
+            `1\n00:00:00,000 --> 00:00:02,500\n${langText}\n\n` +
+            `2\n00:00:02,550 --> 00:00:05,200\n${langSub}\n\n` +
+            `3\n00:00:05,300 --> 00:00:09,500\nSinsay · Oficjalna kolekcja 2026\n`;
           rootFolder.file(`${folderPath}${file.filename}`, srtData);
         } else if (file.type === "image") {
-          // Generate an actual PNG Canvas image or SVG for graphics
+          // Generate an actual PNG Canvas image rendering the specific language translation
           const canvas = document.createElement("canvas");
           canvas.width = file.format.includes("3:4") ? 1080 : 1080;
           canvas.height = file.format.includes("3:4") ? 1440 : 1080;
@@ -292,10 +322,15 @@ export default function ExportView() {
             ctx.fillText("SINSAY ATELIER 2026", canvas.width / 2, canvas.height / 2 - 40);
             ctx.font = "28px 'Euclid Circular B', sans-serif";
             ctx.fillStyle = "#e56b4e";
-            ctx.fillText(`MDK: ${mdkCode} · ${file.format}`, canvas.width / 2, canvas.height / 2 + 20);
-            ctx.font = "20px 'Euclid Circular B', sans-serif";
-            ctx.fillStyle = "#a89b8c";
-            ctx.fillText("Nowa kolekcja na Twój sposób", canvas.width / 2, canvas.height / 2 + 70);
+            ctx.fillText(`MDK: ${mdkCode} · ${file.format} (${file.language})`, canvas.width / 2, canvas.height / 2 + 20);
+            ctx.font = "22px 'Euclid Circular B', sans-serif";
+            ctx.fillStyle = "#f7f3ec";
+
+            const langHeadline =
+              staticTexts[file.language]?.headline ||
+              staticTexts["PL"]?.headline ||
+              "Nowa kolekcja na Twój sposób";
+            ctx.fillText(`„${langHeadline}”`, canvas.width / 2, canvas.height / 2 + 75);
 
             const pngBlob = await new Promise<Blob | null>((res) => canvas.toBlob(res, "image/png"));
             if (pngBlob) {
