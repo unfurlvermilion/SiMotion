@@ -85,6 +85,15 @@ export const GARMENT_PRESETS = [
   },
 ];
 
+export interface PcmAsset {
+  id: string;
+  label: string;
+  filename: string;
+  url: string;
+  source: "pcm" | "pdm" | "fallback";
+  type: string;
+}
+
 interface StudioTikTokViewProps {
   productId: string;
   setProductId: (val: string) => void;
@@ -160,6 +169,41 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
     durationSec: 2.0,
     name: "Outro All (Białe)",
   });
+
+  // Real LPP PCM & PDM packshot assets state
+  const [pcmAssets, setPcmAssets] = useState<PcmAsset[]>([]);
+  const [isFetchingPcm, setIsFetchingPcm] = useState<boolean>(false);
+  const [pcmFetchSource, setPcmFetchSource] = useState<"pcm" | "pdm" | "fallback" | null>(null);
+
+  const handleFetchPcm = async () => {
+    const code = (productId || "").trim();
+    if (!code) {
+      showToast("Wpisz najpierw kod artykułu MDK (np. 001KR-83X).");
+      return;
+    }
+    setIsFetchingPcm(true);
+    try {
+      const res = await fetch(`/api/pcm?mdk=${encodeURIComponent(code)}`);
+      const data = await res.json();
+      if (data.status === "success" && Array.isArray(data.assets) && data.assets.length > 0) {
+        setPcmAssets(data.assets);
+        setPcmFetchSource(data.source);
+        const srcLabel =
+          data.source === "pcm"
+            ? "PCM (Wewnętrzny retusz LPP)"
+            : data.source === "pdm"
+            ? "PDM (E-Commerce Grafika)"
+            : "Wzorzec lokalny";
+        showToast(`✓ Pobrano ${data.assets.length} zdjęć z ${srcLabel} dla MDK: ${code}`);
+      } else {
+        showToast(data.message || "Nie znaleziono zdjęć w PCM ani PDM dla tego MDK.");
+      }
+    } catch (err: any) {
+      showToast("Błąd pobierania z PCM / PDM: " + err.message);
+    } finally {
+      setIsFetchingPcm(false);
+    }
+  };
 
   const [subtitleCues, setSubtitleCues] = useState<SubtitleCue[]>([
     {
@@ -1590,23 +1634,71 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-[var(--ink-primary)] block mb-1">
-                    Kod MDK (artykuł)
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-bold text-[var(--ink-primary)]">
+                      Kod MDK (artykuł LPP)
+                    </label>
+                    {pcmFetchSource && (
+                      <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                        pcmFetchSource === "pcm"
+                          ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                          : pcmFetchSource === "pdm"
+                          ? "bg-blue-500/15 text-blue-600 dark:text-blue-400"
+                          : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                      }`}>
+                        Źródło: {pcmFetchSource === "pcm" ? "PCM Retusz" : pcmFetchSource === "pdm" ? "PDM E-Commerce" : "Wzorzec"}
+                      </span>
+                    )}
+                  </div>
                   <div className="flex gap-2">
                     <input
                       type="text"
                       value={productId}
-                      onChange={(e) => setProductId(e.target.value)}
+                      onChange={(e) => setProductId(e.target.value.toUpperCase())}
+                      placeholder="np. 001KR-83X lub 206LA-08X"
                       className="flex-1 px-3 py-2 rounded-xl text-xs border font-mono bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)] focus:outline-none focus:border-[var(--accent)]"
                     />
                     <button
-                      onClick={() => showToast(`Pobrano zdjęcia dla ${productId} z PCM.`)}
-                      className="px-3 py-2 rounded-xl text-xs font-bold border bg-[var(--bg-card)] border-[var(--border-strong)] hover:border-[var(--accent)] text-[var(--ink-primary)] cursor-pointer"
+                      type="button"
+                      onClick={handleFetchPcm}
+                      disabled={isFetchingPcm}
+                      className="px-3.5 py-2 rounded-xl text-xs font-bold border border-[#c84b31] bg-[#fceee9] dark:bg-[#38211c] text-[#c84b31] dark:text-[#e56b4e] hover:bg-[#c84b31] hover:text-white transition-all flex items-center gap-1.5 shadow-sm cursor-pointer disabled:opacity-50"
                     >
-                      Pobierz ↻
+                      <span>{isFetchingPcm ? "Pobieranie..." : "Pobierz z PCM / PDM ↻"}</span>
                     </button>
                   </div>
+
+                  {/* Thumbnail Grid of Real Fetched Packshots */}
+                  {pcmAssets.length > 0 && (
+                    <div className="mt-3 p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] space-y-2">
+                      <div className="flex items-center justify-between text-[11px] font-bold text-[var(--ink-secondary)]">
+                        <span>Pobrane packshoty ({pcmAssets.length}):</span>
+                        <span className="text-[10px] text-[var(--ink-muted)]">Kliknij, aby podejrzeć</span>
+                      </div>
+                      <div className="flex gap-2 overflow-x-auto pb-1">
+                        {pcmAssets.map((asset) => (
+                          <div
+                            key={asset.id}
+                            className="group relative flex-shrink-0 w-20 h-28 rounded-lg overflow-hidden border border-[var(--border-strong)] bg-white dark:bg-[#1a1714] shadow-xs cursor-pointer hover:border-[var(--accent)] transition-all"
+                            title={`${asset.label} (${asset.filename})`}
+                          >
+                            <img
+                              src={asset.url}
+                              alt={asset.label}
+                              className="w-full h-full object-contain p-1"
+                              loading="lazy"
+                            />
+                            <div className="absolute inset-x-0 bottom-0 bg-black/75 text-white text-[8px] font-mono px-1 py-0.5 truncate text-center">
+                              {asset.filename.replace(/^.*[\\/]/, '')}
+                            </div>
+                            <span className="absolute top-1 right-1 text-[8px] font-bold px-1 rounded bg-[#c84b31] text-white">
+                              {asset.source.toUpperCase()}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
