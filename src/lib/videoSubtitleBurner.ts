@@ -19,6 +19,7 @@ export interface BurnSubtitlesOptions {
     size: "sm" | "base" | "lg";
   };
   durationSec?: number;
+  playbackSpeed?: number; // Acceleration factor (e.g. 2.0x for fast rendering)
   logoOutro?: {
     imageSrc?: string;
     durationSec: number;
@@ -131,9 +132,10 @@ export async function burnSubtitlesToVideo(options: BurnSubtitlesOptions): Promi
 
       mediaRecorder.start(200);
 
-      // Render loop
+      // Render loop with playback acceleration
       let animId: number;
-      video.playbackRate = 1.0;
+      const speed = options.playbackSpeed || 2.0;
+      video.playbackRate = speed;
       video.play().catch((err) => {
         console.warn("Auto-play error, proceeding:", err);
       });

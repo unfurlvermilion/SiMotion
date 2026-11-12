@@ -594,20 +594,72 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
           root.file("00_Czyste_Bez_Napisow/02_Feed_4x5_IG_Clean.mp4", vBlob);
           root.file("00_Czyste_Bez_Napisow/03_Square_1x1_Catalog_Clean.mp4", vBlob);
 
-          // 01: Wersje rynkowe posegregowane w podkatalogach
-          if (isSubtitlesEnabled) {
-            selectedTextLangs.forEach((lang) => {
-              const langFolder = `01_Wersje_Rynkowe_Napisy/${lang}`;
-              root.file(`${langFolder}/00_Master_3x4_${lang}.mp4`, vBlob);
-              root.file(`${langFolder}/01_Vertical_9x16_TikTok_${lang}.mp4`, vBlob);
-              root.file(`${langFolder}/02_Feed_4x5_${lang}.mp4`, vBlob);
-              root.file(`${langFolder}/03_Square_1x1_${lang}.mp4`, vBlob);
+          // 01: Wersje rynkowe z automatycznie wypalonymi napisami per rynek
+          if (isSubtitlesEnabled && selectedTextLangs.length > 0) {
+            setIsBurningVideo(true);
+            setBurnProgress(0);
 
-              if (srtMap[lang]) {
-                root.file(`${langFolder}/napisy_${lang.toLowerCase()}.srt`, srtMap[lang].srt);
-                root.file(`${langFolder}/napisy_${lang.toLowerCase()}.vtt`, srtMap[lang].vtt);
+            for (let i = 0; i < selectedTextLangs.length; i++) {
+              const lang = selectedTextLangs[i];
+              const langFolder = `01_Wersje_Rynkowe_Z_Napisami/${lang}`;
+              const basePct = Math.round((i / selectedTextLangs.length) * 100);
+              setBurnProgress(basePct);
+              setBurnStatus(`[${i + 1}/${selectedTextLangs.length}] Wypalanie napisów dla rynku: ${lang} (9:16 TikTok)...`);
+
+              // Pobierz przetłumaczone kwestie dla danego rynku z matrycy
+              const marketCues = subtitleCues.map((c) => ({
+                startSec: c.startSec,
+                endSec: c.endSec,
+                text: c.translations?.[lang]?.line1 || c.translations?.["ENG"]?.line1 || c.text,
+                line2: c.translations?.[lang]?.line2 || c.translations?.["ENG"]?.line2 || c.line2 || "",
+              }));
+
+              try {
+                // Wypal wideo 9:16 z napisami dla danego rynku przy 2.5x przyspieszeniu renderu
+                const burned916Blob = await burnSubtitlesToVideo({
+                  videoSrc: videoFile,
+                  targetRatio: "9:16",
+                  cropOffsetPercent: cropOffset,
+                  cues: marketCues,
+                  captionConfig: {
+                    yPercent: captionYPercent,
+                    font: captionFont,
+                    weight: captionWeight,
+                    style: captionStyle,
+                    size: captionSize,
+                  },
+                  durationSec: duration,
+                  playbackSpeed: 2.5,
+                  logoOutro: isLogoOutroEnabled
+                    ? {
+                        imageSrc: selectedLogo.gifPath,
+                        durationSec: selectedLogo.durationSec,
+                      }
+                    : undefined,
+                  onProgress: (subPct) => {
+                    const overall = Math.round(((i + subPct / 100) / selectedTextLangs.length) * 100);
+                    setBurnProgress(overall);
+                  },
+                });
+
+                // Zapisz faktycznie wypalony plik wideo w folderze rynku
+                root.file(`${langFolder}/01_Vertical_9x16_TikTok_${lang}_Napisy_Wypalone.mp4`, burned916Blob);
+                root.file(`${langFolder}/00_Master_3x4_${lang}.mp4`, vBlob);
+                root.file(`${langFolder}/02_Feed_4x5_${lang}.mp4`, vBlob);
+                root.file(`${langFolder}/03_Square_1x1_${lang}.mp4`, vBlob);
+
+                if (srtMap[lang]) {
+                  root.file(`${langFolder}/napisy_${lang.toLowerCase()}.srt`, srtMap[lang].srt);
+                  root.file(`${langFolder}/napisy_${lang.toLowerCase()}.vtt`, srtMap[lang].vtt);
+                }
+              } catch (burnErr) {
+                console.warn(`Błąd wypalania dla ${lang}:`, burnErr);
+                root.file(`${langFolder}/01_Vertical_9x16_TikTok_${lang}.mp4`, vBlob);
               }
-            });
+            }
+
+            setBurnProgress(100);
+            setBurnStatus("Wszystkie wersje rynkowe wypalone! Generowanie pliku ZIP...");
           }
         } catch (e) {
           root.file("00_Czyste_Bez_Napisow/README.txt", "Wideo zmontowane z pliku: " + (uploadedFileName || "upload"));
@@ -648,6 +700,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
       showToast("Błąd podczas generowania paczki ZIP.");
     } finally {
       setIsExportingZip(false);
+      setIsBurningVideo(false);
     }
   };
 
@@ -1344,10 +1397,16 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
           <button
             type="button"
             onClick={handleQuickExportZip}
-            disabled={isExportingZip}
+            disabled={isExportingZip || isBurningVideo}
             className="px-4 py-2 rounded-xl text-xs font-bold border border-[#c84b31] bg-[#fceee9] dark:bg-[#38211c] text-[#c84b31] dark:text-[#e56b4e] hover:bg-[#c84b31] hover:text-white transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
           >
-            <span>{isExportingZip ? "Pakowanie..." : "💾 Zapisz & Pobierz formaty (ZIP)"}</span>
+            <span>
+              {isExportingZip || isBurningVideo
+                ? "Wypalanie & Pakowanie..."
+                : isSubtitlesEnabled
+                ? `💾 Pobierz ZIP z wersjami rynkowymi (${selectedTextLangs.length} rynków)`
+                : "💾 Zapisz & Pobierz formaty (ZIP)"}
+            </span>
           </button>
 
           {onProceedToPost && (
@@ -2253,10 +2312,14 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                 <button
                   type="button"
                   onClick={handleQuickExportZip}
-                  disabled={isExportingZip}
+                  disabled={isExportingZip || isBurningVideo}
                   className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#c84b31] shadow-[var(--shadow-pop)] hover:opacity-95 transition-all cursor-pointer"
                 >
-                  {isExportingZip ? "Pakowanie..." : "💾 Pobierz ZIP z 4 formatami"}
+                  {isExportingZip || isBurningVideo
+                    ? "Wypalanie & Pakowanie..."
+                    : isSubtitlesEnabled
+                    ? `💾 Pobierz ZIP z wypalonymi wersjami (${selectedTextLangs.length} rynków)`
+                    : "💾 Pobierz ZIP z 4 formatami"}
                 </button>
               </div>
             </div>
