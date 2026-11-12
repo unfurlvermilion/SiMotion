@@ -425,32 +425,33 @@ export default function SinsayPhraseAssistant({
                         : "border-[#dfd5c6] dark:border-[#38302b] bg-[#faf7f2]/40 dark:bg-[#1a1714]/30 hover:bg-[#faf7f2] dark:hover:bg-[#1a1714]"
                     }`}
                   >
-                    <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
                       <span className="w-6 h-6 rounded-full bg-[#f2ece1] dark:bg-[#292420] text-[#655a53] dark:text-[#b8aea4] text-[11px] font-mono font-bold grid place-items-center flex-shrink-0">
                         {index + 1}
                       </span>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <p className="text-xs font-semibold text-[#1c1816] dark:text-[#f7f3ec] truncate">
-                            {item.pl}
-                          </p>
-                        </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold text-[#1c1816] dark:text-[#f7f3ec] line-clamp-2 leading-snug">
+                          {item.pl}
+                        </p>
                         {item.en && (
-                          <p className="text-[11px] text-[#877b72] dark:text-[#8e8379] truncate">
+                          <p className="text-[11px] text-[#877b72] dark:text-[#8e8379] line-clamp-1 mt-0.5">
                             ENG: {item.en}
                           </p>
                         )}
                       </div>
                     </div>
 
-                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                    <div className="flex flex-col items-end gap-1 flex-shrink-0 pl-1.5">
                       <div className="flex items-center gap-1">
                         {item.season && (
-                          <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-[#faf7f2] dark:bg-[#211d1a] border border-[#dfd5c6] dark:border-[#38302b] text-[#655a53] dark:text-[#b8aea4]">
-                            {item.seasonIcon} {item.season}
+                          <span
+                            className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-[#faf7f2] dark:bg-[#211d1a] border border-[#dfd5c6] dark:border-[#38302b] text-[#655a53] dark:text-[#b8aea4]"
+                            title={item.season}
+                          >
+                            {item.seasonIcon}
                           </span>
                         )}
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#e6f4ed] dark:bg-[#193328] text-[#1d6346] dark:text-[#75d9ae]">
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#e6f4ed] dark:bg-[#193328] text-[#1d6346] dark:text-[#75d9ae]">
                           {item.score}%
                         </span>
                       </div>
@@ -465,7 +466,7 @@ export default function SinsayPhraseAssistant({
                             }`}
                             title={`Dostępne na ${count} z 28 rynków`}
                           >
-                            {count}/28 rynków
+                            {count}/28
                           </span>
                         );
                       })()}

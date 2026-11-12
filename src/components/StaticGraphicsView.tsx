@@ -440,9 +440,9 @@ export const StaticGraphicsView: React.FC<StaticGraphicsViewProps> = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Settings Column */}
-        <div className="lg:col-span-5 space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left Settings & Translation Column (Większa przestrzeń na hasła i rynki) */}
+        <div className="lg:col-span-7 space-y-4">
           {/* 1. Format i proporcje */}
           <div className="p-5 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-3.5 shadow-sm">
             <div className="flex items-center justify-between">
@@ -619,126 +619,12 @@ export const StaticGraphicsView: React.FC<StaticGraphicsViewProps> = ({
               </div>
             </div>
           </div>
-
-          {/* 3. Layout i maskowanie starego napisu */}
-          <div className="p-5 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-3.5 shadow-sm">
-            <h2 className="text-xs font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
-              3. Layout &amp; Maskowanie starego napisu
-            </h2>
-
-            {/* Masking Style / Backdrop */}
-            <div>
-              <label className="text-xs font-bold text-[var(--ink-primary)] block mb-1">
-                Tło tekstu (zakrywanie starego napisu)
-              </label>
-              <select
-                value={backdropStyle}
-                onChange={(e) => setBackdropStyle(e.target.value as any)}
-                className="w-full px-3 py-2 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)] font-bold"
-              >
-                <option value="box-dark">⬛ Ciemna kryjąca belka (maskuje stary napis)</option>
-                <option value="box-white">⬜ Jasna kryjąca belka (pod jasne zdjęcia)</option>
-                <option value="box-sinsay">🟥 Burgundowa belka Sinsay</option>
-                <option value="gradient">Płynny gradient od dołu (dla czystych zdjęć)</option>
-                <option value="clean">Czysty tekst z cieniem (brak tła)</option>
-              </select>
-            </div>
-
-            {backdropStyle.startsWith("box-") && (
-              <div>
-                <label className="text-xs font-bold text-[var(--ink-primary)] block mb-1">
-                  Szerokość belki maskującej
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => setBackdropWidth("fit")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border ${
-                      backdropWidth === "fit"
-                        ? "bg-[var(--accent-soft)] border-[var(--accent)] text-[var(--accent)]"
-                        : "bg-[var(--bg-subtle)] border-[var(--border-subtle)] text-[var(--ink-secondary)]"
-                    }`}
-                  >
-                    Kapsuła dopasowana
-                  </button>
-                  <button
-                    onClick={() => setBackdropWidth("full")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border ${
-                      backdropWidth === "full"
-                        ? "bg-[var(--accent-soft)] border-[var(--accent)] text-[var(--accent)]"
-                        : "bg-[var(--bg-subtle)] border-[var(--border-subtle)] text-[var(--ink-secondary)]"
-                    }`}
-                  >
-                    Pasek na całą szerokość
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Vertical Position slider */}
-            <div>
-              <div className="flex justify-between items-center text-xs font-bold mb-1">
-                <span>Wysokość tekstu w kadrze</span>
-                <span className="text-[var(--accent)] font-extrabold">{textYPercent}%</span>
-              </div>
-              <input
-                type="range"
-                min={20}
-                max={88}
-                value={textYPercent}
-                onChange={(e) => setTextYPercent(Number(e.target.value))}
-                className="w-full accent-[var(--accent)]"
-              />
-              <div className="flex justify-between text-[10px] text-[var(--ink-muted)]">
-                <span>Góra (20%)</span>
-                <span>Środek (50%)</span>
-                <span>Dół (88%)</span>
-              </div>
-            </div>
-
-            {/* Font scale & alignment */}
-            <div className="grid grid-cols-2 gap-3 pt-1">
-              <div>
-                <div className="flex justify-between items-center text-xs font-bold mb-1">
-                  <span>Skala fontu</span>
-                  <span className="text-[var(--accent)]">{Math.round(fontSizeScale * 100)}%</span>
-                </div>
-                <input
-                  type="range"
-                  min={0.6}
-                  max={1.4}
-                  step={0.05}
-                  value={fontSizeScale}
-                  onChange={(e) => setFontSizeScale(Number(e.target.value))}
-                  className="w-full accent-[var(--accent)]"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-[var(--ink-primary)] block mb-1">
-                  Wyrównanie
-                </label>
-                <div className="grid grid-cols-3 gap-1">
-                  {(["left", "center", "right"] as const).map((a) => (
-                    <button
-                      key={a}
-                      onClick={() => setTextAlign(a)}
-                      className={`py-1 text-xs font-bold rounded-lg border ${
-                        textAlign === a
-                          ? "bg-[var(--accent-soft)] border-[var(--accent)] text-[var(--accent)]"
-                          : "bg-[var(--bg-subtle)] border-[var(--border-subtle)] text-[var(--ink-secondary)]"
-                      }`}
-                    >
-                      {a === "left" ? "Lewo" : a === "center" ? "Środek" : "Prawo"}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
 
-        {/* Right Artboard Preview Column */}
-        <div className="lg:col-span-7 flex flex-col items-center justify-center p-6 sm:p-8 rounded-3xl bg-gradient-to-b from-[var(--champagne)] to-[var(--bg-elevated)] border border-[var(--border-subtle)] shadow-sm">
+        {/* Right Artboard Preview Column (Podgląd na górze + panele pod spodem) */}
+        <div className="lg:col-span-5 space-y-4 self-start">
+          {/* Top Preview Card */}
+          <div className="flex flex-col items-center p-5 sm:p-6 rounded-3xl bg-gradient-to-b from-[var(--champagne)] to-[var(--bg-elevated)] border border-[var(--border-subtle)] shadow-sm">
           <div className="w-full flex items-center justify-between mb-3 text-xs font-bold text-[var(--ink-secondary)]">
             <span className="flex items-center gap-1.5">
               <span>Podgląd:</span>
@@ -864,21 +750,138 @@ export const StaticGraphicsView: React.FC<StaticGraphicsViewProps> = ({
           </div>
 
           {/* Quick Actions Bar */}
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5">
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
             <button
               onClick={exportPNG}
-              className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[var(--accent)] hover:opacity-95 shadow-md flex items-center gap-1.5"
+              className="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-[var(--accent)] hover:opacity-95 shadow-md flex items-center gap-1.5 cursor-pointer"
             >
-              <span>Pobierz bieżący ({activeStaticLang.toUpperCase()})</span>
+              <span>Pobierz ({activeStaticLang.toUpperCase()})</span>
             </button>
             <button
               onClick={handleExportZipAllMarkets}
               disabled={isExportingZip}
-              className="px-4 py-2 rounded-xl text-xs font-bold border border-[#c84b31] bg-[#fceee9] dark:bg-[#38211c] text-[#c84b31] dark:text-[#e56b4e] hover:bg-[#c84b31] hover:text-white transition-all shadow-sm"
+              className="px-3.5 py-2 rounded-xl text-xs font-bold border border-[#c84b31] bg-[#fceee9] dark:bg-[#38211c] text-[#c84b31] dark:text-[#e56b4e] hover:bg-[#c84b31] hover:text-white transition-all shadow-sm cursor-pointer"
             >
-              <span>{isExportingZip ? "Pakowanie..." : `💾 Pobierz ZIP (${selectedMarkets.length} języków)`}</span>
+              <span>{isExportingZip ? "Pakowanie..." : `💾 Pobierz ZIP (${selectedMarkets.length} jęz.)`}</span>
             </button>
           </div>
+        </div>
+
+        {/* Underneath Preview: 3. Layout & Maskowanie starego napisu */}
+        <div className="p-5 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-3.5 shadow-sm">
+          <h2 className="text-xs font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
+            3. Layout &amp; Maskowanie starego napisu
+          </h2>
+
+          {/* Masking Style / Backdrop */}
+          <div>
+            <label className="text-xs font-bold text-[var(--ink-primary)] block mb-1">
+              Tło tekstu (zakrywanie starego napisu)
+            </label>
+            <select
+              value={backdropStyle}
+              onChange={(e) => setBackdropStyle(e.target.value as any)}
+              className="w-full px-3 py-2 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)] font-bold cursor-pointer"
+            >
+              <option value="box-dark">⬛ Ciemna kryjąca belka (maskuje stary napis)</option>
+              <option value="box-white">⬜ Jasna kryjąca belka (pod jasne zdjęcia)</option>
+              <option value="box-sinsay">🟥 Burgundowa belka Sinsay</option>
+              <option value="gradient">Płynny gradient od dołu (dla czystych zdjęć)</option>
+              <option value="clean">Czysty tekst z cieniem (brak tła)</option>
+            </select>
+          </div>
+
+          {backdropStyle.startsWith("box-") && (
+            <div>
+              <label className="text-xs font-bold text-[var(--ink-primary)] block mb-1">
+                Szerokość belki maskującej
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setBackdropWidth("fit")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold border cursor-pointer ${
+                    backdropWidth === "fit"
+                      ? "bg-[var(--accent-soft)] border-[var(--accent)] text-[var(--accent)]"
+                      : "bg-[var(--bg-subtle)] border-[var(--border-subtle)] text-[var(--ink-secondary)]"
+                  }`}
+                >
+                  Kapsuła dopasowana
+                </button>
+                <button
+                  onClick={() => setBackdropWidth("full")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold border cursor-pointer ${
+                    backdropWidth === "full"
+                      ? "bg-[var(--accent-soft)] border-[var(--accent)] text-[var(--accent)]"
+                      : "bg-[var(--bg-subtle)] border-[var(--border-subtle)] text-[var(--ink-secondary)]"
+                  }`}
+                >
+                  Pasek na całą szerokość
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Vertical Position slider */}
+          <div>
+            <div className="flex justify-between items-center text-xs font-bold mb-1">
+              <span>Wysokość tekstu w kadrze</span>
+              <span className="text-[var(--accent)] font-extrabold">{textYPercent}%</span>
+            </div>
+            <input
+              type="range"
+              min={20}
+              max={88}
+              value={textYPercent}
+              onChange={(e) => setTextYPercent(Number(e.target.value))}
+              className="w-full accent-[var(--accent)] cursor-pointer"
+            />
+            <div className="flex justify-between text-[10px] text-[var(--ink-muted)]">
+              <span>Góra (20%)</span>
+              <span>Środek (50%)</span>
+              <span>Dół (88%)</span>
+            </div>
+          </div>
+
+          {/* Font scale & alignment */}
+          <div className="grid grid-cols-2 gap-3 pt-1">
+            <div>
+              <div className="flex justify-between items-center text-xs font-bold mb-1">
+                <span>Skala fontu</span>
+                <span className="text-[var(--accent)]">{Math.round(fontSizeScale * 100)}%</span>
+              </div>
+              <input
+                type="range"
+                min={0.6}
+                max={1.4}
+                step={0.05}
+                value={fontSizeScale}
+                onChange={(e) => setFontSizeScale(Number(e.target.value))}
+                className="w-full accent-[var(--accent)] cursor-pointer"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-[var(--ink-primary)] block mb-1">
+                Wyrównanie
+              </label>
+              <div className="grid grid-cols-3 gap-1">
+                {(["left", "center", "right"] as const).map((a) => (
+                  <button
+                    key={a}
+                    onClick={() => setTextAlign(a)}
+                    className={`py-1 text-xs font-bold rounded-lg border cursor-pointer ${
+                      textAlign === a
+                        ? "bg-[var(--accent-soft)] border-[var(--accent)] text-[var(--accent)]"
+                        : "bg-[var(--bg-subtle)] border-[var(--border-subtle)] text-[var(--ink-secondary)]"
+                    }`}
+                  >
+                    {a === "left" ? "Lewo" : a === "center" ? "Środek" : "Prawo"}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
         </div>
       </div>
     </div>
