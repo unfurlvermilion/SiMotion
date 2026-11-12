@@ -5,6 +5,7 @@ import JSZip from "jszip";
 import SinsayPhraseAssistant, { SINSAY_MARKETS, SinsayMatchItem } from "./SinsayPhraseAssistant";
 import AnimatedLogoModal, { SelectedLogoConfig, LOGO_VARIANTS } from "./AnimatedLogoModal";
 import { SocialSafeAreaOverlay } from "./SocialSafeAreaOverlay";
+import { burnSubtitlesToVideo } from "@/lib/videoSubtitleBurner";
 
 export interface StoryboardScene {
   id: string;
@@ -190,6 +191,72 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
   const [previewLang, setPreviewLang] = useState<string>("PL");
   const [showPhraseAssistant, setShowPhraseAssistant] = useState<boolean>(false);
   const [isExportingZip, setIsExportingZip] = useState<boolean>(false);
+
+  // Hardcoded Subtitles In-Browser Burning Engine State
+  const [isBurningVideo, setIsBurningVideo] = useState<boolean>(false);
+  const [burnProgress, setBurnProgress] = useState<number>(0);
+  const [burnStatus, setBurnStatus] = useState<string>("");
+
+  const handleBurnAndDownloadSingleVideo = async (ratio: "9:16" | "3:4" | "4:5" | "1:1" = "9:16") => {
+    if (!videoFile) {
+      showToast("Wgraj plik wideo lub wybierz wideo z sesji, aby wypalić napisy.");
+      return;
+    }
+
+    setIsBurningVideo(true);
+    setBurnProgress(0);
+    setBurnStatus("Inicjalizacja silnika renderującego klatki...");
+
+    try {
+      const mappedCues = subtitleCues.map((c) => ({
+        startSec: c.startSec,
+        endSec: c.endSec,
+        text: c.translations?.[previewLang]?.line1 || c.text,
+        line2: c.translations?.[previewLang]?.line2 || c.line2 || "",
+      }));
+
+      const blob = await burnSubtitlesToVideo({
+        videoSrc: videoFile,
+        targetRatio: ratio,
+        cropOffsetPercent: cropOffset,
+        cues: mappedCues,
+        captionConfig: {
+          yPercent: captionYPercent,
+          font: captionFont,
+          weight: captionWeight,
+          style: captionStyle,
+          size: captionSize,
+        },
+        durationSec: duration,
+        logoOutro: isLogoOutroEnabled
+          ? {
+              imageSrc: selectedLogo.gifPath,
+              durationSec: selectedLogo.durationSec,
+            }
+          : undefined,
+        onProgress: (pct, msg) => {
+          setBurnProgress(pct);
+          setBurnStatus(msg);
+        },
+      });
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const ext = blob.type.includes("mp4") ? "mp4" : "webm";
+      a.download = `Sinsay_${productId || "001KR"}_${ratio.replace(":", "x")}_${previewLang}_Wypalone_Napisy.${ext}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast(`✓ Gotowe! Pobrano wideo z wypalonymi napisami (${ratio} · ${previewLang})!`);
+    } catch (err: any) {
+      console.error("Burn video error:", err);
+      showToast("Błąd podczas wypalania napisów: " + err.message);
+    } finally {
+      setIsBurningVideo(false);
+    }
+  };
 
   // Active cue based on current video playback timestamp
   const activeCue = subtitleCues.find(
@@ -1852,6 +1919,18 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                     </div>
                   )}
                 </div>
+
+                {isSubtitlesEnabled && (
+                  <button
+                    type="button"
+                    onClick={() => handleBurnAndDownloadSingleVideo("3:4")}
+                    disabled={isBurningVideo}
+                    className="w-full max-w-[155px] px-2 py-1 rounded-lg text-[10px] font-extrabold bg-[#fceee9] dark:bg-[#38211c] border border-[#c84b31]/40 text-[#c84b31] dark:text-[#e56b4e] hover:bg-[#c84b31] hover:text-white transition-all shadow-xs flex items-center justify-center gap-1 cursor-pointer"
+                    title="Wypala napisy w formacie 3:4 bez DaVinci Resolve"
+                  >
+                    <span>🔥 Wypal 3:4 ({previewLang})</span>
+                  </button>
+                )}
               </div>
 
               {/* 2. 9:16 TIKTOK VERTICAL */}
@@ -1916,6 +1995,18 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                     </div>
                   )}
                 </div>
+
+                {isSubtitlesEnabled && (
+                  <button
+                    type="button"
+                    onClick={() => handleBurnAndDownloadSingleVideo("9:16")}
+                    disabled={isBurningVideo}
+                    className="w-full max-w-[155px] px-2 py-1 rounded-lg text-[10px] font-extrabold bg-[#fceee9] dark:bg-[#38211c] border border-[#c84b31]/40 text-[#c84b31] dark:text-[#e56b4e] hover:bg-[#c84b31] hover:text-white transition-all shadow-xs flex items-center justify-center gap-1 cursor-pointer"
+                    title="Wypala napisy w pikselach wideo bez DaVinci Resolve"
+                  >
+                    <span>🔥 Wypal 9:16 ({previewLang})</span>
+                  </button>
+                )}
               </div>
 
               {/* 3. 4:5 IG FEED SMART CROP */}
@@ -1978,6 +2069,18 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                     </div>
                   )}
                 </div>
+
+                {isSubtitlesEnabled && (
+                  <button
+                    type="button"
+                    onClick={() => handleBurnAndDownloadSingleVideo("4:5")}
+                    disabled={isBurningVideo}
+                    className="w-full max-w-[155px] px-2 py-1 rounded-lg text-[10px] font-extrabold bg-[#fceee9] dark:bg-[#38211c] border border-[#c84b31]/40 text-[#c84b31] dark:text-[#e56b4e] hover:bg-[#c84b31] hover:text-white transition-all shadow-xs flex items-center justify-center gap-1 cursor-pointer"
+                    title="Wypala napisy w formacie 4:5 bez DaVinci Resolve"
+                  >
+                    <span>🔥 Wypal 4:5 ({previewLang})</span>
+                  </button>
+                )}
               </div>
 
               {/* 4. 1:1 SQUARE PRODUCT */}
@@ -2040,6 +2143,18 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                     </div>
                   )}
                 </div>
+
+                {isSubtitlesEnabled && (
+                  <button
+                    type="button"
+                    onClick={() => handleBurnAndDownloadSingleVideo("1:1")}
+                    disabled={isBurningVideo}
+                    className="w-full max-w-[155px] px-2 py-1 rounded-lg text-[10px] font-extrabold bg-[#fceee9] dark:bg-[#38211c] border border-[#c84b31]/40 text-[#c84b31] dark:text-[#e56b4e] hover:bg-[#c84b31] hover:text-white transition-all shadow-xs flex items-center justify-center gap-1 cursor-pointer"
+                    title="Wypala napisy w formacie 1:1 bez DaVinci Resolve"
+                  >
+                    <span>🔥 Wypal 1:1 ({previewLang})</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -2116,13 +2231,24 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
 
               <div className="flex items-center gap-2 shrink-0">
                 {isSubtitlesEnabled && (
-                  <button
-                    type="button"
-                    onClick={() => handleDownloadSrtOnly(previewLang)}
-                    className="px-3.5 py-2 rounded-xl text-xs font-bold border border-[var(--border-strong)] bg-[var(--bg-subtle)] text-[var(--ink-primary)] hover:border-[#c84b31] hover:text-[#c84b31] transition-all cursor-pointer"
-                  >
-                    📄 Tylko .SRT ({previewLang})
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleBurnAndDownloadSingleVideo("9:16")}
+                      disabled={isBurningVideo}
+                      className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#c84b31] to-[#e56b4e] hover:opacity-95 shadow-md flex items-center gap-1.5 cursor-pointer"
+                      title="Wypala napisy w pikselach wideo bezpośrednio w przeglądarce bez DaVinci Resolve"
+                    >
+                      <span>{isBurningVideo ? "Wypalanie..." : `🔥 Wypal wideo 9:16 (${previewLang})`}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDownloadSrtOnly(previewLang)}
+                      className="px-3.5 py-2 rounded-xl text-xs font-bold border border-[var(--border-strong)] bg-[var(--bg-subtle)] text-[var(--ink-primary)] hover:border-[#c84b31] hover:text-[#c84b31] transition-all cursor-pointer"
+                    >
+                      📄 Tylko .SRT ({previewLang})
+                    </button>
+                  </>
                 )}
                 <button
                   type="button"
@@ -2223,6 +2349,38 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
           )}
         </div>
       </div>
+
+      {/* Wypalanie Napisów Progress Modal */}
+      {isBurningVideo && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[var(--bg-card)] border border-[var(--border-strong)] p-6 rounded-2xl max-w-md w-full shadow-2xl space-y-4 text-center">
+            <div className="w-14 h-14 mx-auto rounded-full bg-[#fceee9] dark:bg-[#38211c] text-[#c84b31] grid place-items-center text-2xl animate-pulse shadow-md">
+              🔥
+            </div>
+            <div>
+              <h3 className="text-base font-extrabold text-[var(--ink-primary)]">
+                Wypalanie napisów bezpośrednio na wideo
+              </h3>
+              <p className="text-xs text-[var(--ink-secondary)] mt-1">
+                Klatka po klatce w kroju Euclid Circular B w strefie Safe Zone TikToka ({previewLang}). Zero potrzeby otwierania DaVinci Resolve.
+              </p>
+            </div>
+
+            <div className="space-y-1.5 pt-1">
+              <div className="w-full h-3 bg-[var(--bg-subtle)] rounded-full overflow-hidden border border-[var(--border-subtle)]">
+                <div
+                  className="h-full bg-gradient-to-r from-[#c84b31] to-[#e56b4e] transition-all duration-150"
+                  style={{ width: `${burnProgress}%` }}
+                />
+              </div>
+              <div className="flex justify-between text-[11px] font-mono text-[var(--ink-muted)]">
+                <span>{burnStatus}</span>
+                <span className="font-bold text-[#c84b31]">{burnProgress}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Animated Sinsay Logo Modal */}
       <AnimatedLogoModal
