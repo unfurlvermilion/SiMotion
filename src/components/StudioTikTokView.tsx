@@ -758,6 +758,71 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
 
   const [activeEditingScene, setActiveEditingScene] = useState<string | null>(null);
 
+  // Dynamic calculation of scene time ranges based on each scene's durationSec
+  const computedScenes = React.useMemo(() => {
+    let cur = 0;
+    return scenes.map((s) => {
+      const start = Number(cur.toFixed(1));
+      const end = Number((start + s.durationSec).toFixed(1));
+      cur = end;
+      return {
+        ...s,
+        startSec: start,
+        endSec: end,
+        timeRange: `${start.toFixed(1)}–${end.toFixed(1)} s`,
+      };
+    });
+  }, [scenes]);
+
+  // Scaled duration handler when the main slider changes (e.g. from 10s to 21s)
+  const handleDurationChange = (newDur: number) => {
+    setDuration(newDur);
+
+    // 1. Proportionally scale all storyboard scenes so they sum to newDur
+    setScenes((prev) => {
+      const currentTotal = prev.reduce((sum, s) => sum + s.durationSec, 0) || 10;
+      const ratio = newDur / currentTotal;
+      let accumulated = 0;
+      return prev.map((s, idx) => {
+        let scaledDur: number;
+        if (idx === prev.length - 1) {
+          scaledDur = Number(Math.max(0.5, newDur - accumulated).toFixed(1));
+        } else {
+          scaledDur = Number(Math.max(0.5, s.durationSec * ratio).toFixed(1));
+          accumulated += scaledDur;
+        }
+        return {
+          ...s,
+          durationSec: scaledDur,
+        };
+      });
+    });
+
+    // 2. Proportionally rescale subtitle timeline cues so they match the new total duration
+    setSubtitleCues((prev) => {
+      if (prev.length === 0) return prev;
+      const oldMax = prev[prev.length - 1].endSec || 10;
+      const ratio = newDur / oldMax;
+      return prev.map((c) => ({
+        ...c,
+        startSec: Number((c.startSec * ratio).toFixed(1)),
+        endSec: Number((c.endSec * ratio).toFixed(1)),
+        label: `${c.label.split("(")[0].trim()} (${(c.startSec * ratio).toFixed(1)}–${(c.endSec * ratio).toFixed(1)}s)`,
+      }));
+    });
+  };
+
+  // Adjust duration of an individual scene (with +/- buttons or input)
+  const handleSceneDurationChange = (sceneId: string, newSec: number) => {
+    const safeSec = Number(Math.max(0.5, Math.min(25, newSec)).toFixed(1));
+    setScenes((prev) => {
+      const next = prev.map((s) => (s.id === sceneId ? { ...s, durationSec: safeSec } : s));
+      const newTotal = Number(next.reduce((sum, s) => sum + s.durationSec, 0).toFixed(1));
+      setDuration(newTotal);
+      return next;
+    });
+  };
+
   // Video time tracking
   useEffect(() => {
     let interval: any;
@@ -1523,7 +1588,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                     min={5}
                     max={30}
                     value={duration}
-                    onChange={(e) => setDuration(Number(e.target.value))}
+                    onChange={(e) => handleDurationChange(Number(e.target.value))}
                     className="w-full accent-[var(--accent)] cursor-pointer"
                   />
                 </div>
@@ -2334,16 +2399,46 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                     Storyboard modularny (6 scen)
                   </h3>
                   <small className="text-xs text-[var(--ink-muted)]">
-                    Kliknij „Edytuj”, aby zmienić prompt ujęcia lub „↻” aby przelosować tylko jedną scenę
+                    Zmieniaj czasówki poszczególnych ujęć przyciskami „−” i „+”, a całkowity czas klipu dostosuje się automatycznie
                   </small>
                 </div>
-                <span className="text-xs font-bold px-3 py-1 rounded-full bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-[var(--ink-primary)]">
+                <span className="text-xs font-bold px-3 py-1 rounded-full bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-[#c84b31] font-mono">
                   {duration} s łącznie
                 </span>
               </div>
 
+              {/* Visual Storyboard Timeline Track */}
+              <div className="space-y-1">
+                <div className="relative w-full h-3 bg-black/30 rounded-full overflow-hidden flex border border-white/10 select-none">
+                  {computedScenes.map((sc, i) => {
+                    const pct = Math.max(5, (sc.durationSec / duration) * 100);
+                    const colors = [
+                      "bg-[#6e1d2f]",
+                      "bg-[#c84b31]",
+                      "bg-[#8f4f0e]",
+                      "bg-[#1d6346]",
+                      "bg-[#1b4353]",
+                      "bg-[#4a1c40]",
+                    ];
+                    return (
+                      <div
+                        key={sc.id}
+                        style={{ width: `${pct}%` }}
+                        className={`h-full ${colors[i % colors.length]} border-r border-black/40 hover:brightness-125 transition-all`}
+                        title={`${sc.name}: ${sc.timeRange} (${sc.durationSec}s)`}
+                      />
+                    );
+                  })}
+                </div>
+                <div className="flex justify-between text-[9px] font-mono text-[var(--ink-muted)] px-0.5">
+                  <span>0.0s (Start)</span>
+                  <span>Oś czasu scen wideo</span>
+                  <span>{duration}s (Koniec)</span>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {scenes.map((scene) => (
+                {computedScenes.map((scene) => (
                   <div
                     key={scene.id}
                     className={`p-3.5 rounded-xl border flex flex-col justify-between transition-all ${
@@ -2354,8 +2449,36 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                   >
                     <div>
                       <div className="flex justify-between items-center text-[10px] font-bold text-[var(--accent)] mb-1">
-                        <span>{scene.name}</span>
-                        <span className="font-mono">{scene.timeRange}</span>
+                        <span className="truncate pr-1">{scene.name}</span>
+                        <span className="font-mono text-[11px] text-[#c84b31] font-extrabold whitespace-nowrap">
+                          {scene.timeRange}
+                        </span>
+                      </div>
+
+                      {/* Kontrola czasówki per scena */}
+                      <div className="flex items-center justify-between text-[10px] py-1 px-1.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-subtle)] mb-2">
+                        <span className="font-bold text-[var(--ink-secondary)] text-[9px]">Czas sceny:</span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleSceneDurationChange(scene.id, scene.durationSec - 0.5)}
+                            className="w-4 h-4 rounded bg-black/10 dark:bg-white/10 text-[10px] font-bold grid place-items-center hover:bg-[#c84b31] hover:text-white transition-all cursor-pointer"
+                            title="Skróć ujęcie o 0.5s"
+                          >
+                            −
+                          </button>
+                          <span className="font-mono font-extrabold text-[11px] text-[#c84b31] px-0.5">
+                            {scene.durationSec.toFixed(1)}s
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleSceneDurationChange(scene.id, scene.durationSec + 0.5)}
+                            className="w-4 h-4 rounded bg-black/10 dark:bg-white/10 text-[10px] font-bold grid place-items-center hover:bg-[#c84b31] hover:text-white transition-all cursor-pointer"
+                            title="Wydłuż ujęcie o 0.5s"
+                          >
+                            +
+                          </button>
+                        </div>
                       </div>
 
                       {activeEditingScene === scene.id ? (
@@ -2377,7 +2500,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                       )}
                     </div>
 
-                    <div className="pt-3 border-t border-[var(--border-subtle)] mt-2 flex items-center justify-between gap-1.5">
+                    <div className="pt-2.5 border-t border-[var(--border-subtle)] mt-2 flex items-center justify-between gap-1.5">
                       <span className="text-[9px] font-mono text-[var(--ink-muted)] truncate">
                         PCM: {scene.pcmImage}
                       </span>
