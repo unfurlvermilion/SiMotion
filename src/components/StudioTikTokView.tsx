@@ -188,15 +188,13 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
       if (data.status === "success" && Array.isArray(data.assets) && data.assets.length > 0) {
         setPcmAssets(data.assets);
         setPcmFetchSource(data.source);
-        const srcLabel =
-          data.source === "pcm"
-            ? "PCM (Wewnętrzny retusz LPP)"
-            : data.source === "pdm"
-            ? "PDM (E-Commerce Grafika)"
-            : "Wzorzec lokalny";
-        showToast(`✓ Pobrano ${data.assets.length} zdjęć z ${srcLabel} dla MDK: ${code}`);
+        if (data.pcmFound) {
+          showToast(`✓ Pobrano ${data.assets.length} ujęć packshotów z PCM PROD dla MDK: ${code}!`);
+        } else {
+          showToast(`PCM (10.255.9.131) wymaga sieci LPP / localhost. Uruchom 'npm run dev' lub użyj 'Z dysku'.`);
+        }
       } else {
-        showToast(data.message || "Nie znaleziono zdjęć w PCM ani PDM dla tego MDK.");
+        showToast(data.message || "Nie znaleziono zdjęć w PCM dla tego MDK.");
       }
     } catch (err: any) {
       showToast("Błąd pobierania z PCM / PDM: " + err.message);
@@ -1688,7 +1686,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                       disabled={isFetchingPcm}
                       className="px-3.5 py-2 rounded-xl text-xs font-bold border border-[#c84b31] bg-[#fceee9] dark:bg-[#38211c] text-[#c84b31] dark:text-[#e56b4e] hover:bg-[#c84b31] hover:text-white transition-all flex items-center gap-1.5 shadow-sm cursor-pointer disabled:opacity-50"
                     >
-                      <span>{isFetchingPcm ? "Pobieranie..." : "Pobierz z PCM / PDM ↻"}</span>
+                      <span>{isFetchingPcm ? "Pobieranie..." : "Pobierz z PCM ↻"}</span>
                     </button>
                     <label className="px-3 py-2 rounded-xl text-xs font-bold border border-[var(--border-strong)] bg-[var(--bg-card)] text-[var(--ink-secondary)] hover:border-[var(--accent)] hover:text-[var(--ink-primary)] transition-all flex items-center gap-1 shadow-sm cursor-pointer">
                       <span>📁 Z dysku</span>
