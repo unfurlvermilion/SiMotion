@@ -110,27 +110,9 @@ export async function GET(req: Request) {
     pcmError = "PCM niedostępny z chmury (wymagane połączenie z sieci lokalnej)";
   }
 
-  // C. Standard PSH angles placeholders if only 1 photo exists
-  if (assets.length === 1) {
-    assets.push(
-      {
-        id: "angle-051",
-        label: "Sylwetka Modelka (051)",
-        filename: `${cleanMdk}_051.jpg`,
-        url: directPdmUrl, // use PDM photo as high-res reference
-        source: "pdm",
-        type: "model_full",
-      },
-      {
-        id: "angle-052",
-        label: "Makro Faktura (052)",
-        filename: `${cleanMdk}_052.jpg`,
-        url: directPdmUrl,
-        source: "pdm",
-        type: "detail_fabric",
-      }
-    );
-  }
+  // C. Fallback: if only PDM was found, do NOT duplicate identical photos!
+  // Return exactly the 1 real model photo found in PDM.
+  // The user can add remaining angles via local upload or when running locally.
 
   return NextResponse.json({
     status: "success",
