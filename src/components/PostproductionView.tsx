@@ -129,6 +129,49 @@ export const PostproductionView: React.FC<PostproductionViewProps> = ({
     if (preset === "bottom") setCaptionYPercent(68);
   };
 
+  // Export DaVinci Resolve Timeline (.fcpxml)
+  const handleExportDaVinciFCPXML = () => {
+    const textContent = postCaptions[postPreviewLang] || "Nowa kolekcja na Twój sposób";
+    const fcpxml = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE fcpxml>
+<fcpxml version="1.9">
+  <resources>
+    <format id="r1" name="FFVideoFormat1080p1920" frameDuration="1/30s" width="1080" height="1920"/>
+    <effect id="r2" name="Text" uid=".../Titles.localized/Bumper:Opener.localized/Basic Title.localized/Basic Title.moti"/>
+  </resources>
+  <library>
+    <event name="Sinsay Fashion Atelier 2026">
+      <project name="Sinsay_TikTok_${postPreviewLang}_9x16">
+        <sequence format="r1" duration="300/30s" tcStart="0s" tcFormat="NDF">
+          <spine>
+            <clip offset="0s" name="Master_Video_9x16" start="0s" duration="300/30s" format="r1">
+              <title ref="r2" offset="0s" name="Sinsay_Subtitles_Euclid" start="0s" duration="300/30s">
+                <text>
+                  <text-style font="Euclid Circular B" fontSize="48" fontFace="Bold" alignment="center">
+                    ${textContent}
+                  </text-style>
+                </text>
+              </title>
+            </clip>
+          </spine>
+        </sequence>
+      </project>
+    </event>
+  </library>
+</fcpxml>`;
+
+    const blob = new Blob([fcpxml], { type: "application/xml" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Sinsay_DaVinci_Timeline_${postPreviewLang}_9x16.fcpxml`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showToast(`✓ Wyeksportowano oś czasu DaVinci Resolve (.fcpxml) dla rynku ${postPreviewLang}!`);
+  };
+
   return (
     <div className="space-y-6">
       {/* View Header */}
@@ -141,7 +184,14 @@ export const PostproductionView: React.FC<PostproductionViewProps> = ({
             Pozycjonowanie napisów, stylistyka Euclid Circular B, strefy ochronne TikTok i animacja outro.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={handleExportDaVinciFCPXML}
+            className="px-3.5 py-2 rounded-xl text-xs font-bold border border-[#c84b31] bg-[#fceee9] dark:bg-[#38211c] text-[#c84b31] dark:text-[#e56b4e] hover:bg-[#c84b31] hover:text-white transition-all shadow-sm flex items-center gap-1.5"
+            title="Eksportuj oś czasu do DaVinci Resolve Studio"
+          >
+            <span>🎬 DaVinci FCPXML</span>
+          </button>
           <button
             onClick={onGoToAssets}
             className="px-3.5 py-2 rounded-xl text-xs font-bold border bg-[var(--bg-card)] border-[var(--border-strong)] hover:border-[var(--accent)] text-[var(--ink-primary)] transition-colors"

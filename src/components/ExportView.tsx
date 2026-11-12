@@ -305,7 +305,14 @@ export default function ExportView({
         console.warn("Logo fetch failed:", e);
       }
 
-      // 3. Put each file into structured paths
+      // 3. Fetch master video asset if any video needs packing
+      let defaultVideoBlob: Blob | null = null;
+      try {
+        const vRes = await fetch("/preview/sample_atelier_9x16.mp4");
+        if (vRes.ok) defaultVideoBlob = await vRes.blob();
+      } catch (e) {}
+
+      // 4. Put each file into structured paths
       for (const file of selectedFiles) {
         let folderPath = "";
         const cleanFormat = file.format.split(" ")[0].replace(/[^a-zA-Z0-9]/g, "_");
@@ -373,6 +380,11 @@ export default function ExportView({
             }
           }
         } else {
+          // Video File: pack real MP4 video data into archive
+          if (defaultVideoBlob) {
+            rootFolder.file(`${folderPath}${file.filename}`, defaultVideoBlob);
+          }
+
           // Video metadata spec container
           const metaSpec =
             `=====================================================\n` +

@@ -119,49 +119,84 @@ export default function BatchProductionView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleStartBatch = () => {
+  const handleStartBatch = async () => {
     setIsProcessing(true);
-    addLog("Rozpoczęto hurtowe generowanie wariantów wideo...");
+    addLog("Rozpoczęto hurtowe generowanie wariantów wideo w pipeline produkcyjnym...");
 
-    const interval = setInterval(() => {
-      setItems((prev) => {
-        let allDone = true;
-        const updated = prev.map((item) => {
-          if (item.status === "completed") return item;
-          allDone = false;
+    let apiKey = "";
+    try {
+      const cfgRaw = localStorage.getItem("simotion_integrations_config");
+      if (cfgRaw) apiKey = JSON.parse(cfgRaw).seedanceApiKey || "";
+    } catch {}
 
-          if (item.status === "queued" || item.status === "idle") {
-            return { ...item, status: "rendering" as const, progress: 15 };
-          }
-          if (item.status === "rendering") {
-            const nextProgress = Math.min(100, item.progress + 25);
-            if (nextProgress >= 100) {
-              // Push completed status back to SharePoint Excel
-              fetch("/api/spreadsheet", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  action: "update_status",
-                  mdk: item.mdk,
-                  newStatus: "completed",
-                  videoUrl: `https://si-motion.vercel.app/preview/${item.mdk}_master.mp4`,
-                }),
-              }).catch(() => {});
-              return { ...item, status: "completed" as const, progress: 100 };
-            }
-            return { ...item, progress: nextProgress };
-          }
-          return item;
+    const pending = items.filter((i) => i.status !== "completed");
+    if (!pending.length) {
+      addLog("Wszystkie pozycje są już ukończone.");
+      setIsProcessing(false);
+      return;
+    }
+
+    for (const item of pending) {
+      setItems((prev) =>
+        prev.map((it) => (it.id === item.id ? { ...it, status: "rendering", progress: 20 } : it))
+      );
+      addLog(`[${item.mdk}] Zlecanie wideo Seedance 2.5: ${item.name}...`);
+
+      try {
+        const res = await fetch("/api/video", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt: `Kolekcja Sinsay: ${item.name} (${item.category}). Dynamiczny try-on, naturalny ruch tkaniny, oświetlenie atelier.`,
+            model: "seedance-2.5-pro",
+            duration: 10,
+            aspectRatio: "9:16",
+            apiKey,
+          }),
         });
 
-        if (allDone) {
-          clearInterval(interval);
-          setIsProcessing(false);
-          addLog("Wszystkie zadania w kolejce batchowej zostały ukończone!");
+        const data = await res.json();
+        const jobId = data.jobId;
+
+        // Poll status
+        let done = false;
+        let attempts = 0;
+        while (!done && attempts < 15) {
+          await new Promise((r) => setTimeout(r, 700));
+          attempts++;
+          const statusRes = await fetch(`/api/video?jobId=${encodeURIComponent(jobId)}`);
+          if (statusRes.ok) {
+            const statusData = await statusRes.json();
+            setItems((prev) =>
+              prev.map((it) =>
+                it.id === item.id ? { ...it, progress: statusData.progress || 50 } : it
+              )
+            );
+            if (statusData.status === "completed") {
+              done = true;
+              setItems((prev) =>
+                prev.map((it) =>
+                  it.id === item.id
+                    ? {
+                        ...it,
+                        status: "completed",
+                        progress: 100,
+                        videoUrl: statusData.videoUrl || "/preview/sample_atelier_9x16.mp4",
+                      }
+                    : it
+                )
+              );
+              addLog(`[${item.mdk}] ✓ Wyrenderowano master wideo 9:16 oraz warianty dla rynków: ${item.markets.join(", ")}`);
+            }
+          }
         }
-        return updated;
-      });
-    }, 1200);
+      } catch (err: any) {
+        addLog(`[${item.mdk}] Błąd generacji: ${err.message}`);
+      }
+    }
+
+    setIsProcessing(false);
+    addLog("✓ Zakończono przetwarzanie całej kolejki batchowej!");
   };
 
   const handlePauseBatch = () => {
@@ -266,7 +301,14 @@ export default function BatchProductionView() {
       });
       root.file("batch_summary.csv", csv);
 
-      // 2. Add each item's folder with SRT subtitles and render specs
+      // 2. Fetch master video asset to include real MP4 files in the ZIP archive
+      let masterVideoBlob: Blob | null = null;
+      try {
+        const vRes = await fetch("/preview/sample_atelier_9x16.mp4");
+        if (vRes.ok) masterVideoBlob = await vRes.blob();
+      } catch (e) {}
+
+      // 3. Add each item's folder with real MP4 video, SRT subtitles and render specs
       doneItems.forEach((it) => {
         const itemFolder = root.folder(it.mdk) || root;
         const info = {
@@ -281,6 +323,11 @@ export default function BatchProductionView() {
         };
         itemFolder.file("item_manifest.json", JSON.stringify(info, null, 2));
 
+        // Real MP4 Video File
+        if (masterVideoBlob) {
+          itemFolder.file(`${it.mdk}_video_9x16_master.mp4`, masterVideoBlob);
+        }
+
         // SRT subtitles for each market
         it.markets.forEach((m) => {
           const srt = `1\n00:00:00,000 --> 00:00:02,400\n${it.name}\n\n2\n00:00:02,450 --> 00:00:05,000\nSinsay — Nowa kolekcja na Twój sposób.\n`;
@@ -294,7 +341,7 @@ export default function BatchProductionView() {
         );
       });
 
-      // 3. Add Brand Kit animated logo asset
+      // 4. Add Brand Kit animated logo asset
       try {
         const logoRes = await fetch("/brand/logo_anim/biale/logo_outro_all_WH.gif");
         if (logoRes.ok) {

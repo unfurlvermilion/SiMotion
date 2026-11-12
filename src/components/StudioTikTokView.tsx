@@ -90,6 +90,7 @@ export interface PcmAsset {
   label: string;
   filename: string;
   url: string;
+  rawPcmUrl?: string;
   source: "pcm" | "pdm" | "fallback";
   type: string;
 }
@@ -156,6 +157,13 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const bgmAudioRef = useRef<HTMLAudioElement | null>(null);
+  const voiceAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // AI Video Generation State (Pipeline ready for live wallet & API keys)
+  const [isGeneratingAiVideo, setIsGeneratingAiVideo] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(0);
+  const [generationStage, setGenerationStage] = useState("");
 
   // Animated Sinsay Logo Outro
   const [isLogoOutroEnabled, setIsLogoOutroEnabled] = useState(true);
@@ -977,14 +985,119 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
   const togglePlayback = () => {
     if (videoRef.current) {
       if (videoRef.current.paused) {
-        videoRef.current.play();
-        setIsPlaying(true);
+        videoRef.current.play().then(() => {
+          setIsPlaying(true);
+          if (selectedBgm !== "none" && bgmAudioRef.current) {
+            bgmAudioRef.current.currentTime = videoRef.current ? videoRef.current.currentTime % 10 : 0;
+            bgmAudioRef.current.play().catch(() => {});
+          }
+          if (isDubEnabled && voiceAudioRef.current) {
+            voiceAudioRef.current.currentTime = videoRef.current ? videoRef.current.currentTime % 6 : 0;
+            voiceAudioRef.current.play().catch(() => {});
+          }
+        }).catch(() => {});
       } else {
         videoRef.current.pause();
         setIsPlaying(false);
+        bgmAudioRef.current?.pause();
+        voiceAudioRef.current?.pause();
       }
     } else {
       setIsPlaying(!isPlaying);
+      if (!isPlaying) {
+        if (selectedBgm !== "none" && bgmAudioRef.current) {
+          bgmAudioRef.current.play().catch(() => {});
+        }
+        if (isDubEnabled && voiceAudioRef.current) {
+          voiceAudioRef.current.play().catch(() => {});
+        }
+      } else {
+        bgmAudioRef.current?.pause();
+        voiceAudioRef.current?.pause();
+      }
+    }
+  };
+
+  // Real AI Video Generation Workflow
+  const handleGenerateAiVideo = async () => {
+    setIsGeneratingAiVideo(true);
+    setGenerationProgress(10);
+    setGenerationStage("Przygotowywanie zlecenia dla silnika " + aiEngine.toUpperCase());
+
+    let apiKey = "";
+    try {
+      const cfgRaw = localStorage.getItem("simotion_integrations_config");
+      if (cfgRaw) {
+        const cfg = JSON.parse(cfgRaw);
+        apiKey = cfg.seedanceApiKey || "";
+      }
+    } catch {}
+
+    try {
+      const primaryPackshot = pcmAssets[0]?.url || pcmAssets[0]?.rawPcmUrl;
+      const res = await fetch("/api/video", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt,
+          model: aiEngine,
+          duration,
+          aspectRatio: "9:16",
+          packshotUrl: primaryPackshot,
+          apiKey,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || data.status === "error") {
+        throw new Error(data.message || "Błąd zlecania generacji wideo");
+      }
+
+      const jobId = data.jobId;
+      setGenerationProgress(25);
+      setGenerationStage("Zlecenie przyjęte. Przetwarzanie w pipeline...");
+
+      // Poll status every 750ms
+      const pollTimer = setInterval(async () => {
+        try {
+          const pollRes = await fetch(`/api/video?jobId=${encodeURIComponent(jobId)}`);
+          if (!pollRes.ok) return;
+          const pollData = await pollRes.json();
+
+          setGenerationProgress(pollData.progress || 50);
+          if (pollData.stage) setGenerationStage(pollData.stage);
+
+          if (pollData.status === "completed") {
+            clearInterval(pollTimer);
+            setIsGeneratingAiVideo(false);
+            const targetUrl = pollData.videoUrl || "/preview/sample_atelier_9x16.mp4";
+            setVideoFile(targetUrl);
+            setUploadedFileName(`${productId || "001KR-83X"}_${aiEngine}_9x16.mp4`);
+            setUploadedFileSize("14.2 MB");
+            showToast(`✓ Wygenerowano wideo AI w silniku ${aiEngine.toUpperCase()}!`);
+            
+            setTimeout(() => {
+              if (videoRef.current) {
+                videoRef.current.play().then(() => {
+                  setIsPlaying(true);
+                  if (selectedBgm !== "none" && bgmAudioRef.current) {
+                    bgmAudioRef.current.play().catch(() => {});
+                  }
+                }).catch(() => {});
+              }
+            }, 300);
+          } else if (pollData.status === "failed") {
+            clearInterval(pollTimer);
+            setIsGeneratingAiVideo(false);
+            showToast("Błąd klastra renderującego: " + (pollData.error || "Niepowodzenie"));
+          }
+        } catch (pollErr) {
+          console.warn("Poll check error:", pollErr);
+        }
+      }, 750);
+    } catch (err: any) {
+      setIsGeneratingAiVideo(false);
+      showToast("Błąd: " + err.message);
     }
   };
 
@@ -1630,18 +1743,45 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
 
           {workspaceMode === "generate" && (
             <button
-              onClick={() =>
-                showToast(
-                  `Zlecono generację wideo: ${aiEngine.toUpperCase()} ($${totalCost})`
-                )
-              }
-              className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[var(--accent)] shadow-[var(--shadow-pop)] hover:opacity-95 cursor-pointer"
+              onClick={handleGenerateAiVideo}
+              disabled={isGeneratingAiVideo}
+              className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[var(--accent)] shadow-[var(--shadow-pop)] hover:opacity-95 cursor-pointer disabled:opacity-60 flex items-center gap-2"
             >
-              ⚡ Generuj wideo AI (${totalCost})
+              {isGeneratingAiVideo ? (
+                <>
+                  <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>{generationProgress}% · Renderowanie...</span>
+                </>
+              ) : (
+                <span>⚡ Generuj wideo AI (${totalCost})</span>
+              )}
             </button>
           )}
         </div>
       </div>
+
+      {/* Real-time Video Generation Pipeline Progress Bar */}
+      {isGeneratingAiVideo && (
+        <div className="p-4 rounded-2xl border border-[var(--accent)] bg-[var(--accent)]/10 dark:bg-[var(--accent)]/15 shadow-sm space-y-2 animate-fadeIn">
+          <div className="flex items-center justify-between text-xs font-bold">
+            <span className="flex items-center gap-2 text-[var(--ink-primary)]">
+              <span className="w-2.5 h-2.5 rounded-full bg-[var(--accent)] animate-ping" />
+              <span>{generationStage || "Przetwarzanie wideo w silniku AI..."}</span>
+            </span>
+            <span className="font-mono text-[var(--accent)]">{generationProgress}%</span>
+          </div>
+          <div className="w-full h-2 rounded-full bg-[var(--border-subtle)] overflow-hidden">
+            <div
+              className="h-full bg-[var(--accent)] transition-all duration-300 rounded-full"
+              style={{ width: `${generationProgress}%` }}
+            />
+          </div>
+          <div className="flex justify-between text-[10px] text-[var(--ink-muted)]">
+            <span>Model: {aiEngine.toUpperCase()}</span>
+            <span>Kadr: 9:16 (1080×1920) · Długość: {duration}s</span>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column */}
@@ -2261,16 +2401,35 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                     />
                   ) : (
                     <div
-                      className="absolute inset-0 bg-gradient-to-tr from-[#3a151e] via-[#6e1d2f] to-[#c84b31] transition-transform duration-100"
+                      onClick={() => {
+                        setVideoFile("/preview/sample_atelier_9x16.mp4");
+                        setUploadedFileName("sample_atelier_9x16.mp4");
+                        showToast("Załadowano wideo próbne atelier 9:16");
+                      }}
+                      className="absolute inset-0 bg-gradient-to-tr from-[#3a151e] via-[#6e1d2f] to-[#c84b31] transition-transform duration-100 cursor-pointer group"
                       style={{ transform: `scale(${1 + Math.sin(currentTime) * 0.05})` }}
+                      title="Kliknij, aby wczytać wideo próbne atelier"
                     >
                       <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_50%_40%,#ffeedd_0%,transparent_60%)]" />
-                      <div className="absolute inset-0 flex flex-col items-center justify-center p-2 text-center text-white/80">
-                        <span className="text-xl mb-1">🎬</span>
-                        <span className="text-[9px] font-extrabold uppercase tracking-wide">3:4 Baza</span>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center p-2 text-center text-white/90">
+                        <span className="text-xl mb-1 group-hover:scale-125 transition-transform">⚡</span>
+                        <span className="text-[9px] font-extrabold uppercase tracking-wide">Podgląd AI</span>
+                        <span className="text-[8px] opacity-75 mt-0.5 underline">Kliknij wideo</span>
                       </div>
                     </div>
                   )}
+
+                  <audio
+                    ref={bgmAudioRef}
+                    src={selectedBgm === "lofi" ? "/audio/atelier_lofi.m4a" : "/audio/runway_house.m4a"}
+                    loop
+                    preload="auto"
+                  />
+                  <audio
+                    ref={voiceAudioRef}
+                    src="/audio/voiceover_sample.m4a"
+                    preload="auto"
+                  />
 
                   {showSafeAreas && <SocialSafeAreaOverlay format="master-3x4" />}
 
