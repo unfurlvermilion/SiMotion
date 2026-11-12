@@ -15,6 +15,17 @@ export interface StoryboardScene {
   durationSec: number;
 }
 
+export interface SubtitleCue {
+  id: string;
+  startSec: number;
+  endSec: number;
+  type: "hook" | "speech" | "feature" | "cta";
+  label: string;
+  text: string;
+  line2?: string;
+  translations?: Record<string, { line1: string; line2?: string }>;
+}
+
 interface StudioTikTokViewProps {
   productId: string;
   setProductId: (val: string) => void;
@@ -51,64 +62,6 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
   const [selectedDubLangs, setSelectedDubLangs] = useState<string[]>(["PL", "ENG"]);
   const [crossDubs, setCrossDubs] = useState(false);
 
-  // Subtitles Copy Matrix per Market (Sinsay 4524 phrases integration)
-  const [videoCaptions, setVideoCaptions] = useState<Record<string, { line1: string; line2: string }>>({
-    PL: { line1: "Nowa kolekcja", line2: "na Twój sposób" },
-    ENG: { line1: "New Collection", line2: "your way" },
-    DE: { line1: "Neue Kollektion", line2: "dein Stil" },
-    RO: { line1: "Colecție nouă", line2: "în stilul tău" },
-    CZ: { line1: "Nová kolekce", line2: "po tvém" },
-    SK: { line1: "Nová kolekcia", line2: "podľa teba" },
-    HU: { line1: "Új kollekció", line2: "a te stílusodban" },
-    IT: { line1: "Nuova collezione", line2: "a modo tuo" },
-    GR: { line1: "Νέα συλλογή", line2: "με το δικό σου στυλ" },
-    HR: { line1: "Nova kolekcija", line2: "na tvoj način" },
-    BG: { line1: "Нова колекция", line2: "по твоя начин" },
-    SI: { line1: "Nova kolekcija", line2: "po tvoje" },
-    UA: { line1: "Нова колекція", line2: "на твій смак" },
-  });
-  const [previewLang, setPreviewLang] = useState<string>("PL");
-  const [showPhraseAssistant, setShowPhraseAssistant] = useState<boolean>(false);
-
-  const currentCaption = videoCaptions[previewLang] || videoCaptions["PL"] || {
-    line1: "Nowa kolekcja",
-    line2: "na Twój sposób",
-  };
-
-  const handleApplyPhrase = (item: SinsayMatchItem) => {
-    const newCaptions: Record<string, { line1: string; line2: string }> = { ...videoCaptions };
-
-    const splitText = (txt: string) => {
-      const clean = (txt || "").trim();
-      const parts = clean.split(/[,·•|-]/);
-      if (parts.length >= 2 && parts[0].trim() && parts[1].trim()) {
-        return { line1: parts[0].trim(), line2: parts.slice(1).join(" ").trim() };
-      }
-      const words = clean.split(" ");
-      if (words.length >= 4) {
-        const mid = Math.ceil(words.length / 2);
-        return { line1: words.slice(0, mid).join(" "), line2: words.slice(mid).join(" ") };
-      }
-      return { line1: clean, line2: "" };
-    };
-
-    newCaptions["PL"] = splitText(item.pl);
-    const enText = item.en || item.translations?.["ENG"] || item.pl;
-    newCaptions["ENG"] = splitText(enText);
-
-    if (item.translations) {
-      Object.entries(item.translations).forEach(([mCode, trans]) => {
-        if (trans) {
-          newCaptions[mCode] = splitText(trans);
-        }
-      });
-    }
-
-    setVideoCaptions(newCaptions);
-    setShowPhraseAssistant(false);
-    showToast(`Zastosowano hasło Sinsay: "${item.pl}" dla wszystkich rynków!`);
-  };
-
   // Video Playback State
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -128,6 +81,266 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
     durationSec: 2.0,
     name: "Outro All (Białe)",
   });
+
+  // Subtitles & Spoken TikTok Timeline System
+  const [subtitleMode, setSubtitleMode] = useState<"timeline" | "static">("timeline");
+  const [spokenVoiceoverScript, setSpokenVoiceoverScript] = useState<string>(
+    "Hej dziewczyny! Zobaczcie tę nowość z kolekcji Sinsay. Krój układa się obłędnie, a materiał jest lekki jak chmurka. Sprawdźcie w aplikacji i salonach!"
+  );
+
+  const [subtitleCues, setSubtitleCues] = useState<SubtitleCue[]>([
+    {
+      id: "cue-1",
+      startSec: 0.0,
+      endSec: 2.5,
+      type: "hook",
+      label: "01 Hook (0.0–2.5 s)",
+      text: "Nowa kolekcja jedwabna",
+      line2: "Sprawdź ten look",
+      translations: {
+        PL: { line1: "Nowa kolekcja jedwabna", line2: "Sprawdź ten look" },
+        ENG: { line1: "New Silk Collection", line2: "Check this look" },
+        DE: { line1: "Neue Seidenkollektion", line2: "Entdecke diesen Look" },
+        RO: { line1: "Colecție nouă de mătase", line2: "Vezi acest look" },
+        CZ: { line1: "Nová hedvábná kolekce", line2: "Podívej se na tenhle look" },
+        SK: { line1: "Nová hodvábna kolekcia", line2: "Pozri si tento look" },
+        HU: { line1: "Új selyem kollekció", line2: "Nézd meg ezt a szettet" },
+        IT: { line1: "Nuova collezione in seta", line2: "Scopri questo look" },
+      },
+    },
+    {
+      id: "cue-2",
+      startSec: 2.5,
+      endSec: 5.5,
+      type: "speech",
+      label: "02 Kwestia mówiona (2.5–5.5 s)",
+      text: "Lekki krój, który układa się",
+      line2: "idealnie w naturalnym ruchu",
+      translations: {
+        PL: { line1: "Lekki krój, który układa się", line2: "idealnie w naturalnym ruchu" },
+        ENG: { line1: "Flowing fit that moves", line2: "gracefully with every step" },
+        DE: { line1: "Leichter fließender Schnitt", line2: "perfekt in Bewegung" },
+        RO: { line1: "Croială lejeră și fină", line2: "se așază impecabil în mișcare" },
+        CZ: { line1: "Lehký splývavý střih", line2: "perfektně sedí v pohybu" },
+      },
+    },
+    {
+      id: "cue-3",
+      startSec: 5.5,
+      endSec: 8.0,
+      type: "feature",
+      label: "03 Detal & Jakość (5.5–8.0 s)",
+      text: "Naturalny splot i subtelny połysk",
+      line2: "stylizacje dzień i noc",
+      translations: {
+        PL: { line1: "Naturalny splot i subtelny połysk", line2: "stylizacje dzień i noc" },
+        ENG: { line1: "Natural weave & subtle shine", line2: "day to night styling" },
+        DE: { line1: "Natürliche Textur und Glanz", line2: "Tag und Nacht tragbar" },
+        RO: { line1: "Țesătură naturală și luciu fin", line2: "pentru zi și seară" },
+        CZ: { line1: "Přírodní vazba a jemný lesk", line2: "pro den i noc" },
+      },
+    },
+    {
+      id: "cue-4",
+      startSec: 8.0,
+      endSec: 10.0,
+      type: "cta",
+      label: "04 Outro & CTA (8.0–10.0 s)",
+      text: "Kup teraz w aplikacji",
+      line2: "Sinsay · Great Fashion",
+      translations: {
+        PL: { line1: "Kup teraz w aplikacji", line2: "Sinsay · Great Fashion" },
+        ENG: { line1: "Shop now in app", line2: "Sinsay · Great Fashion" },
+        DE: { line1: "Jetzt in der App shoppen", line2: "Sinsay · Great Fashion" },
+        RO: { line1: "Cumpără acum în aplicație", line2: "Sinsay · Great Fashion" },
+        CZ: { line1: "Nakupuj v aplikaci", line2: "Sinsay · Great Fashion" },
+      },
+    },
+  ]);
+  const [selectedCueId, setSelectedCueId] = useState<string>("cue-1");
+
+  // Subtitles Copy Matrix per Market (Sinsay 4524 phrases integration)
+  const [videoCaptions, setVideoCaptions] = useState<Record<string, { line1: string; line2: string }>>({
+    PL: { line1: "Nowa kolekcja", line2: "na Twój sposób" },
+    ENG: { line1: "New Collection", line2: "your way" },
+    DE: { line1: "Neue Kollektion", line2: "dein Stil" },
+    RO: { line1: "Colecție nouă", line2: "în stilul tău" },
+    CZ: { line1: "Nová kolekce", line2: "po tvém" },
+    SK: { line1: "Nová kolekcia", line2: "podľa teba" },
+    HU: { line1: "Új kollekció", line2: "a te stílusodban" },
+    IT: { line1: "Nuova collezione", line2: "a modo tuo" },
+    GR: { line1: "Νέα συλλογή", line2: "με το δικό σου στυλ" },
+    HR: { line1: "Nova kolekcija", line2: "na tvoj način" },
+    BG: { line1: "Нова колекция", line2: "по твоя начин" },
+    SI: { line1: "Nova kolekcija", line2: "po tvoje" },
+    UA: { line1: "Нова колекція", line2: "на твій смак" },
+  });
+  const [previewLang, setPreviewLang] = useState<string>("PL");
+  const [showPhraseAssistant, setShowPhraseAssistant] = useState<boolean>(false);
+
+  // Active cue based on current video playback timestamp
+  const activeCue = subtitleCues.find(
+    (c) => currentTime >= c.startSec && currentTime < c.endSec
+  );
+
+  const selectedCue = subtitleCues.find((c) => c.id === selectedCueId) || subtitleCues[0];
+
+  const currentCaption = videoCaptions[previewLang] || videoCaptions["PL"] || {
+    line1: "Nowa kolekcja",
+    line2: "na Twój sposób",
+  };
+
+  const activeSubtitleText = activeCue
+    ? (activeCue.translations?.[previewLang]?.line1 || activeCue.text)
+    : (subtitleMode === "static" ? currentCaption.line1 : "");
+
+  const activeSubtitleLine2 = activeCue
+    ? (activeCue.translations?.[previewLang]?.line2 || activeCue.line2 || "")
+    : (subtitleMode === "static" ? currentCaption.line2 : "");
+
+  // AI Generator: Creates timed subtitle plan directly from video prompt and storyboard
+  const generateCuesFromPrompt = () => {
+    const clean = prompt.trim();
+    const parts = clean.split(/[.!?]+/).map((s) => s.trim()).filter((s) => s.length > 3);
+    const cueCount = Math.max(3, Math.min(5, parts.length || 3));
+    const effectiveDur = duration - (isLogoOutroEnabled ? selectedLogo.durationSec : 0);
+    const step = effectiveDur / cueCount;
+
+    const newCues: SubtitleCue[] = [];
+    for (let i = 0; i < cueCount; i++) {
+      const start = Number((i * step).toFixed(1));
+      const end = Number(((i + 1) * step).toFixed(1));
+      const textRaw = parts[i] || (i === 0 ? "Nowa kolekcja Sinsay" : i === cueCount - 1 ? "Odkryj teraz w aplikacji Sinsay" : "Wyjątkowy krój i naturalny ruch");
+      
+      const words = textRaw.split(" ");
+      let l1 = textRaw;
+      let l2 = "";
+      if (words.length > 5) {
+        const mid = Math.ceil(words.length / 2);
+        l1 = words.slice(0, mid).join(" ");
+        l2 = words.slice(mid).join(" ");
+      }
+
+      newCues.push({
+        id: `cue-${Date.now()}-${i + 1}`,
+        startSec: start,
+        endSec: end,
+        type: i === 0 ? "hook" : i === cueCount - 1 ? "cta" : i === 1 ? "speech" : "feature",
+        label: i === 0 ? `01 Hook (${start}–${end}s)` : i === cueCount - 1 ? `0${i + 1} Outro CTA (${start}–${end}s)` : `0${i + 1} Kwestia (${start}–${end}s)`,
+        text: l1,
+        line2: l2,
+        translations: {
+          PL: { line1: l1, line2: l2 },
+          ENG: { line1: l1, line2: l2 },
+        },
+      });
+    }
+
+    setSubtitleCues(newCues);
+    setSelectedCueId(newCues[0]?.id || "");
+    showToast(`✓ Wygenerowano plan ${newCues.length} segmentów napisów z promptu wideo!`);
+  };
+
+  // AI Generator: Syncs subtitles 1:1 with spoken TikTok voiceover text
+  const syncSubtitlesWithVoiceover = () => {
+    const clean = spokenVoiceoverScript.trim();
+    if (!clean) {
+      showToast("Wpisz najpierw tekst lektora do zsynchronizowania.");
+      return;
+    }
+
+    const sentences = clean.split(/[,.!?]+/).map((s) => s.trim()).filter((s) => s.length > 2);
+    const count = Math.max(2, Math.min(6, sentences.length));
+    const effectiveDuration = duration - (isLogoOutroEnabled ? selectedLogo.durationSec : 0);
+    const step = effectiveDuration / count;
+
+    const newCues: SubtitleCue[] = sentences.map((phrase, idx) => {
+      const start = Number((idx * step).toFixed(1));
+      const end = Number(((idx + 1) * step).toFixed(1));
+
+      return {
+        id: `cue-voice-${Date.now()}-${idx + 1}`,
+        startSec: start,
+        endSec: end,
+        type: idx === 0 ? "hook" : idx === count - 1 ? "cta" : "speech",
+        label: idx === 0 ? `01 Hook (${start}–${end}s)` : `0${idx + 1} Kwestia mówiona (${start}–${end}s)`,
+        text: phrase,
+        line2: "",
+        translations: {
+          PL: { line1: phrase },
+          ENG: { line1: phrase },
+        },
+      };
+    });
+
+    setSubtitleCues(newCues);
+    setSelectedCueId(newCues[0]?.id || "");
+    showToast(`✓ Zsynchronizowano napisy z kwestią mówioną lektora (${newCues.length} segmentów)!`);
+  };
+
+  const handleApplyPhrase = (item: SinsayMatchItem) => {
+    const splitText = (txt: string) => {
+      const clean = (txt || "").trim();
+      const parts = clean.split(/[,·•|-]/);
+      if (parts.length >= 2 && parts[0].trim() && parts[1].trim()) {
+        return { line1: parts[0].trim(), line2: parts.slice(1).join(" ").trim() };
+      }
+      const words = clean.split(" ");
+      if (words.length >= 4) {
+        const mid = Math.ceil(words.length / 2);
+        return { line1: words.slice(0, mid).join(" "), line2: words.slice(mid).join(" ") };
+      }
+      return { line1: clean, line2: "" };
+    };
+
+    if (subtitleMode === "timeline" && selectedCue) {
+      const parsedPL = splitText(item.pl);
+      const enText = item.en || item.translations?.["ENG"] || item.pl;
+      const parsedEN = splitText(enText);
+
+      const transMap: Record<string, { line1: string; line2?: string }> = {
+        PL: parsedPL,
+        ENG: parsedEN,
+      };
+
+      if (item.translations) {
+        Object.entries(item.translations).forEach(([mCode, trans]) => {
+          if (trans) transMap[mCode] = splitText(trans);
+        });
+      }
+
+      setSubtitleCues((prev) =>
+        prev.map((c) =>
+          c.id === selectedCue.id
+            ? {
+                ...c,
+                text: parsedPL.line1,
+                line2: parsedPL.line2,
+                translations: transMap,
+              }
+            : c
+        )
+      );
+      showToast(`Zastosowano hasło Sinsay do segmentu "${selectedCue.label}": "${item.pl}"!`);
+    } else {
+      const newCaptions: Record<string, { line1: string; line2: string }> = { ...videoCaptions };
+      newCaptions["PL"] = splitText(item.pl);
+      const enText = item.en || item.translations?.["ENG"] || item.pl;
+      newCaptions["ENG"] = splitText(enText);
+
+      if (item.translations) {
+        Object.entries(item.translations).forEach(([mCode, trans]) => {
+          if (trans) {
+            newCaptions[mCode] = splitText(trans);
+          }
+        });
+      }
+      setVideoCaptions(newCaptions);
+      showToast(`Zastosowano hasło Sinsay: "${item.pl}" dla wszystkich rynków!`);
+    }
+
+    setShowPhraseAssistant(false);
+  };
 
   const [isExportingZip, setIsExportingZip] = useState(false);
 
@@ -182,14 +395,48 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
         }
       }
 
-      // 3. Subtitles SRT & VTT files for languages in Euclid Circular B
+      // 3. Subtitles SRT & VTT files generated from timed subtitleCues
+      const formatSrtTime = (sec: number) => {
+        const pad = (num: number, size = 2) => String(Math.floor(num)).padStart(size, "0");
+        const hours = pad(sec / 3600);
+        const minutes = pad((sec % 3600) / 60);
+        const seconds = pad(sec % 60);
+        const millis = String(Math.floor((sec % 1) * 1000)).padStart(3, "0");
+        return `${hours}:${minutes}:${seconds},${millis}`;
+      };
+
+      const formatVttTime = (sec: number) => {
+        const pad = (num: number, size = 2) => String(Math.floor(num)).padStart(size, "0");
+        const minutes = pad((sec % 3600) / 60);
+        const seconds = pad(sec % 60);
+        const millis = String(Math.floor((sec % 1) * 1000)).padStart(3, "0");
+        return `${minutes}:${seconds}.${millis}`;
+      };
+
       selectedTextLangs.forEach((lang) => {
-        const cap = videoCaptions[lang] || videoCaptions["PL"] || { line1: "Nowa kolekcja", line2: "na Twój sposób" };
-        const line1 = cap.line1 || "Nowa kolekcja";
-        const line2 = cap.line2 || "na Twój sposób";
-        const srtContent = `1\n00:00:00,000 --> 00:00:02,500\n${line1}\n${line2}\n\n2\n00:00:02,550 --> 00:00:05,200\nSinsay — modne stylizacje w najlepszych cenach.\n\n3\n00:00:05,300 --> 00:00:0${Math.floor(duration)},000\nOdkryj w aplikacji i salonach stacjonarnych.\n`;
-        root.file(`subtitles/subtitles_${lang.toLowerCase()}_euclid.srt`, srtContent);
-        root.file(`subtitles/subtitles_${lang.toLowerCase()}_euclid.vtt`, `WEBVTT\n\n1\n00:00:00.000 --> 00:00:02.500\n${line1}\n${line2}\n\n2\n00:00:02.550 --> 00:00:05.200\nSinsay — modne stylizacje w najlepszych cenach.\n`);
+        let srtContent = "";
+        let vttContent = "WEBVTT\n\n";
+
+        if (subtitleMode === "timeline" && subtitleCues.length > 0) {
+          subtitleCues.forEach((cue, idx) => {
+            const trans = cue.translations?.[lang];
+            const l1 = trans?.line1 || cue.text;
+            const l2 = trans?.line2 || cue.line2 || "";
+            const textContent = l2 ? `${l1}\n${l2}` : l1;
+
+            srtContent += `${idx + 1}\n${formatSrtTime(cue.startSec)} --> ${formatSrtTime(cue.endSec)}\n${textContent}\n\n`;
+            vttContent += `${idx + 1}\n${formatVttTime(cue.startSec)} --> ${formatVttTime(cue.endSec)}\n${textContent}\n\n`;
+          });
+        } else {
+          const cap = videoCaptions[lang] || videoCaptions["PL"] || { line1: "Nowa kolekcja", line2: "na Twój sposób" };
+          const l1 = cap.line1 || "Nowa kolekcja";
+          const l2 = cap.line2 || "na Twój sposób";
+          srtContent = `1\n00:00:00,000 --> 00:00:02,500\n${l1}\n${l2}\n\n2\n00:00:02,550 --> 00:00:0${Math.floor(duration)},000\nSinsay — modne stylizacje w najlepszych cenach.\n`;
+          vttContent = `WEBVTT\n\n1\n00:00:00.000 --> 00:00:02.500\n${l1}\n${l2}\n`;
+        }
+
+        root.file(`subtitles/subtitles_${lang.toLowerCase()}_timed.srt`, srtContent);
+        root.file(`subtitles/subtitles_${lang.toLowerCase()}_timed.vtt`, vttContent);
       });
 
       // 4. Video files
@@ -685,89 +932,466 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                 })}
               </div>
 
-              {/* Sinsay Phrase Assistant Trigger & Subtitle Inputs */}
-              <div className="mt-3 pt-2.5 border-t border-[var(--border-subtle)] space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-[var(--ink-primary)]">
-                    Napis dla rynku: <b className="text-[var(--accent)]">{previewLang}</b>
-                  </span>
+              {/* Subtitle Timeline & Spoken TikTok Suite */}
+              <div className="mt-3 pt-2.5 border-t border-[var(--border-subtle)] space-y-3">
+                {/* Header with Mode Toggle & Language Indicator */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-[var(--ink-primary)]">
+                      Napisy dla rynku: <b className="text-[var(--accent)]">{previewLang}</b>
+                    </span>
+                    <span className="text-[10px] text-[var(--ink-muted)]">
+                      (Euclid Circular B)
+                    </span>
+                  </div>
+
+                  {/* Mode Selector */}
+                  <div className="flex items-center gap-1 p-0.5 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-[10px] font-bold">
+                    <button
+                      type="button"
+                      onClick={() => setSubtitleMode("timeline")}
+                      className={`px-2 py-0.5 rounded-md transition-all ${
+                        subtitleMode === "timeline"
+                          ? "bg-[var(--accent)] text-white shadow-xs"
+                          : "text-[var(--ink-secondary)] hover:text-[var(--ink-primary)]"
+                      }`}
+                    >
+                      ⏱ Oś Czasu ({subtitleCues.length} sceny)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSubtitleMode("static")}
+                      className={`px-2 py-0.5 rounded-md transition-all ${
+                        subtitleMode === "static"
+                          ? "bg-[var(--accent)] text-white shadow-xs"
+                          : "text-[var(--ink-secondary)] hover:text-[var(--ink-primary)]"
+                      }`}
+                    >
+                      Statyczne hasło
+                    </button>
+                  </div>
+                </div>
+
+                {/* AI & Automation Quick Bar */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={generateCuesFromPrompt}
+                    className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-[#fceee9] dark:bg-[#38211c] text-[#c84b31] dark:text-[#e56b4e] hover:bg-[#c84b31] hover:text-white transition-all flex items-center gap-1 border border-[#c84b31]/30 cursor-pointer"
+                    title="Automatycznie wygeneruj 4 zgrane w czasie segmenty napisów z promptu wideo"
+                  >
+                    <span>✨ Plan z promptu wideo</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={syncSubtitlesWithVoiceover}
+                    className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-[#e6f4ed] dark:bg-[#193328] text-[#1d6346] dark:text-[#75d9ae] hover:bg-[#1d6346] hover:text-white transition-all flex items-center gap-1 border border-[#1d6346]/30 cursor-pointer"
+                    title="Zamień mowę lektora na idealnie zsynchronizowane napisy"
+                  >
+                    <span>🎙️ Mówiony TikTok: Ze skryptu</span>
+                  </button>
+
                   <button
                     type="button"
                     onClick={() => setShowPhraseAssistant((prev) => !prev)}
-                    className="text-xs font-bold text-[var(--accent)] hover:underline flex items-center gap-1"
+                    className="px-2.5 py-1 rounded-lg text-[11px] font-bold border border-[var(--border-strong)] text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] hover:border-[var(--accent)] transition-all flex items-center gap-1 ml-auto cursor-pointer"
                   >
                     <span>✦ Hasła Sinsay (4 524)</span>
                     <span>{showPhraseAssistant ? "▲" : "▼"}</span>
                   </button>
                 </div>
 
+                {/* Sinsay Assistant Drawer */}
                 {showPhraseAssistant && (
                   <div className="p-3 rounded-xl border border-[var(--border-strong)] bg-[var(--bg-subtle)]">
                     <SinsayPhraseAssistant
                       onSelectPhrase={handleApplyPhrase}
-                      currentPrompt={currentCaption.line1 || prompt}
+                      currentPrompt={selectedCue ? selectedCue.text : currentCaption.line1}
                     />
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div>
-                    <label className="text-[10px] font-bold text-[var(--ink-secondary)] block mb-1">
-                      Linia 1 (Główne hasło)
-                    </label>
-                    <input
-                      type="text"
-                      value={currentCaption.line1}
-                      onChange={(e) =>
-                        setVideoCaptions({
-                          ...videoCaptions,
-                          [previewLang]: { ...currentCaption, line1: e.target.value },
-                        })
-                      }
-                      placeholder="np. Nowa kolekcja"
-                      className="w-full px-3 py-1.5 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)] font-bold font-sinsay"
-                    />
+                {/* TIMELINE MODE: Multi-segment Timeline Editor */}
+                {subtitleMode === "timeline" ? (
+                  <div className="space-y-3">
+                    {/* Visual Interactive Timeline Strip */}
+                    <div className="space-y-1 p-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)]">
+                      <div className="flex items-center justify-between text-[10px] font-bold">
+                        <span className="flex items-center gap-1 text-[var(--ink-secondary)]">
+                          <span>Oś czasu wideo:</span>
+                          <span className="font-mono text-[var(--accent)]">
+                            {currentTime.toFixed(1)}s / {duration}s
+                          </span>
+                        </span>
+                        <span className="text-[9px] text-[var(--ink-muted)]">
+                          Kliknij segment aby podejrzeć w kadrze
+                        </span>
+                      </div>
+
+                      {/* Visual Cue Track */}
+                      <div className="relative w-full h-8 bg-black/40 rounded-lg overflow-hidden flex border border-white/10 select-none">
+                        {subtitleCues.map((cue) => {
+                          const leftPct = (cue.startSec / duration) * 100;
+                          const widthPct = Math.max(8, ((cue.endSec - cue.startSec) / duration) * 100);
+                          const isSelected = selectedCueId === cue.id;
+                          const isCurrentlyPlaying = currentTime >= cue.startSec && currentTime < cue.endSec;
+
+                          const cueColor =
+                            cue.type === "hook"
+                              ? "bg-[#6e1d2f]"
+                              : cue.type === "speech"
+                              ? "bg-[#c84b31]"
+                              : cue.type === "feature"
+                              ? "bg-[#1d6346]"
+                              : "bg-[#8f4f0e]";
+
+                          const cueText = cue.translations?.[previewLang]?.line1 || cue.text;
+
+                          return (
+                            <div
+                              key={cue.id}
+                              onClick={() => {
+                                setSelectedCueId(cue.id);
+                                setCurrentTime(cue.startSec);
+                                if (videoRef.current) videoRef.current.currentTime = cue.startSec;
+                              }}
+                              className={`absolute top-0 bottom-0 px-1.5 flex flex-col justify-center cursor-pointer transition-all border-r border-black/30 hover:brightness-110 ${cueColor} ${
+                                isSelected ? "ring-2 ring-white z-10 brightness-125" : "opacity-85"
+                              } ${isCurrentlyPlaying ? "shadow-inner" : ""}`}
+                              style={{
+                                left: `${leftPct}%`,
+                                width: `${widthPct}%`,
+                              }}
+                              title={`${cue.label}: "${cueText}"`}
+                            >
+                              <span className="text-[7px] font-mono font-bold text-white/90">
+                                {cue.startSec.toFixed(1)}–{cue.endSec.toFixed(1)}s
+                              </span>
+                              <span className="text-[8px] font-extrabold text-white truncate">
+                                {cueText}
+                              </span>
+                            </div>
+                          );
+                        })}
+
+                        {/* Playhead Marker */}
+                        <div
+                          className="absolute top-0 bottom-0 w-0.5 bg-yellow-400 z-20 pointer-events-none shadow-[0_0_6px_rgba(250,204,21,1)]"
+                          style={{ left: `${Math.min(100, (currentTime / duration) * 100)}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Selected Cue Editor Card */}
+                    {selectedCue && (
+                      <div className="p-3.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] space-y-2.5 shadow-xs">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`w-2 h-2 rounded-full ${
+                                selectedCue.type === "hook"
+                                  ? "bg-[#6e1d2f]"
+                                  : selectedCue.type === "speech"
+                                  ? "bg-[#c84b31]"
+                                  : selectedCue.type === "feature"
+                                  ? "bg-[#1d6346]"
+                                  : "bg-[#8f4f0e]"
+                              }`}
+                            />
+                            <span className="text-xs font-bold text-[var(--ink-primary)]">
+                              Edycja segmentu: {selectedCue.label}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (subtitleCues.length <= 1) return;
+                                setSubtitleCues((prev) => prev.filter((c) => c.id !== selectedCue.id));
+                                setSelectedCueId(subtitleCues.find((c) => c.id !== selectedCue.id)?.id || "");
+                              }}
+                              className="text-[10px] text-rose-500 hover:underline px-1.5 py-0.5 font-bold cursor-pointer"
+                              title="Usuń ten segment"
+                            >
+                              Usuń segment ✕
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Timing Adjuster */}
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div className="p-2 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-subtle)] flex items-center justify-between">
+                            <span className="text-[10px] text-[var(--ink-secondary)] font-bold">Start:</span>
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newStart = Math.max(0, Number((selectedCue.startSec - 0.2).toFixed(1)));
+                                  setSubtitleCues((prev) =>
+                                    prev.map((c) => (c.id === selectedCue.id ? { ...c, startSec: newStart } : c))
+                                  );
+                                }}
+                                className="w-5 h-5 rounded bg-black/10 dark:bg-white/10 text-[10px] font-bold grid place-items-center cursor-pointer"
+                              >
+                                −
+                              </button>
+                              <span className="font-mono font-bold px-1 text-[var(--accent)]">
+                                {selectedCue.startSec.toFixed(1)}s
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newStart = Math.min(selectedCue.endSec - 0.3, Number((selectedCue.startSec + 0.2).toFixed(1)));
+                                  setSubtitleCues((prev) =>
+                                    prev.map((c) => (c.id === selectedCue.id ? { ...c, startSec: newStart } : c))
+                                  );
+                                }}
+                                className="w-5 h-5 rounded bg-black/10 dark:bg-white/10 text-[10px] font-bold grid place-items-center cursor-pointer"
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="p-2 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-subtle)] flex items-center justify-between">
+                            <span className="text-[10px] text-[var(--ink-secondary)] font-bold">Koniec:</span>
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newEnd = Math.max(selectedCue.startSec + 0.3, Number((selectedCue.endSec - 0.2).toFixed(1)));
+                                  setSubtitleCues((prev) =>
+                                    prev.map((c) => (c.id === selectedCue.id ? { ...c, endSec: newEnd } : c))
+                                  );
+                                }}
+                                className="w-5 h-5 rounded bg-black/10 dark:bg-white/10 text-[10px] font-bold grid place-items-center cursor-pointer"
+                              >
+                                −
+                              </button>
+                              <span className="font-mono font-bold px-1 text-[var(--accent)]">
+                                {selectedCue.endSec.toFixed(1)}s
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newEnd = Math.min(duration, Number((selectedCue.endSec + 0.2).toFixed(1)));
+                                  setSubtitleCues((prev) =>
+                                    prev.map((c) => (c.id === selectedCue.id ? { ...c, endSec: newEnd } : c))
+                                  );
+                                }}
+                                className="w-5 h-5 rounded bg-black/10 dark:bg-white/10 text-[10px] font-bold grid place-items-center cursor-pointer"
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Text Inputs for Active Market */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[10px] font-bold text-[var(--ink-secondary)] block mb-1">
+                              Linia 1 ({previewLang})
+                            </label>
+                            <input
+                              type="text"
+                              value={selectedCue.translations?.[previewLang]?.line1 ?? selectedCue.text}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setSubtitleCues((prev) =>
+                                  prev.map((c) =>
+                                    c.id === selectedCue.id
+                                      ? {
+                                          ...c,
+                                          text: previewLang === "PL" ? val : c.text,
+                                          translations: {
+                                            ...(c.translations || {}),
+                                            [previewLang]: {
+                                              ...(c.translations?.[previewLang] || { line1: val, line2: c.line2 || "" }),
+                                              line1: val,
+                                            },
+                                          },
+                                        }
+                                      : c
+                                  )
+                                );
+                              }}
+                              className="w-full px-3 py-1.5 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)] font-bold font-sinsay"
+                              placeholder="Główny tekst segmentu"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-[10px] font-bold text-[var(--ink-secondary)] block mb-1">
+                              Linia 2 ({previewLang})
+                            </label>
+                            <input
+                              type="text"
+                              value={selectedCue.translations?.[previewLang]?.line2 ?? (selectedCue.line2 || "")}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setSubtitleCues((prev) =>
+                                  prev.map((c) =>
+                                    c.id === selectedCue.id
+                                      ? {
+                                          ...c,
+                                          line2: previewLang === "PL" ? val : c.line2,
+                                          translations: {
+                                            ...(c.translations || {}),
+                                            [previewLang]: {
+                                              ...(c.translations?.[previewLang] || { line1: c.text, line2: val }),
+                                              line2: val,
+                                            },
+                                          },
+                                        }
+                                      : c
+                                  )
+                                );
+                              }}
+                              className="w-full px-3 py-1.5 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)] font-bold font-sinsay"
+                              placeholder="Opcjonalny podtytuł / CTA"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Cue switcher / adder pills */}
+                        <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-[var(--border-subtle)]">
+                          <span className="text-[10px] text-[var(--ink-muted)]">Przełącz:</span>
+                          {subtitleCues.map((c, i) => (
+                            <button
+                              key={c.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedCueId(c.id);
+                                setCurrentTime(c.startSec);
+                                if (videoRef.current) videoRef.current.currentTime = c.startSec;
+                              }}
+                              className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all ${
+                                selectedCueId === c.id
+                                  ? "bg-[var(--accent)] text-white"
+                                  : "bg-[var(--bg-subtle)] text-[var(--ink-secondary)] hover:text-[var(--ink-primary)]"
+                              }`}
+                            >
+                              0{i + 1} ({c.startSec.toFixed(1)}s)
+                            </button>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const lastCue = subtitleCues[subtitleCues.length - 1];
+                              const start = lastCue ? Math.min(duration - 1, lastCue.endSec) : 0;
+                              const end = Math.min(duration, start + 2);
+                              const newCue: SubtitleCue = {
+                                id: `cue-${Date.now()}`,
+                                startSec: Number(start.toFixed(1)),
+                                endSec: Number(end.toFixed(1)),
+                                type: "feature",
+                                label: `0${subtitleCues.length + 1} Segment (${start}–${end}s)`,
+                                text: "Nowy segment napisów",
+                                line2: "",
+                              };
+                              setSubtitleCues([...subtitleCues, newCue]);
+                              setSelectedCueId(newCue.id);
+                            }}
+                            className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[var(--accent-soft)] text-[var(--accent)] hover:opacity-80 ml-auto cursor-pointer"
+                          >
+                            + Dodaj segment
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-[var(--ink-secondary)] block mb-1">
-                      Linia 2 (Podtytuł / CTA)
-                    </label>
-                    <input
-                      type="text"
-                      value={currentCaption.line2}
-                      onChange={(e) =>
-                        setVideoCaptions({
-                          ...videoCaptions,
-                          [previewLang]: { ...currentCaption, line2: e.target.value },
-                        })
-                      }
-                      placeholder="np. na Twój sposób"
-                      className="w-full px-3 py-1.5 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)] font-bold font-sinsay"
-                    />
+                ) : (
+                  /* STATIC MODE: Classic single subtitle */
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] font-bold text-[var(--ink-secondary)] block mb-1">
+                        Linia 1 (Główne hasło)
+                      </label>
+                      <input
+                        type="text"
+                        value={currentCaption.line1}
+                        onChange={(e) =>
+                          setVideoCaptions({
+                            ...videoCaptions,
+                            [previewLang]: { ...currentCaption, line1: e.target.value },
+                          })
+                        }
+                        placeholder="np. Nowa kolekcja"
+                        className="w-full px-3 py-1.5 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)] font-bold font-sinsay"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-[var(--ink-secondary)] block mb-1">
+                        Linia 2 (Podtytuł / CTA)
+                      </label>
+                      <input
+                        type="text"
+                        value={currentCaption.line2}
+                        onChange={(e) =>
+                          setVideoCaptions({
+                            ...videoCaptions,
+                            [previewLang]: { ...currentCaption, line2: e.target.value },
+                          })
+                        }
+                        placeholder="np. na Twój sposób"
+                        className="w-full px-3 py-1.5 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)] font-bold font-sinsay"
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
 
+            {/* Mówiony TikTok & Lektor (ElevenLabs) */}
             <div className="flex items-center justify-between pt-2 border-t border-[var(--border-subtle)]">
               <div>
                 <b className="text-xs block text-[var(--ink-primary)]">
-                  Lektor (ElevenLabs)
+                  Mówiony TikTok &amp; Lektor (ElevenLabs)
                 </b>
                 <span className="text-[10px] text-[var(--ink-muted)] block">
-                  Dubbing audio w Euclid TTS
+                  Dubbing audio + synchronizacja mowy z napisami wideo
                 </span>
               </div>
               <input
                 type="checkbox"
                 checked={isDubEnabled}
                 onChange={(e) => setIsDubEnabled(e.target.checked)}
-                className="w-4 h-4 accent-[var(--accent)]"
+                className="w-4 h-4 accent-[var(--accent)] cursor-pointer"
               />
             </div>
 
             {isDubEnabled && (
               <div className="space-y-3 pt-1">
+                {/* Spoken Voiceover Script Editor */}
+                <div className="space-y-1.5 p-3 rounded-xl border border-[#c84b31]/30 bg-[#fceee9]/30 dark:bg-[#38211c]/20">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-[var(--ink-primary)] block">
+                      🎙️ Kwestia mówiona przez lektora (Skrypt audio):
+                    </label>
+                    <button
+                      type="button"
+                      onClick={syncSubtitlesWithVoiceover}
+                      className="text-[10px] font-bold text-[#c84b31] dark:text-[#e56b4e] hover:underline cursor-pointer"
+                    >
+                      ✦ Synchronizuj z napisami
+                    </button>
+                  </div>
+                  <textarea
+                    rows={2}
+                    value={spokenVoiceoverScript}
+                    onChange={(e) => setSpokenVoiceoverScript(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl text-xs border bg-white dark:bg-[#1a1714] border-[var(--border-strong)] text-[var(--ink-primary)] font-medium leading-relaxed"
+                    placeholder="Wpisz słowa, które lektor ma wypowiedzieć w filmie..."
+                  />
+                  <div className="flex items-center justify-between text-[10px] text-[var(--ink-muted)]">
+                    <span>To co jest mówione przez lektora, trafia dokładnie w napisy wideo</span>
+                    <span className="font-mono">{spokenVoiceoverScript.length} zn.</span>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-bold text-[var(--ink-primary)] block mb-1">
@@ -776,7 +1400,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                     <select
                       value={selectedVoice}
                       onChange={(e) => setSelectedVoice(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)]"
+                      className="w-full px-3 py-2 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)] cursor-pointer"
                     >
                       <option value="maja">Maja · Ciepły Editorial</option>
                       <option value="adam">Adam · Dynamiczny Runway</option>
@@ -790,7 +1414,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                     <select
                       value={selectedBgm}
                       onChange={(e) => setSelectedBgm(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)]"
+                      className="w-full px-3 py-2 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)] cursor-pointer"
                     >
                       <option value="runway">Warm Runway House (122 BPM)</option>
                       <option value="minimal">Atelier Lo-Fi (98 BPM)</option>
@@ -1048,12 +1672,14 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                   )}
 
                   {/* Text safely anchored in lower-third */}
-                  <div className="absolute inset-x-2 bottom-[24%] z-10 text-center pointer-events-none">
-                    <p className="text-[9px] font-bold text-white leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] font-sinsay tracking-wide">
-                      {currentCaption.line1}
-                      {currentCaption.line2 && <><br />{currentCaption.line2}</>}
-                    </p>
-                  </div>
+                  {activeSubtitleText && (
+                    <div className="absolute inset-x-2 bottom-[24%] z-10 text-center pointer-events-none transition-all duration-150">
+                      <p className="text-[9px] font-bold text-white leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] font-sinsay tracking-wide bg-black/45 px-2 py-0.5 rounded-md inline-block border border-white/10">
+                        {activeSubtitleText}
+                        {activeSubtitleLine2 && <><br /><span className="text-[8px] font-medium opacity-90">{activeSubtitleLine2}</span></>}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1108,12 +1734,14 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                   )}
 
                   {/* Text strictly inside Safe Zone (bottom 28% > bottom 25.2% UI) */}
-                  <div className="absolute inset-x-2 bottom-[28%] z-10 text-center pointer-events-none">
-                    <p className="text-[9px] font-bold text-white leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] font-sinsay tracking-wide">
-                      {currentCaption.line1}
-                      {currentCaption.line2 && <><br />{currentCaption.line2}</>}
-                    </p>
-                  </div>
+                  {activeSubtitleText && (
+                    <div className="absolute inset-x-2 bottom-[28%] z-10 text-center pointer-events-none transition-all duration-150">
+                      <p className="text-[9px] font-bold text-white leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] font-sinsay tracking-wide bg-black/45 px-2 py-0.5 rounded-md inline-block border border-white/10">
+                        {activeSubtitleText}
+                        {activeSubtitleLine2 && <><br /><span className="text-[8px] font-medium opacity-90">{activeSubtitleLine2}</span></>}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1168,12 +1796,14 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                   )}
 
                   {/* Text safely anchored in Feed Safe Zone */}
-                  <div className="absolute inset-x-2 bottom-[14%] z-10 text-center pointer-events-none">
-                    <p className="text-[9px] font-bold text-white leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] font-sinsay tracking-wide">
-                      {currentCaption.line1}
-                      {currentCaption.line2 && <><br />{currentCaption.line2}</>}
-                    </p>
-                  </div>
+                  {activeSubtitleText && (
+                    <div className="absolute inset-x-2 bottom-[14%] z-10 text-center pointer-events-none transition-all duration-150">
+                      <p className="text-[9px] font-bold text-white leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] font-sinsay tracking-wide bg-black/45 px-2 py-0.5 rounded-md inline-block border border-white/10">
+                        {activeSubtitleText}
+                        {activeSubtitleLine2 && <><br /><span className="text-[8px] font-medium opacity-90">{activeSubtitleLine2}</span></>}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1226,14 +1856,36 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                   )}
 
                   {/* Text safely anchored in Square Safe Zone */}
-                  <div className="absolute inset-x-2 bottom-[12%] z-10 text-center pointer-events-none">
-                    <p className="text-[9px] font-bold text-white leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] font-sinsay tracking-wide">
-                      {currentCaption.line1}
-                      {currentCaption.line2 && <><br />{currentCaption.line2}</>}
-                    </p>
-                  </div>
+                  {activeSubtitleText && (
+                    <div className="absolute inset-x-2 bottom-[12%] z-10 text-center pointer-events-none transition-all duration-150">
+                      <p className="text-[9px] font-bold text-white leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] font-sinsay tracking-wide bg-black/45 px-2 py-0.5 rounded-md inline-block border border-white/10">
+                        {activeSubtitleText}
+                        {activeSubtitleLine2 && <><br /><span className="text-[8px] font-medium opacity-90">{activeSubtitleLine2}</span></>}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
+            </div>
+
+            {/* Live Subtitle Timecode & Status Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-3.5 py-2 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-xs">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className={`w-2 h-2 rounded-full ${activeCue ? "bg-emerald-500 animate-pulse" : "bg-zinc-400"}`} />
+                <span className="font-bold text-[var(--ink-secondary)] text-[11px] truncate">
+                  {activeCue ? activeCue.label : "Czysty kadr (brak napisu w tej sekundzie)"}
+                </span>
+              </div>
+              {activeSubtitleText ? (
+                <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--accent)] font-sinsay truncate">
+                  <span className="text-[10px] text-[var(--ink-muted)] font-mono font-normal">[{previewLang}]:</span>
+                  <span className="truncate">„{activeSubtitleText}”</span>
+                </div>
+              ) : (
+                <span className="text-[10px] text-[var(--ink-muted)] italic">
+                  Oś czasu: {currentTime.toFixed(1)}s
+                </span>
+              )}
             </div>
 
             {/* Playback Transport Controls */}
