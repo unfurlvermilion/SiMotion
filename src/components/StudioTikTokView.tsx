@@ -58,7 +58,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
   const [duration, setDuration] = useState(10);
 
   // Subtitles & Translations System (collapsible toggleable panel like audio dubbing)
-  const [isSubtitlesEnabled, setIsSubtitlesEnabled] = useState<boolean>(true);
+  const [isSubtitlesEnabled, setIsSubtitlesEnabled] = useState<boolean>(false);
   const [subtitleMode, setSubtitleMode] = useState<"timeline" | "static">("timeline");
   const [captionYPercent, setCaptionYPercent] = useState<number>(64); // 64% is default lower-third safe zone
   const [captionFont, setCaptionFont] = useState<"euclid" | "sans" | "serif">("euclid");
