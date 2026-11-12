@@ -205,6 +205,27 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
     }
   };
 
+  const localPackshotInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleUploadLocalPackshots = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const newAssets: PcmAsset[] = Array.from(files).map((f, i) => {
+      const url = URL.createObjectURL(f);
+      return {
+        id: `local-${Date.now()}-${i}`,
+        label: f.name.replace(/\.[^/.]+$/, ""),
+        filename: f.name,
+        url,
+        source: "pcm",
+        type: "packshot",
+      };
+    });
+    setPcmAssets((prev) => [...newAssets, ...prev]);
+    setPcmFetchSource("pcm");
+    showToast(`✓ Załadowano ${newAssets.length} packshotów z dysku!`);
+  };
+
   const [subtitleCues, setSubtitleCues] = useState<SubtitleCue[]>([
     {
       id: "cue-1",
@@ -1650,7 +1671,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                       </span>
                     )}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
                     <input
                       type="text"
                       value={productId}
@@ -1659,7 +1680,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                         setProductId(clean);
                       }}
                       placeholder="np. 001KR-83X lub 206LA-08X"
-                      className="flex-1 px-3 py-2 rounded-xl text-xs border font-mono bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)] focus:outline-none focus:border-[var(--accent)]"
+                      className="flex-1 min-w-[140px] px-3 py-2 rounded-xl text-xs border font-mono bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)] focus:outline-none focus:border-[var(--accent)]"
                     />
                     <button
                       type="button"
@@ -1669,6 +1690,17 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                     >
                       <span>{isFetchingPcm ? "Pobieranie..." : "Pobierz z PCM / PDM ↻"}</span>
                     </button>
+                    <label className="px-3 py-2 rounded-xl text-xs font-bold border border-[var(--border-strong)] bg-[var(--bg-card)] text-[var(--ink-secondary)] hover:border-[var(--accent)] hover:text-[var(--ink-primary)] transition-all flex items-center gap-1 shadow-sm cursor-pointer">
+                      <span>📁 Z dysku</span>
+                      <input
+                        ref={localPackshotInputRef}
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        onChange={handleUploadLocalPackshots}
+                        className="hidden"
+                      />
+                    </label>
                   </div>
 
                   {/* Thumbnail Grid of Real Fetched Packshots */}

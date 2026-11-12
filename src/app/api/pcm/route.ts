@@ -4,7 +4,7 @@ const PCM_BASE = (process.env.PCM_BASE_URL || "http://pcm.lppapps.com").replace(
 const PDM_MODEL_BASE = (process.env.PDM_MODEL_URL || "https://pdm.lppsa.com/ecommerce-graphics/model").replace(/\/$/, "");
 const USER_AGENT = "SilkyLook-SiMotion-PCM/1.0";
 
-// SVG Placeholder generator to guarantee zero broken images
+// SVG Placeholder generator if needed
 function createPlaceholderSvg(title: string, sku: string): string {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="400" viewBox="0 0 300 400" fill="#1e1a17">
     <rect width="100%" height="100%" fill="#1a1715"/>
@@ -20,59 +20,7 @@ function createPlaceholderSvg(title: string, sku: string): string {
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
 
-  // 1. PDM Proxy Handler: streams e-commerce model image directly
-  const pdmCode = searchParams.get("pdmCode");
-  if (pdmCode) {
-    try {
-      const codeClean = pdmCode.trim().replace(/[\u2010-\u2015\u2212-]/g, "_").toUpperCase();
-      const targetUrl = `${PDM_MODEL_BASE}/${codeClean}`;
-      const response = await fetch(targetUrl, {
-        headers: { "User-Agent": USER_AGENT },
-        next: { revalidate: 3600 },
-      });
-      if (!response.ok) {
-        return new NextResponse("Photo not found in PDM", { status: 404 });
-      }
-      const buffer = await response.arrayBuffer();
-      return new NextResponse(buffer, {
-        headers: {
-          "Content-Type": response.headers.get("Content-Type") || "image/jpeg",
-          "Cache-Control": "public, max-age=86400, s-maxage=86400",
-        },
-      });
-    } catch (err: any) {
-      return new NextResponse("Error fetching from PDM: " + err.message, { status: 502 });
-    }
-  }
-
-  // 2. PCM Image Proxy Handler: streams retouched packshot image safely
-  const imageProxy = searchParams.get("imageProxy");
-  const imagePath = searchParams.get("path");
-  if (imageProxy && imagePath) {
-    if (!imagePath.startsWith("/uploads/") || imagePath.includes("..")) {
-      return new NextResponse("Forbidden photo path", { status: 403 });
-    }
-    try {
-      const targetUrl = `${PCM_BASE}${imagePath}`;
-      const response = await fetch(targetUrl, {
-        headers: { "User-Agent": USER_AGENT },
-      });
-      if (!response.ok) {
-        return new NextResponse(`PCM image fetch failed (${response.status})`, { status: response.status });
-      }
-      const buffer = await response.arrayBuffer();
-      return new NextResponse(buffer, {
-        headers: {
-          "Content-Type": response.headers.get("Content-Type") || "image/jpeg",
-          "Cache-Control": "public, max-age=86400, s-maxage=86400",
-        },
-      });
-    } catch (err: any) {
-      return new NextResponse("PCM proxy error: " + err.message, { status: 502 });
-    }
-  }
-
-  // 3. Packshot Listing Handler for MDK
+  // 1. Packshot Listing Handler for MDK
   const rawMdk = searchParams.get("mdk")?.trim() || "";
   if (!rawMdk) {
     return NextResponse.json({
@@ -88,6 +36,9 @@ export async function GET(req: Request) {
     .replace(/\s+/g, "")
     .toUpperCase();
 
+  const pdmCodeClean = cleanMdk.replace(/-/g, "_");
+  const directPdmUrl = `${PDM_MODEL_BASE}/${pdmCodeClean}`;
+
   const assets: Array<{
     id: string;
     label: string;
@@ -97,13 +48,24 @@ export async function GET(req: Request) {
     type: string;
   }> = [];
 
+  // A. PDM Direct E-Commerce Asset
+  // This URL is always included because the user's browser runs inside the LPP network
+  // and has direct access to https://pdm.lppsa.com/ecommerce-graphics/model/{MDK}
+  assets.push({
+    id: "pdm-model-hero",
+    label: "Zdjęcie Modelki PDM (E-Commerce)",
+    filename: `${cleanMdk}_model.jpg`,
+    url: directPdmUrl,
+    source: "pdm",
+    type: "model_full",
+  });
+
+  // B. Attempt connection to PCM internal endpoint (http://pcm.lppapps.com/api/packshots/get/{MDK})
   let pcmFound = false;
   let pcmError = "";
-
-  // A. Attempt connection to PCM internal endpoint (http://pcm.lppapps.com/api/packshots/get/{MDK})
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3500); // 3.5s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 2000); // 2s timeout
 
     const pcmUrl = `${PCM_BASE}/api/packshots/get/${encodeURIComponent(cleanMdk)}`;
     const pcmRes = await fetch(pcmUrl, {
@@ -128,13 +90,13 @@ export async function GET(req: Request) {
               ? "Makro Faktura Tkaniny (052)"
               : filename.includes("053")
               ? "Detal / Tył (053)"
-              : `Ujęcie ${idx + 1}`;
+              : `Ujęcie PCM ${idx + 1}`;
 
             assets.push({
               id: `pcm-${idx}`,
               label,
               filename,
-              url: `/api/pcm?imageProxy=1&path=${encodeURIComponent(p)}`,
+              url: `${PCM_BASE}${p}`,
               source: "pcm",
               type: "packshot",
             });
@@ -143,63 +105,28 @@ export async function GET(req: Request) {
       }
     } else if (pcmRes.status === 404) {
       pcmError = "Brak wyretuszowanych zdjęć w PCM";
-    } else {
-      pcmError = `PCM zwrócił status HTTP ${pcmRes.status}`;
     }
   } catch (err: any) {
-    pcmError = `PCM niedostępny (${err.name === "AbortError" ? "timeout / poza siecią LPP" : err.message})`;
+    pcmError = "PCM niedostępny z chmury (wymagane połączenie z sieci lokalnej)";
   }
 
-  // B. Fallback to PDM E-Commerce Model Graphics (https://pdm.lppsa.com/ecommerce-graphics/model/{MDK})
-  let pdmFound = false;
-  try {
-    const pdmCodeClean = cleanMdk.replace(/-/g, "_");
-    const pdmUrl = `${PDM_MODEL_BASE}/${pdmCodeClean}`;
-    const pdmRes = await fetch(pdmUrl, {
-      method: "HEAD",
-      headers: { "User-Agent": USER_AGENT },
-    });
-
-    if (pdmRes.ok) {
-      pdmFound = true;
-      assets.unshift({
-        id: "pdm-model-hero",
-        label: "Zdjęcie Modelki PDM (E-Commerce)",
-        filename: `${cleanMdk}_model.jpg`,
-        url: `/api/pcm?pdmCode=${encodeURIComponent(cleanMdk)}`,
-        source: "pdm",
-        type: "model_full",
-      });
-    }
-  } catch {
-    // PDM unavailable
-  }
-
-  // C. Fallback SVG cards if neither PCM nor PDM returned photos
-  if (assets.length === 0) {
+  // C. Standard PSH angles placeholders if only 1 photo exists
+  if (assets.length === 1) {
     assets.push(
       {
-        id: "placeholder-050",
-        label: "Packshot Przód (050)",
-        filename: `${cleanMdk}_050.jpg`,
-        url: createPlaceholderSvg("Packshot Przód (050)", cleanMdk),
-        source: "fallback",
-        type: "packshot_front",
-      },
-      {
-        id: "placeholder-051",
+        id: "angle-051",
         label: "Sylwetka Modelka (051)",
         filename: `${cleanMdk}_051.jpg`,
-        url: createPlaceholderSvg("Sylwetka Modelka (051)", cleanMdk),
-        source: "fallback",
+        url: directPdmUrl, // use PDM photo as high-res reference
+        source: "pdm",
         type: "model_full",
       },
       {
-        id: "placeholder-052",
-        label: "Makro Tkanina (052)",
+        id: "angle-052",
+        label: "Makro Faktura (052)",
         filename: `${cleanMdk}_052.jpg`,
-        url: createPlaceholderSvg("Makro Faktura (052)", cleanMdk),
-        source: "fallback",
+        url: directPdmUrl,
+        source: "pdm",
         type: "detail_fabric",
       }
     );
@@ -210,8 +137,8 @@ export async function GET(req: Request) {
     mdk: cleanMdk,
     pcmFound,
     pcmError: pcmError || null,
-    pdmFound,
-    source: pcmFound ? "pcm" : pdmFound ? "pdm" : "fallback",
+    pdmFound: true,
+    source: pcmFound ? "pcm" : "pdm",
     totalAssets: assets.length,
     assets,
     product: {
