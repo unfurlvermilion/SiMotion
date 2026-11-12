@@ -475,14 +475,15 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
           if (logoRes.ok) {
             const logoBlob = await logoRes.blob();
             const logoFileName = selectedLogo.gifPath.split("/").pop() || "logo_outro.gif";
-            root.file(`brand/${logoFileName}`, logoBlob);
+            root.file(`03_Brand_Kit_Outro/${logoFileName}`, logoBlob);
           }
         } catch (e) {
           console.warn("Logo fetch failed", e);
         }
       }
 
-      // 3. Subtitles SRT & VTT files generated if enabled
+      // Generate SRT / VTT contents per language
+      const srtMap: Record<string, { srt: string; vtt: string }> = {};
       if (isSubtitlesEnabled) {
         selectedTextLangs.forEach((lang) => {
           let srtContent = "";
@@ -506,37 +507,61 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
             vttContent = `WEBVTT\n\n1\n00:00:00.000 --> 00:00:02.500\n${l1}\n${l2}\n`;
           }
 
-          root.file(`subtitles/subtitles_${lang.toLowerCase()}_timed.srt`, srtContent);
-          root.file(`subtitles/subtitles_${lang.toLowerCase()}_timed.vtt`, vttContent);
+          srtMap[lang] = { srt: srtContent, vtt: vttContent };
+
+          // Separate folder with all SRT/VTT for Premiere / DaVinci / TikTok import
+          root.file(`02_Napisy_SRT_VTT/napisy_${lang.toLowerCase()}.srt`, srtContent);
+          root.file(`02_Napisy_SRT_VTT/napisy_${lang.toLowerCase()}.vtt`, vttContent);
         });
       }
 
-      // 4. Video files
+      // 4. Video files organized into Clean Master and Market Subtitled folders
       if (videoFile) {
         try {
           const vRes = await fetch(videoFile);
           const vBlob = await vRes.blob();
-          root.file("video/00_master_3x4_Base.mp4", vBlob);
-          root.file("video/01_vertical_9x16_TikTok.mp4", vBlob);
-          root.file("video/02_feed_4x5_SmartCrop.mp4", vBlob);
-          root.file("video/03_square_1x1_Catalog.mp4", vBlob);
+
+          // 00: Czyste formaty bez napisów (do montażu i archiwum)
+          root.file("00_Czyste_Bez_Napisow/00_Master_3x4_Clean.mp4", vBlob);
+          root.file("00_Czyste_Bez_Napisow/01_Vertical_9x16_TikTok_Clean.mp4", vBlob);
+          root.file("00_Czyste_Bez_Napisow/02_Feed_4x5_IG_Clean.mp4", vBlob);
+          root.file("00_Czyste_Bez_Napisow/03_Square_1x1_Catalog_Clean.mp4", vBlob);
+
+          // 01: Wersje rynkowe posegregowane w podkatalogach
+          if (isSubtitlesEnabled) {
+            selectedTextLangs.forEach((lang) => {
+              const langFolder = `01_Wersje_Rynkowe_Napisy/${lang}`;
+              root.file(`${langFolder}/00_Master_3x4_${lang}.mp4`, vBlob);
+              root.file(`${langFolder}/01_Vertical_9x16_TikTok_${lang}.mp4`, vBlob);
+              root.file(`${langFolder}/02_Feed_4x5_${lang}.mp4`, vBlob);
+              root.file(`${langFolder}/03_Square_1x1_${lang}.mp4`, vBlob);
+
+              if (srtMap[lang]) {
+                root.file(`${langFolder}/napisy_${lang.toLowerCase()}.srt`, srtMap[lang].srt);
+                root.file(`${langFolder}/napisy_${lang.toLowerCase()}.vtt`, srtMap[lang].vtt);
+              }
+            });
+          }
         } catch (e) {
-          root.file("video/README.txt", "Wideo zmontowane z pliku: " + (uploadedFileName || "upload"));
+          root.file("00_Czyste_Bez_Napisow/README.txt", "Wideo zmontowane z pliku: " + (uploadedFileName || "upload"));
         }
       } else {
         const videoSpecs = `SiMotion Video Production Render Specifications\n` +
           `===================================================\n` +
           `SKU: ${productId || "001KR-83X"}\n` +
           `Tryb: ${workspaceMode === "generate" ? "Generator AI " + aiEngine : "Montaż wideo z pliku"}\n` +
-          `Napisy: ${isSubtitlesEnabled ? "Włączone (Font: Euclid Circular B LPP)" : "Wyłączone (Czyste wideo)"}\n` +
-          `Formats included:\n` +
-          `  - 3:4 (1440x1920) Master Fashion Base\n` +
-          `  - 9:16 (1080x1920) TikTok / Reels / Shorts (Side Crop Offset: ${cropOffset}%)\n` +
-          `  - 4:5 (1080x1350) IG Feed Smart Crop\n` +
-          `  - 1:1 (1080x1080) Square Product Creative\n` +
+          `Napisy: ${isSubtitlesEnabled ? "Włączone (Font: Euclid Circular B LPP SA)" : "Wyłączone (Czyste wideo)"}\n` +
+          `Pozycja pionowa napisów (Oś Y): ${captionYPercent}% Safe Zone\n` +
+          `Styl napisów: ${captionStyle} (${captionFont})\n` +
+          `Rynki docelowe: ${isSubtitlesEnabled ? selectedTextLangs.join(", ") : "Brak"}\n` +
+          `Struktura paczki produkcyjnej:\n` +
+          `  ├── 00_Czyste_Bez_Napisow/ (Formaty 3:4, 9:16, 4:5, 1:1 bez napisów)\n` +
+          `  ├── 01_Wersje_Rynkowe_Napisy/ (Katalog per rynek PL, RO, CZ... z formatami wideo i powiązanymi napisami)\n` +
+          `  ├── 02_Napisy_SRT_VTT/ (Surowe pliki .srt i .vtt do DaVinci Resolve / Premiere / TikToka)\n` +
+          `  └── 03_Brand_Kit_Outro/ (Oficjalne animowane logo outro)\n` +
           `Logo Outro Animation: ${isLogoOutroEnabled ? selectedLogo.name : "Wyłączone"}\n` +
           `Date: ${new Date().toISOString()}\n`;
-        root.file("video/render_specifications.txt", videoSpecs);
+        root.file("specyfikacja_renderu.txt", videoSpecs);
       }
 
       // Generate ZIP and download
