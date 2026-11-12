@@ -34,11 +34,6 @@ export default function ExportView({
   showToast,
 }: ExportViewProps) {
   const [mdkCode, setMdkCode] = useState<string>(productId);
-
-  // Sync if parent productId updates
-  React.useEffect(() => {
-    if (productId) setMdkCode(productId);
-  }, [productId]);
   const [campaignName, setCampaignName] = useState<string>("Kolekcja Kapsułowa FW26");
   const [folderStructure, setFolderStructure] = useState<string>("mdk_format_lang");
   const [namingConvention, setNamingConvention] = useState<string>("{MDK}_{RATIO}_{LANG}");
@@ -46,83 +41,123 @@ export default function ExportView({
   const [isExporting, setIsExporting] = useState<boolean>(false);
   const [exportComplete, setExportComplete] = useState<boolean>(false);
   const [exportStats, setExportStats] = useState<{ totalFiles: number; sizeMb: string } | null>(null);
-
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const [files, setFiles] = useState<ExportFileItem[]>([
-    {
-      id: "f-1",
-      filename: "001KR-83X_9x16_PL_master.mp4",
-      type: "video",
-      format: "9:16 TikTok/Reels",
-      language: "PL",
-      size: "14.2 MB",
-      selected: true,
-    },
-    {
-      id: "f-2",
-      filename: "001KR-83X_4x5_PL_portrait.mp4",
-      type: "video",
-      format: "4:5 IG Feed",
-      language: "PL",
-      size: "11.8 MB",
-      selected: true,
-    },
-    {
-      id: "f-3",
-      filename: "001KR-83X_1x1_PL_square.mp4",
-      type: "video",
-      format: "1:1 Feed / Meta",
-      language: "PL",
-      size: "9.6 MB",
-      selected: true,
-    },
-    {
-      id: "f-4",
-      filename: "001KR-83X_9x16_RO_master.mp4",
-      type: "video",
-      format: "9:16 TikTok/Reels",
-      language: "RO",
-      size: "14.1 MB",
-      selected: true,
-    },
-    {
-      id: "f-5",
-      filename: "001KR-83X_9x16_DE_master.mp4",
-      type: "video",
-      format: "9:16 TikTok/Reels",
-      language: "DE",
-      size: "14.4 MB",
-      selected: true,
-    },
-    {
-      id: "f-6",
-      filename: "001KR-83X_3x4_lookbook.png",
-      type: "image",
-      format: "3:4 Lookbook 1080x1440",
-      language: "PL",
-      size: "2.8 MB",
-      selected: true,
-    },
-    {
-      id: "f-7",
-      filename: "001KR-83X_subtitles_pl.srt",
-      type: "subtitles",
-      format: "SRT Timed Subtitles",
-      language: "PL",
-      size: "18 KB",
-      selected: true,
-    },
-    {
-      id: "f-8",
-      filename: "001KR-83X_subtitles_ro.srt",
-      type: "subtitles",
-      format: "SRT Timed Subtitles",
-      language: "RO",
-      size: "18 KB",
-      selected: true,
-    },
-  ]);
+  const createDefaultFilesForMdk = (sku: string): ExportFileItem[] => {
+    const clean = sku?.trim() || "001KR";
+    return [
+      {
+        id: "f-1",
+        filename: `${clean}_9x16_PL_master.mp4`,
+        type: "video",
+        format: "9:16 TikTok/Reels",
+        language: "PL",
+        size: "14.2 MB",
+        selected: true,
+      },
+      {
+        id: "f-2",
+        filename: `${clean}_4x5_PL_portrait.mp4`,
+        type: "video",
+        format: "4:5 IG Feed",
+        language: "PL",
+        size: "11.8 MB",
+        selected: true,
+      },
+      {
+        id: "f-3",
+        filename: `${clean}_1x1_PL_square.mp4`,
+        type: "video",
+        format: "1:1 Feed / Meta",
+        language: "PL",
+        size: "9.6 MB",
+        selected: true,
+      },
+      {
+        id: "f-4",
+        filename: `${clean}_9x16_RO_master.mp4`,
+        type: "video",
+        format: "9:16 TikTok/Reels",
+        language: "RO",
+        size: "14.1 MB",
+        selected: true,
+      },
+      {
+        id: "f-5",
+        filename: `${clean}_9x16_DE_master.mp4`,
+        type: "video",
+        format: "9:16 TikTok/Reels",
+        language: "DE",
+        size: "14.4 MB",
+        selected: true,
+      },
+      {
+        id: "f-6",
+        filename: `${clean}_3x4_lookbook.png`,
+        type: "image",
+        format: "3:4 Lookbook 1080x1440",
+        language: "PL",
+        size: "2.8 MB",
+        selected: true,
+      },
+      {
+        id: "f-7",
+        filename: `${clean}_subtitles_pl.srt`,
+        type: "subtitles",
+        format: "SRT Timed Subtitles",
+        language: "PL",
+        size: "18 KB",
+        selected: true,
+      },
+      {
+        id: "f-8",
+        filename: `${clean}_subtitles_ro.srt`,
+        type: "subtitles",
+        format: "SRT Timed Subtitles",
+        language: "RO",
+        size: "18 KB",
+        selected: true,
+      },
+    ];
+  };
+
+  const [files, setFiles] = useState<ExportFileItem[]>(() => createDefaultFilesForMdk(productId));
+
+  // Sync if parent productId updates
+  React.useEffect(() => {
+    if (productId) {
+      setMdkCode(productId);
+      setFiles((prev) =>
+        prev.map((f) => {
+          // preserve custom added files if any, but update prefix for standard files
+          const parts = f.filename.split("_");
+          if (parts.length > 1) {
+            return {
+              ...f,
+              filename: `${productId}_${parts.slice(1).join("_")}`,
+            };
+          }
+          return f;
+        })
+      );
+    }
+  }, [productId]);
+
+  const handleMdkChange = (newMdk: string) => {
+    setMdkCode(newMdk);
+    setFiles((prev) =>
+      prev.map((f) => {
+        const parts = f.filename.split("_");
+        if (parts.length > 1) {
+          return {
+            ...f,
+            filename: `${newMdk || "001KR"}_${parts.slice(1).join("_")}`,
+          };
+        }
+        return f;
+      })
+    );
+  };
 
   const toggleSelectAll = (select: boolean) => {
     setFiles((prev) => prev.map((f) => ({ ...f, selected: select })));
@@ -437,7 +472,7 @@ export default function ExportView({
           <input
             type="text"
             value={mdkCode}
-            onChange={(e) => setMdkCode(e.target.value.toUpperCase())}
+            onChange={(e) => handleMdkChange(e.target.value.toUpperCase())}
             placeholder="np. 001KR-83X"
             className="w-full px-3 py-2 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)] font-mono font-bold"
           />

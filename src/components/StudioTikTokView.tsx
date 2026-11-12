@@ -27,6 +27,64 @@ export interface SubtitleCue {
   translations?: Record<string, { line1: string; line2?: string }>;
 }
 
+export const GARMENT_PRESETS = [
+  {
+    label: "👗 Sukienka",
+    prompt: "Dynamiczny try-on sukienki midi. Zwiewny ruch tkaniny, miękkie załamania światła w atelier, zbliżenie na dekolt i szwy wykończeniowe, swobodny krok modelki.",
+    voiceover: "Hej dziewczyny! Zobaczcie tę nowość sukienkową w Sinsay. Krój układa się obłędnie, a materiał jest lekki jak chmurka. Sprawdźcie w aplikacji i salonach!",
+    cues: [
+      { text: "Nowa sukienka midi", line2: "Zwiewny lekki krój" },
+      { text: "Układa się idealnie", line2: "w każdym ruchu" },
+      { text: "Detal tkaniny & jakość", line2: "na co dzień i wieczór" },
+      { text: "Kup teraz w aplikacji", line2: "Sinsay · Great Fashion" },
+    ],
+  },
+  {
+    label: "🧥 Płaszcz / Kurtka",
+    prompt: "Elegancki try-on okrycia wierzchniego. Wyrazista faktura materiału, precyzyjne cięcia, naturalny krok modelki w ruchu w minimalistycznym ciepłym świetle.",
+    voiceover: "Idealne okrycie na chłodniejsze dni już w Sinsay! Zobaczcie ten krój, świetny materiał i dopracowane wykończenie. Sprawdźcie w salonach i online!",
+    cues: [
+      { text: "Nowe okrycie wierzchnie", line2: "Idealny krój na sezon" },
+      { text: "Ciepły materiał & styl", line2: "naturalna elegancja" },
+      { text: "Wytrzymałe wykończenie", line2: "ponadczasowy fason" },
+      { text: "Odkryj w Sinsay", line2: "Sprawdź całą kolekcję" },
+    ],
+  },
+  {
+    label: "👔 Koszula / Top",
+    prompt: "Prezentacja koszuli w stylu minimalistycznym. Czysty fason, detale kołnierzyka, guziki z masy perłowej, naturalne załamania światła na tkaninie w ruchu.",
+    voiceover: "Klasyczna koszula, która pasuje do wszystkiego! Świetny fason do biura i na miasto. Zobaczcie jak leży i sprawdźcie w aplikacji Sinsay.",
+    cues: [
+      { text: "Klasyczna koszula Sinsay", line2: "Must-have w szafie" },
+      { text: "Wygodny naturalny krój", line2: "do pracy i na miasto" },
+      { text: "Detale i wykończenie", line2: "idealna jakość" },
+      { text: "Zamów w aplikacji", line2: "Sinsay · Great Fashion" },
+    ],
+  },
+  {
+    label: "👖 Spodnie / Jeans",
+    prompt: "Sylwetka w spodniach z prostą nogawką. Swobodny chód, idealne układanie się materiału w kroku, detal paska i kieszeni, dynamiczny obrót.",
+    voiceover: "Te spodnie to hit! Krój z wysokim stanem niesamowicie wydłuża nogi, a materiał daje pełen komfort. Sprawdźcie swój rozmiar w Sinsay!",
+    cues: [
+      { text: "Idealne spodnie na co dzień", line2: "Maksymalny komfort" },
+      { text: "Wydłużający krój", line2: "świetnie leży w ruchu" },
+      { text: "Dopracowane detale", line2: "szeroka gama rozmiarów" },
+      { text: "Sprawdź w aplikacji", line2: "Sinsay · New Arrivals" },
+    ],
+  },
+  {
+    label: "🧶 Sweter / Dzianina",
+    prompt: "Przytulny try-on miękkiej dzianiny. Ciepłe światło, makro zbliżenie na strukturę przędzy i ściągacze, naturalna miękkość i plastyczność w ruchu.",
+    voiceover: "Miękki, przytulny sweter z nowej kolekcji Sinsay. Cieplutki splot, piękny odcień i super cena. Zobaczcie w salonach i aplikacji!",
+    cues: [
+      { text: "Miękka dzianina Sinsay", line2: "Ciepły otulający splot" },
+      { text: "Przyjemny w dotyku", line2: "idealny na chłodne dni" },
+      { text: "Modne kolory sezonu", line2: "w świetnej cenie" },
+      { text: "Kup teraz w Sinsay", line2: "Szybka dostawa do salonu" },
+    ],
+  },
+];
+
 interface StudioTikTokViewProps {
   productId: string;
   setProductId: (val: string) => void;
@@ -50,11 +108,13 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Model & AI Generation Settings
-  const [aiEngine, setAiEngine] = useState<"seedance" | "higgsfield">("seedance");
+  const [aiEngine, setAiEngine] = useState<
+    "seedance-2.5-pro" | "seedance-2.5-turbo" | "seedance-2.5-omni" | "higgsfield-cinema-2.0"
+  >("seedance-2.5-pro");
   const [genMode, setGenMode] = useState<"storyboard" | "single">("storyboard");
   const [template, setTemplate] = useState("TikTok try-on · 6 scen");
   const [prompt, setPrompt] = useState(
-    "Dynamiczny try-on nowej kolekcji jedwabnej. Zbliżenia na fakturę materiału, naturalny ruch modelki w ciepłym świetle atelier i wyraziste zakończenie z produktem."
+    "Dynamiczny try-on nowej kolekcji. Zbliżenia na fakturę materiału, naturalny ruch modelki w ciepłym świetle atelier i wyraziste zakończenie z produktem."
   );
   const [duration, setDuration] = useState(10);
 
@@ -883,7 +943,19 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
   };
 
   // Cost calculation for AI generate mode
-  const ratePerSec = aiEngine === "seedance" ? 0.22 : 0.26;
+  const getRatePerSec = (engine: string) => {
+    switch (engine) {
+      case "seedance-2.5-turbo":
+        return 0.14;
+      case "seedance-2.5-omni":
+        return 0.28;
+      case "higgsfield-cinema-2.0":
+        return 0.26;
+      default:
+        return 0.22; // seedance-2.5-pro default
+    }
+  };
+  const ratePerSec = getRatePerSec(aiEngine);
   const renderMultiplier = separateRender ? Math.max(1, selectedRatios.length) : 1;
   const videoCost = duration * ratePerSec * renderMultiplier;
   const ttsCost = (isDubEnabled ? selectedDubLangs.length : 0) * 0.3;
@@ -1414,7 +1486,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                   : "text-[var(--ink-secondary)] hover:text-[var(--ink-primary)]"
               }`}
             >
-              <span>✨ Generator Wideo AI (Seedance / Higgsfield)</span>
+              <span>✨ Generator Wideo AI (Seedance 2.5 / Higgsfield)</span>
             </button>
             <button
               type="button"
@@ -1547,8 +1619,10 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                       onChange={(e) => setAiEngine(e.target.value as any)}
                       className="w-full px-3 py-2 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)] font-medium cursor-pointer"
                     >
-                      <option value="seedance">⚡ Seedance 2.0 Fashion</option>
-                      <option value="higgsfield">🌪️ Higgsfield AI</option>
+                      <option value="seedance-2.5-pro">⚡ Seedance 2.5 Pro ($0.22/s)</option>
+                      <option value="seedance-2.5-turbo">🚀 Seedance 2.5 Turbo ($0.14/s)</option>
+                      <option value="seedance-2.5-omni">👁️ Seedance 2.5 Omni ($0.28/s)</option>
+                      <option value="higgsfield-cinema-2.0">🌪️ Higgsfield Cinema 2.0 ($0.26/s)</option>
                     </select>
                   </div>
                   <div>
@@ -1567,9 +1641,46 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-[var(--ink-primary)] block mb-1">
-                    Prompt wideo
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1">
+                    <label className="text-xs font-bold text-[var(--ink-primary)]">
+                      Prompt wideo
+                    </label>
+                    <span className="text-[10px] text-[var(--ink-muted)] font-medium">
+                      Presety asortymentu:
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {GARMENT_PRESETS.map((p) => (
+                      <button
+                        key={p.label}
+                        type="button"
+                        onClick={() => {
+                          setPrompt(p.prompt);
+                          setSpokenVoiceoverScript(p.voiceover);
+                          if (p.cues && p.cues.length > 0) {
+                            setSubtitleCues((prev) =>
+                              prev.map((cue, idx) => {
+                                const target = p.cues[idx % p.cues.length];
+                                return {
+                                  ...cue,
+                                  text: target.text,
+                                  line2: target.line2,
+                                  translations: {
+                                    ...cue.translations,
+                                    PL: { line1: target.text, line2: target.line2 },
+                                  },
+                                };
+                              })
+                            );
+                          }
+                          showToast(`Załadowano preset: ${p.label}`);
+                        }}
+                        className="px-2 py-0.5 rounded-md text-[10px] font-bold border border-[var(--border-subtle)] bg-[var(--bg-subtle)] hover:border-[var(--accent)] hover:text-[var(--accent)] text-[var(--ink-secondary)] transition-all cursor-pointer"
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
                   <textarea
                     rows={3}
                     value={prompt}
@@ -1679,18 +1790,23 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                       <select
                         value={selectedVoice}
                         onChange={(e) => setSelectedVoice(e.target.value)}
-                        className="px-2 py-1.5 rounded-lg text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)]"
+                        className="px-2 py-1.5 rounded-lg text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)]"
                       >
-                        <option value="maja">Maja · Ciepły Editorial</option>
-                        <option value="adam">Adam · Dynamiczny Runway</option>
+                        <option value="maja">Maja · Sinsay Editorial (Ciepły)</option>
+                        <option value="karolina">Karolina · Sinsay Youth (Dynamiczny TikTok)</option>
+                        <option value="adam">Adam · Fashion Runway (Głęboki)</option>
+                        <option value="claire">Claire · International English (Clean)</option>
                       </select>
                       <select
                         value={selectedBgm}
                         onChange={(e) => setSelectedBgm(e.target.value)}
-                        className="px-2 py-1.5 rounded-lg text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)]"
+                        className="px-2 py-1.5 rounded-lg text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)]"
                       >
-                        <option value="runway">Warm Runway House</option>
-                        <option value="none">Bez muzyki</option>
+                        <option value="runway">Warm Runway House (122 BPM)</option>
+                        <option value="lofi">Atelier Lo-Fi Beats (98 BPM)</option>
+                        <option value="groove">Deep Fashion Groove (126 BPM)</option>
+                        <option value="ambient">Minimal Acoustic Ambient (92 BPM)</option>
+                        <option value="none">Bez muzyki (Tylko lektor)</option>
                       </select>
                     </div>
                   </div>
@@ -2438,7 +2554,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {computedScenes.map((scene) => (
+                {computedScenes.map((scene, idx) => (
                   <div
                     key={scene.id}
                     className={`p-3.5 rounded-xl border flex flex-col justify-between transition-all ${
@@ -2500,10 +2616,28 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                       )}
                     </div>
 
-                    <div className="pt-2.5 border-t border-[var(--border-subtle)] mt-2 flex items-center justify-between gap-1.5">
-                      <span className="text-[9px] font-mono text-[var(--ink-muted)] truncate">
-                        PCM: {scene.pcmImage}
-                      </span>
+                    <div className="pt-2.5 border-t border-[var(--border-subtle)] mt-2 flex items-center justify-between gap-1.5 flex-wrap">
+                      <div className="flex items-center gap-1">
+                        <span className="text-[9px] font-mono text-[var(--ink-muted)] truncate max-w-[120px]">
+                          PCM: {productId || "001KR"}_{scene.pcmImage.includes("05") ? scene.pcmImage : (idx === 0 ? "050" : idx === 1 ? "051" : idx === 2 ? "052" : idx === 3 ? "051" : "050")}.jpg
+                        </span>
+                        <select
+                          value={scene.pcmImage.includes("05") ? scene.pcmImage : (idx === 0 ? "050" : idx === 1 ? "051" : idx === 2 ? "052" : idx === 3 ? "051" : "050")}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setScenes((prev) =>
+                              prev.map((s) => (s.id === scene.id ? { ...s, pcmImage: val } : s))
+                            );
+                          }}
+                          className="text-[9px] px-1 py-0.5 rounded bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-[var(--ink-primary)] cursor-pointer"
+                          title="Wybierz ujęcie packshotu PCM"
+                        >
+                          <option value="050">050 Przód</option>
+                          <option value="051">051 Sylwetka</option>
+                          <option value="052">052 Detal tkaniny</option>
+                          <option value="053">053 Tył</option>
+                        </select>
+                      </div>
                       <div className="flex gap-1">
                         <button
                           onClick={() =>
@@ -2518,7 +2652,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                         <button
                           onClick={() =>
                             showToast(
-                              `Przelosowano Scenę ${scene.name.split(" ")[0]} w silniku ${aiEngine.toUpperCase()}.`
+                              `Przelosowano Scenę ${scene.name.split(" ")[0]} w silniku Seedance 2.5 Pro.`
                             )
                           }
                           className="px-2 py-0.5 rounded text-[10px] font-bold border bg-[var(--bg-card)] hover:border-[var(--accent)] text-[var(--accent)] cursor-pointer"

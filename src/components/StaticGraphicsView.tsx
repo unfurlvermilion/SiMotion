@@ -54,7 +54,7 @@ export const StaticGraphicsView: React.FC<StaticGraphicsViewProps> = ({
   const [textYPercent, setTextYPercent] = useState<number>(76); // 10% - 90%
   const [textAlign, setTextAlign] = useState<"left" | "center" | "right">("left");
   const [fontSizeScale, setFontSizeScale] = useState<number>(1.0); // 0.6 to 1.5
-  const [brandTagText, setBrandTagText] = useState<string>("SINSAY / ATELIER 2026");
+  const [brandTagText, setBrandTagText] = useState<string>("SINSAY / NEW ARRIVALS");
   const [showBrandTag, setShowBrandTag] = useState<boolean>(true);
 
   // Markets selection for multi-language ZIP export
@@ -883,6 +883,30 @@ export const StaticGraphicsView: React.FC<StaticGraphicsViewProps> = ({
                 ))}
               </div>
             </div>
+          </div>
+
+          {/* Brand Tag Controls */}
+          <div className="pt-2 border-t border-[var(--border-subtle)] space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-[var(--ink-primary)]">
+                Górny stempel / tag marki
+              </label>
+              <input
+                type="checkbox"
+                checked={showBrandTag}
+                onChange={(e) => setShowBrandTag(e.target.checked)}
+                className="w-4 h-4 accent-[#c84b31] cursor-pointer"
+              />
+            </div>
+            {showBrandTag && (
+              <input
+                type="text"
+                value={brandTagText}
+                onChange={(e) => setBrandTagText(e.target.value)}
+                placeholder="np. SINSAY / SS26, SINSAY KIDS..."
+                className="w-full px-3 py-1.5 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)] font-bold uppercase font-sinsay"
+              />
+            )}
           </div>
         </div>
         </div>

@@ -20,9 +20,9 @@ interface IntegrationConfig {
 
 const DEFAULT_CONFIG: IntegrationConfig = {
   mode: "sandbox",
-  seedanceApiKey: "sk_demo_seedance_2_mock",
-  seedanceModel: "seedance-2.0-pro-fashion",
-  seedanceEndpoint: "https://api.seedance.ai/v2/generate",
+  seedanceApiKey: "sk_demo_seedance_25_mock",
+  seedanceModel: "seedance-2.5-pro",
+  seedanceEndpoint: "https://api.seedance.ai/v2.5/generate",
   elevenLabsApiKey: "xi_demo_elevenlabs_mock",
   elevenLabsVoiceId: "21m00Tcm4TlvDq8ikWAM",
   elevenLabsTimestamps: true,
@@ -188,7 +188,7 @@ export default function IntegrationsView() {
         {/* Navigation Tabs */}
         <div className="space-y-2">
           {[
-            { id: "video", label: "Silnik Wideo AI", desc: "Seedance 2.0 / Higgsfield" },
+            { id: "video", label: "Silnik Wideo AI", desc: "Seedance 2.5 / Higgsfield" },
             { id: "audio", label: "Audio & TTS", desc: "ElevenLabs z word timestamps" },
             { id: "pcm", label: "Katalog PCM", desc: "Zdjęcia packshotowe & SKU" },
             { id: "excel", label: "Excel Online", desc: "Microsoft Graph API dwukierunkowo" },
@@ -229,7 +229,7 @@ export default function IntegrationsView() {
                     Konfiguracja Silnika Generacji Wideo AI
                   </h3>
                   <p className="text-xs text-[#655a53] dark:text-[#b8aea4]">
-                    Adapter Seedance 2.0 oraz Higgsfield z automatycznym Smart Cropem 9:16 do 4:5 i 1:1.
+                    Adapter Seedance 2.5 oraz Higgsfield z automatycznym Smart Cropem 9:16 do 4:5 i 1:1.
                   </p>
                 </div>
                 <button
@@ -256,11 +256,18 @@ export default function IntegrationsView() {
                     }
                     className="w-full px-3 py-2 rounded-lg border border-[#dfd5c6] dark:border-[#38302b] bg-[#faf7f2] dark:bg-[#1a1714] text-[#1c1816] dark:text-[#f7f3ec]"
                   >
-                    <option value="seedance-2.0-pro-fashion">
-                      Seedance 2.0 Pro (Fashion & Fabric Dynamics)
+                    <option value="seedance-2.5-pro">
+                      ⚡ Seedance 2.5 Pro (Fashion & Fabric Dynamics - Flagowy)
                     </option>
-                    <option value="seedance-2.0-fast">Seedance 2.0 Turbo (Fast Drafts)</option>
-                    <option value="higgsfield-motion-1.5">Higgsfield Motion 1.5</option>
+                    <option value="seedance-2.5-turbo">
+                      🚀 Seedance 2.5 Turbo (Szybkie wersje robocze)
+                    </option>
+                    <option value="seedance-2.5-omni">
+                      👁️ Seedance 2.5 Omni Multimodal (Video-to-Video & Camera)
+                    </option>
+                    <option value="higgsfield-cinema-2.0">
+                      🌪️ Higgsfield Cinema 2.0 (High Motion Studio)
+                    </option>
                   </select>
                 </div>
 

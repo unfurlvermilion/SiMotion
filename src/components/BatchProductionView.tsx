@@ -73,11 +73,13 @@ export default function BatchProductionView() {
   const [filterMarket, setFilterMarket] = useState<string>("ALL");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [lastSharePointSync, setLastSharePointSync] = useState<string>("");
-  const [logMessages, setLogMessages] = useState<string[]>([
-    "[10:00:12] Zainicjalizowano kolejkę wsadową SiMotion",
-    "[10:00:15] Zaimportowano 4 pozycje MDK ze skoroszytu SharePoint Excel Online",
-    "[10:01:02] Zakończono generowanie 15 wariantów dla MDK: 001KR-83X",
-  ]);
+  const [logMessages, setLogMessages] = useState<string[]>(() => {
+    const t = new Date().toLocaleTimeString("pl-PL");
+    return [
+      `[${t}] Zainicjalizowano kolejkę wsadową SiMotion`,
+      `[${t}] Gotowość do importu arkusza CSV / Excel lub synchronizacji z SharePoint`,
+    ];
+  });
 
   const addLog = (msg: string) => {
     const time = new Date().toLocaleTimeString("pl-PL");
@@ -167,6 +169,11 @@ export default function BatchProductionView() {
     addLog("Wstrzymano kolejkę wsadową");
   };
 
+  const handleClearBatch = () => {
+    setItems([]);
+    addLog("Wyczyszczono listę zadań w kolejce.");
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -179,13 +186,13 @@ export default function BatchProductionView() {
       const newItems: BatchItem[] = [];
       lines.slice(1).forEach((line, idx) => {
         const parts = line.split(/[,;\t]/).map((p) => p.trim());
-        if (parts.length >= 2) {
+        if (parts.length >= 1 && parts[0]) {
           newItems.push({
             id: `upload-${Date.now()}-${idx}`,
-            mdk: parts[0] || `MDK-${100 + idx}`,
-            name: parts[1] || "Produkt z pliku CSV",
-            category: parts[2] || "Kolekcja Kapsułowa",
-            markets: parts[3] ? parts[3].split("+") : ["PL", "DE"],
+            mdk: parts[0],
+            name: parts[1] || `Produkt ${parts[0]}`,
+            category: parts[2] || "Kolekcja Sinsay",
+            markets: parts[3] ? parts[3].split(/[+/|]/).map(s => s.trim()) : ["PL", "RO", "CZ", "DE"],
             formats: ["9:16", "4:5", "1:1"],
             pcmStatus: "ready",
             qaStatus: "passed",
@@ -196,7 +203,7 @@ export default function BatchProductionView() {
       });
 
       if (newItems.length > 0) {
-        setItems((prev) => [...newItems, ...prev]);
+        setItems(newItems);
         addLog(`Pomyślnie zaimportowano ${newItems.length} nowych pozycji z pliku ${file.name}`);
       } else {
         addLog(`Załadowano plik ${file.name}. Użyj formatu: MDK,Nazwa,Kategoria,Rynki`);
@@ -366,6 +373,13 @@ export default function BatchProductionView() {
           >
             + Przykładowy CSV
           </button>
+          <button
+            onClick={handleClearBatch}
+            className="px-3 py-2 text-xs font-medium rounded-lg border border-[#dfd5c6] dark:border-[#38302b] bg-white dark:bg-[#211d1a] hover:bg-[#faf7f2] dark:hover:bg-[#292420] text-[#655a53] dark:text-[#b8aea4] hover:text-[#c84b31] transition-colors"
+            title="Wyczyść kolejkę zadań"
+          >
+            🗑️ Wyczyść
+          </button>
           {completedItems > 0 && (
             <button
               onClick={handleExportBatchZip}
@@ -446,7 +460,7 @@ export default function BatchProductionView() {
             {isProcessing ? "Przetwarzanie..." : "Gotowa do startu"}
           </p>
           <p className="text-xs text-[#655a53] dark:text-[#b8aea4] mt-1">
-            Silnik: Seedance 2.0 + ElevenLabs
+            Silnik: Seedance 2.5 Pro + ElevenLabs
           </p>
         </div>
       </div>

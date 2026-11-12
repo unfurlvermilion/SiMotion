@@ -91,7 +91,7 @@ export const LocalizationView: React.FC<LocalizationViewProps> = ({
   const [filterStatus, setFilterStatus] = useState<"all" | "warning" | "ok">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isProcessingFile, setIsProcessingFile] = useState(false);
-  const [loadedFileName, setLoadedFileName] = useState<string>("Sinsay_Translations_Atelier.xlsx");
+  const [loadedFileName, setLoadedFileName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Character length check
@@ -425,7 +425,7 @@ export const LocalizationView: React.FC<LocalizationViewProps> = ({
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-bold text-[var(--ink-primary)]">
-              Plik: <b className="text-[var(--accent)]">{loadedFileName}</b> ({rows.length} haseł)
+              Plik: <b className="text-[var(--accent)]">{loadedFileName || "Szablon haseł CEE (wgraj własny .xlsx)"}</b> ({rows.length} haseł)
             </span>
             {warningCount > 0 && (
               <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-500/15 text-rose-500 border border-rose-500/30">
