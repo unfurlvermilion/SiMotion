@@ -3,6 +3,7 @@
 import React, { useState, useRef } from "react";
 import JSZip from "jszip";
 import { SINSAY_MARKETS } from "./SinsayPhraseAssistant";
+import { burnSubtitlesToVideo, getVideoExtension } from "@/lib/videoSubtitleBurner";
 
 export interface ExportFileItem {
   id: string;
@@ -347,10 +348,16 @@ export default function ExportView({
             `3\n00:00:05,300 --> 00:00:09,500\nSinsay · Oficjalna kolekcja 2026\n`;
           rootFolder.file(`${folderPath}${file.filename}`, srtData);
         } else if (file.type === "image") {
-          // Generate an actual PNG Canvas image rendering the specific language translation
+          // Generate an actual PNG Canvas image matching exact format aspect ratio
           const canvas = document.createElement("canvas");
           canvas.width = file.format.includes("3:4") ? 1080 : 1080;
-          canvas.height = file.format.includes("3:4") ? 1440 : 1080;
+          canvas.height = file.format.includes("9:16")
+            ? 1920
+            : file.format.includes("3:4")
+            ? 1440
+            : file.format.includes("4:5")
+            ? 1350
+            : 1080;
           const ctx = canvas.getContext("2d");
           if (ctx) {
             ctx.fillStyle = "#1a1714";
@@ -380,9 +387,52 @@ export default function ExportView({
             }
           }
         } else {
-          // Video File: pack real MP4 video data into archive
-          if (defaultVideoBlob) {
-            rootFolder.file(`${folderPath}${file.filename}`, defaultVideoBlob);
+          // Video File: crop sample video into exact target aspect ratio
+          const targetRatio: "9:16" | "3:4" | "4:5" | "1:1" = file.format.includes("3:4")
+            ? "3:4"
+            : file.format.includes("4:5")
+            ? "4:5"
+            : file.format.includes("1:1")
+            ? "1:1"
+            : "9:16";
+
+          const langHeadline =
+            staticTexts[file.language]?.headline ||
+            staticTexts["PL"]?.headline ||
+            "";
+
+          let videoBlobToPack: Blob | null = defaultVideoBlob;
+          let targetFilename = file.filename;
+          try {
+            const cropped = await burnSubtitlesToVideo({
+              videoSrc: "/preview/sample_atelier_9x16.mp4",
+              targetRatio,
+              cropOffsetPercent: 0,
+              cues: langHeadline
+                ? [{ startSec: 0, endSec: 10, text: langHeadline }]
+                : [],
+              captionConfig: {
+                yPercent: 64,
+                font: "euclid",
+                weight: "bold",
+                style: "pill",
+                size: "base",
+              },
+              playbackSpeed: 3.0,
+              logoOutro: {
+                imageSrc: "/brand/logo_anim/biale/logo_outro_all_WH.gif",
+                durationSec: 1.5,
+              },
+            });
+            videoBlobToPack = cropped;
+            const ext = getVideoExtension(cropped);
+            targetFilename = file.filename.replace(/\.(mp4|webm|mov)$/i, `.${ext}`);
+          } catch (cropErr) {
+            console.warn(`Fallback to raw video for ${file.filename}:`, cropErr);
+          }
+
+          if (videoBlobToPack) {
+            rootFolder.file(`${folderPath}${targetFilename}`, videoBlobToPack);
           }
 
           // Video metadata spec container
@@ -394,7 +444,7 @@ export default function ExportView({
             `Kampania:          ${campaignName}\n` +
             `Format wideo:      ${file.format}\n` +
             `Język audio/napis: ${file.language}\n` +
-            `Wymiary / Kadr:    ${file.format.includes("9:16") ? "1080x1920 (Pion TikTok)" : file.format.includes("4:5") ? "1080x1350 (Meta Feed)" : "1080x1080 (Kwadrat)"}\n` +
+            `Wymiary / Kadr:    ${file.format.includes("9:16") ? "1080x1920 (Pion TikTok)" : file.format.includes("3:4") ? "1440x1920 (Master 3:4)" : file.format.includes("4:5") ? "1080x1350 (Meta Feed)" : "1080x1080 (Kwadrat)"}\n` +
             `Typografia:        Euclid Circular B (LPP SA Official)\n` +
             `Logo Outro:        Brand Kit Sinsay (z kanałem alfa / gif)\n` +
             `Data eksportu:     ${new Date().toISOString()}\n`;

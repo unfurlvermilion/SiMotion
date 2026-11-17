@@ -34,6 +34,10 @@ const DEFAULT_RESOLUTIONS: Record<string, { width: number; height: number }> = {
   "1:1": { width: 1080, height: 1080 },  // Square Catalog
 };
 
+export function getVideoExtension(blob: Blob): "mp4" | "webm" {
+  return blob.type && blob.type.toLowerCase().includes("webm") ? "webm" : "mp4";
+}
+
 export async function burnSubtitlesToVideo(options: BurnSubtitlesOptions): Promise<Blob> {
   const {
     videoSrc,
@@ -65,7 +69,8 @@ export async function burnSubtitlesToVideo(options: BurnSubtitlesOptions): Promi
     }
 
     video.onloadedmetadata = () => {
-      const totalDur = options.durationSec || video.duration || 10;
+      const actualVideoDur = isFinite(video.duration) && video.duration > 0 ? video.duration : 10;
+      const totalDur = options.durationSec ? Math.min(options.durationSec, actualVideoDur) : actualVideoDur;
       const canvas = document.createElement("canvas");
       canvas.width = targetResolution.width;
       canvas.height = targetResolution.height;
@@ -170,7 +175,7 @@ export async function burnSubtitlesToVideo(options: BurnSubtitlesOptions): Promi
           const l1 = activeCue.text || "";
           const l2 = activeCue.line2 || "";
 
-          const scale = canvas.height / 1920;
+          const scale = Math.min(1.15, canvas.width / 1080);
           let baseFontSize = 46 * scale;
           if (captionConfig.size === "sm") baseFontSize = 36 * scale;
           if (captionConfig.size === "lg") baseFontSize = 58 * scale;
@@ -193,14 +198,23 @@ export async function burnSubtitlesToVideo(options: BurnSubtitlesOptions): Promi
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
 
-          const paddingX = 42 * scale;
-          const paddingY = 24 * scale;
+          const maxTextWidth = canvas.width * 0.84;
+          const m1Raw = ctx.measureText(l1);
+          const m2Raw = l2 ? ctx.measureText(l2) : { width: 0 };
+          const rawMaxWidth = Math.max(m1Raw.width, m2Raw.width);
+          if (rawMaxWidth > maxTextWidth && rawMaxWidth > 0) {
+            baseFontSize = baseFontSize * (maxTextWidth / rawMaxWidth);
+            ctx.font = `${fontWeight} ${baseFontSize}px ${fontFamily}`;
+          }
+
+          const paddingX = 42 * (baseFontSize / 46);
+          const paddingY = 24 * (baseFontSize / 46);
           const lineSpacing = baseFontSize * 1.25;
 
           const m1 = ctx.measureText(l1);
           const m2 = l2 ? ctx.measureText(l2) : { width: 0 };
           const textWidth = Math.max(m1.width, m2.width);
-          const boxWidth = textWidth + paddingX * 2;
+          const boxWidth = Math.min(canvas.width * 0.94, textWidth + paddingX * 2);
           const boxHeight = (l2 ? lineSpacing * 2 : lineSpacing) + paddingY * 1.1;
 
           const yCenter = (canvas.height * captionConfig.yPercent) / 100;
@@ -258,7 +272,8 @@ export async function burnSubtitlesToVideo(options: BurnSubtitlesOptions): Promi
         }
 
         // 3. Draw Logo Outro if enabled and within last seconds
-        if (outroImg && outroImg.complete && logoOutro && t >= Math.max(0, totalDur - logoOutro.durationSec)) {
+        const effectiveOutroDur = logoOutro ? Math.min(logoOutro.durationSec, totalDur * 0.45) : 0;
+        if (outroImg && outroImg.complete && logoOutro && t >= Math.max(0, totalDur - effectiveOutroDur)) {
           ctx.save();
           ctx.fillStyle = "rgba(0, 0, 0, 0.90)";
           ctx.fillRect(0, 0, canvas.width, canvas.height);

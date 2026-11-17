@@ -5,7 +5,7 @@ import JSZip from "jszip";
 import SinsayPhraseAssistant, { SINSAY_MARKETS, SinsayMatchItem } from "./SinsayPhraseAssistant";
 import AnimatedLogoModal, { SelectedLogoConfig, LOGO_VARIANTS } from "./AnimatedLogoModal";
 import { SocialSafeAreaOverlay } from "./SocialSafeAreaOverlay";
-import { burnSubtitlesToVideo } from "@/lib/videoSubtitleBurner";
+import { burnSubtitlesToVideo, getVideoExtension } from "@/lib/videoSubtitleBurner";
 
 export interface StoryboardScene {
   id: string;
@@ -338,6 +338,28 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
   const [burnProgress, setBurnProgress] = useState<number>(0);
   const [burnStatus, setBurnStatus] = useState<string>("");
 
+  const buildCuesForLang = (lang: string) => {
+    if (!isSubtitlesEnabled) return [];
+    if (subtitleMode === "static") {
+      const cap = videoCaptions[lang] || videoCaptions["ENG"] || videoCaptions["PL"] || { line1: "", line2: "" };
+      if (!cap.line1 && !cap.line2) return [];
+      return [
+        {
+          startSec: 0,
+          endSec: Math.max(duration, 10),
+          text: cap.line1,
+          line2: cap.line2 || "",
+        },
+      ];
+    }
+    return subtitleCues.map((c) => ({
+      startSec: c.startSec,
+      endSec: c.endSec,
+      text: c.translations?.[lang]?.line1 || c.translations?.["ENG"]?.line1 || c.text,
+      line2: c.translations?.[lang]?.line2 || c.translations?.["ENG"]?.line2 || c.line2 || "",
+    }));
+  };
+
   const handleBurnAndDownloadSingleVideo = async (ratio: "9:16" | "3:4" | "4:5" | "1:1" = "9:16") => {
     if (!videoFile) {
       showToast("Wgraj plik wideo lub wybierz wideo z sesji, aby wypalić napisy.");
@@ -349,12 +371,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
     setBurnStatus("Inicjalizacja silnika renderującego klatki...");
 
     try {
-      const mappedCues = subtitleCues.map((c) => ({
-        startSec: c.startSec,
-        endSec: c.endSec,
-        text: c.translations?.[previewLang]?.line1 || c.text,
-        line2: c.translations?.[previewLang]?.line2 || c.line2 || "",
-      }));
+      const mappedCues = buildCuesForLang(previewLang);
 
       const blob = await burnSubtitlesToVideo({
         videoSrc: videoFile,
@@ -732,32 +749,32 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
           const ratioSpecs: Array<{
             key: string;
             targetRatio: "3:4" | "9:16" | "4:5" | "1:1";
-            cleanName: string;
-            marketName: (lang: string) => string;
+            cleanBase: string;
+            marketBase: (lang: string) => string;
           }> = [
             {
               key: "3x4",
               targetRatio: "3:4",
-              cleanName: "00_Master_3x4_Clean.mp4",
-              marketName: (lang) => `00_Master_3x4_${lang}.mp4`,
+              cleanBase: "00_Master_3x4_Clean",
+              marketBase: (lang) => `00_Master_3x4_${lang}`,
             },
             {
               key: "9x16",
               targetRatio: "9:16",
-              cleanName: "01_Vertical_9x16_TikTok_Clean.mp4",
-              marketName: (lang) => `01_Vertical_9x16_TikTok_${lang}_Napisy_Wypalone.mp4`,
+              cleanBase: "01_Vertical_9x16_TikTok_Clean",
+              marketBase: (lang) => `01_Vertical_9x16_TikTok_${lang}_Napisy_Wypalone`,
             },
             {
               key: "4x5",
               targetRatio: "4:5",
-              cleanName: "02_Feed_4x5_IG_Clean.mp4",
-              marketName: (lang) => `02_Feed_4x5_${lang}.mp4`,
+              cleanBase: "02_Feed_4x5_IG_Clean",
+              marketBase: (lang) => `02_Feed_4x5_${lang}`,
             },
             {
               key: "1x1",
               targetRatio: "1:1",
-              cleanName: "03_Square_1x1_Catalog_Clean.mp4",
-              marketName: (lang) => `03_Square_1x1_${lang}.mp4`,
+              cleanBase: "03_Square_1x1_Catalog_Clean",
+              marketBase: (lang) => `03_Square_1x1_${lang}`,
             },
           ];
 
@@ -777,7 +794,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
           // 00: Czyste formaty bez napisów — renderujemy każdy wybrany format w jego docelowych proporcjach
           const cleanBlobs: Record<string, Blob> = {};
           for (const spec of specsToRender) {
-            setBurnStatus(`Kadrowanie czystego mastera ${spec.targetRatio} (${spec.cleanName})...`);
+            setBurnStatus(`Kadrowanie czystego mastera ${spec.targetRatio} (${spec.cleanBase})...`);
             try {
               const croppedBlob = await burnSubtitlesToVideo({
                 videoSrc: videoFile,
@@ -805,11 +822,12 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                 },
               });
               cleanBlobs[spec.key] = croppedBlob;
-              root.file(`00_Czyste_Bez_Napisow/${spec.cleanName}`, croppedBlob);
+              const ext = getVideoExtension(croppedBlob);
+              root.file(`00_Czyste_Bez_Napisow/${spec.cleanBase}.${ext}`, croppedBlob);
             } catch (cleanErr) {
               console.warn(`Błąd kadrowania czystego formatu ${spec.targetRatio}:`, cleanErr);
               cleanBlobs[spec.key] = vBlob;
-              root.file(`00_Czyste_Bez_Napisow/${spec.cleanName}`, vBlob);
+              root.file(`00_Czyste_Bez_Napisow/${spec.cleanBase}.mp4`, vBlob);
             }
             completedSteps++;
             setBurnProgress(Math.round((completedSteps / totalSteps) * 100));
@@ -820,13 +838,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
             for (let i = 0; i < selectedTextLangs.length; i++) {
               const lang = selectedTextLangs[i];
               const langFolder = `01_Wersje_Rynkowe_Z_Napisami/${lang}`;
-
-              const marketCues = subtitleCues.map((c) => ({
-                startSec: c.startSec,
-                endSec: c.endSec,
-                text: c.translations?.[lang]?.line1 || c.translations?.["ENG"]?.line1 || c.text,
-                line2: c.translations?.[lang]?.line2 || c.translations?.["ENG"]?.line2 || c.line2 || "",
-              }));
+              const marketCues = buildCuesForLang(lang);
 
               for (const spec of specsToRender) {
                 setBurnStatus(
@@ -858,10 +870,13 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                       setBurnProgress(overall);
                     },
                   });
-                  root.file(`${langFolder}/${spec.marketName(lang)}`, burnedBlob);
+                  const ext = getVideoExtension(burnedBlob);
+                  root.file(`${langFolder}/${spec.marketBase(lang)}.${ext}`, burnedBlob);
                 } catch (burnErr) {
                   console.warn(`Błąd wypalania dla ${lang} (${spec.targetRatio}):`, burnErr);
-                  root.file(`${langFolder}/${spec.marketName(lang)}`, cleanBlobs[spec.key] || vBlob);
+                  const fallbackBlob = cleanBlobs[spec.key] || vBlob;
+                  const ext = getVideoExtension(fallbackBlob);
+                  root.file(`${langFolder}/${spec.marketBase(lang)}.${ext}`, fallbackBlob);
                 }
                 completedSteps++;
                 setBurnProgress(Math.round((completedSteps / totalSteps) * 100));

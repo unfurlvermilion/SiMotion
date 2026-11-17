@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import JSZip from "jszip";
+import { burnSubtitlesToVideo, getVideoExtension } from "@/lib/videoSubtitleBurner";
 
 interface BatchItem {
   id: string;
@@ -308,8 +309,8 @@ export default function BatchProductionView() {
         if (vRes.ok) masterVideoBlob = await vRes.blob();
       } catch (e) {}
 
-      // 3. Add each item's folder with real MP4 video, SRT subtitles and render specs
-      doneItems.forEach((it) => {
+      // 3. Add each item's folder with cropped real video files per format, SRT subtitles and render specs
+      for (const it of doneItems) {
         const itemFolder = root.folder(it.mdk) || root;
         const info = {
           mdk: it.mdk,
@@ -323,9 +324,45 @@ export default function BatchProductionView() {
         };
         itemFolder.file("item_manifest.json", JSON.stringify(info, null, 2));
 
-        // Real MP4 Video File
-        if (masterVideoBlob) {
-          itemFolder.file(`${it.mdk}_video_9x16_master.mp4`, masterVideoBlob);
+        // Render real cropped video files for every format in item.formats
+        const formatsToRender = it.formats.length > 0 ? it.formats : ["9:16"];
+        for (const fmt of formatsToRender) {
+          const ratio: "9:16" | "3:4" | "4:5" | "1:1" = fmt.includes("3:4")
+            ? "3:4"
+            : fmt.includes("4:5")
+            ? "4:5"
+            : fmt.includes("1:1")
+            ? "1:1"
+            : "9:16";
+          const ratioTag = ratio.replace(":", "x");
+          try {
+            const croppedBlob = await burnSubtitlesToVideo({
+              videoSrc: "/preview/sample_atelier_9x16.mp4",
+              targetRatio: ratio,
+              cropOffsetPercent: 0,
+              cues: [
+                { startSec: 0, endSec: 2.5, text: it.name, line2: "Sinsay · Nowa kolekcja" },
+              ],
+              captionConfig: {
+                yPercent: 64,
+                font: "euclid",
+                weight: "bold",
+                style: "pill",
+                size: "base",
+              },
+              playbackSpeed: 3.0,
+              logoOutro: {
+                imageSrc: "/brand/logo_anim/biale/logo_outro_all_WH.gif",
+                durationSec: 1.5,
+              },
+            });
+            const ext = getVideoExtension(croppedBlob);
+            itemFolder.file(`${it.mdk}_video_${ratioTag}.${ext}`, croppedBlob);
+          } catch (cropErr) {
+            if (masterVideoBlob) {
+              itemFolder.file(`${it.mdk}_video_${ratioTag}.mp4`, masterVideoBlob);
+            }
+          }
         }
 
         // SRT subtitles for each market
@@ -337,9 +374,9 @@ export default function BatchProductionView() {
         // 3 formats specs
         itemFolder.file(
           "video_specs.txt",
-          `Warianty wideo dla ${it.mdk}:\n- 9:16 (TikTok/Reels)\n- 4:5 (Meta Feed Smart Crop)\n- 1:1 (Kwadrat)\nFont napisów: Euclid Circular B\nLogo Outro: Sinsay After Effects\n`
+          `Warianty wideo dla ${it.mdk}:\n- 9:16 (TikTok/Reels 1080x1920)\n- 4:5 (Meta Feed Smart Crop 1080x1350)\n- 1:1 (Kwadrat 1080x1080)\nFont napisów: Euclid Circular B\nLogo Outro: Sinsay After Effects\n`
         );
-      });
+      }
 
       // 4. Add Brand Kit animated logo asset
       try {
