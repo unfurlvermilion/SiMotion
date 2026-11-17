@@ -729,25 +729,98 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
           const vRes = await fetch(videoFile);
           const vBlob = await vRes.blob();
 
-          // 00: Czyste formaty bez napisów (do montażu i archiwum)
-          root.file("00_Czyste_Bez_Napisow/00_Master_3x4_Clean.mp4", vBlob);
-          root.file("00_Czyste_Bez_Napisow/01_Vertical_9x16_TikTok_Clean.mp4", vBlob);
-          root.file("00_Czyste_Bez_Napisow/02_Feed_4x5_IG_Clean.mp4", vBlob);
-          root.file("00_Czyste_Bez_Napisow/03_Square_1x1_Catalog_Clean.mp4", vBlob);
+          const ratioSpecs: Array<{
+            key: string;
+            targetRatio: "3:4" | "9:16" | "4:5" | "1:1";
+            cleanName: string;
+            marketName: (lang: string) => string;
+          }> = [
+            {
+              key: "3x4",
+              targetRatio: "3:4",
+              cleanName: "00_Master_3x4_Clean.mp4",
+              marketName: (lang) => `00_Master_3x4_${lang}.mp4`,
+            },
+            {
+              key: "9x16",
+              targetRatio: "9:16",
+              cleanName: "01_Vertical_9x16_TikTok_Clean.mp4",
+              marketName: (lang) => `01_Vertical_9x16_TikTok_${lang}_Napisy_Wypalone.mp4`,
+            },
+            {
+              key: "4x5",
+              targetRatio: "4:5",
+              cleanName: "02_Feed_4x5_IG_Clean.mp4",
+              marketName: (lang) => `02_Feed_4x5_${lang}.mp4`,
+            },
+            {
+              key: "1x1",
+              targetRatio: "1:1",
+              cleanName: "03_Square_1x1_Catalog_Clean.mp4",
+              marketName: (lang) => `03_Square_1x1_${lang}.mp4`,
+            },
+          ];
 
-          // 01: Wersje rynkowe z automatycznie wypalonymi napisami per rynek
+          const activeSpecs = ratioSpecs.filter((r) => selectedRatios.includes(r.key));
+          const specsToRender = activeSpecs.length > 0 ? activeSpecs : [ratioSpecs[1]];
+
+          setIsBurningVideo(true);
+          setBurnProgress(0);
+
+          const totalSteps =
+            specsToRender.length +
+            (isSubtitlesEnabled && selectedTextLangs.length > 0
+              ? selectedTextLangs.length * specsToRender.length
+              : 0);
+          let completedSteps = 0;
+
+          // 00: Czyste formaty bez napisów — renderujemy każdy wybrany format w jego docelowych proporcjach
+          const cleanBlobs: Record<string, Blob> = {};
+          for (const spec of specsToRender) {
+            setBurnStatus(`Kadrowanie czystego mastera ${spec.targetRatio} (${spec.cleanName})...`);
+            try {
+              const croppedBlob = await burnSubtitlesToVideo({
+                videoSrc: videoFile,
+                targetRatio: spec.targetRatio,
+                cropOffsetPercent: cropOffset,
+                cues: [],
+                captionConfig: {
+                  yPercent: captionYPercent,
+                  font: captionFont,
+                  weight: captionWeight,
+                  style: captionStyle,
+                  size: captionSize,
+                },
+                durationSec: duration,
+                playbackSpeed: 3.0,
+                logoOutro: isLogoOutroEnabled
+                  ? {
+                      imageSrc: selectedLogo.gifPath,
+                      durationSec: selectedLogo.durationSec,
+                    }
+                  : undefined,
+                onProgress: (subPct) => {
+                  const overall = Math.round(((completedSteps + subPct / 100) / totalSteps) * 100);
+                  setBurnProgress(overall);
+                },
+              });
+              cleanBlobs[spec.key] = croppedBlob;
+              root.file(`00_Czyste_Bez_Napisow/${spec.cleanName}`, croppedBlob);
+            } catch (cleanErr) {
+              console.warn(`Błąd kadrowania czystego formatu ${spec.targetRatio}:`, cleanErr);
+              cleanBlobs[spec.key] = vBlob;
+              root.file(`00_Czyste_Bez_Napisow/${spec.cleanName}`, vBlob);
+            }
+            completedSteps++;
+            setBurnProgress(Math.round((completedSteps / totalSteps) * 100));
+          }
+
+          // 01: Wersje rynkowe z automatycznie wypalonymi napisami per rynek i per format
           if (isSubtitlesEnabled && selectedTextLangs.length > 0) {
-            setIsBurningVideo(true);
-            setBurnProgress(0);
-
             for (let i = 0; i < selectedTextLangs.length; i++) {
               const lang = selectedTextLangs[i];
               const langFolder = `01_Wersje_Rynkowe_Z_Napisami/${lang}`;
-              const basePct = Math.round((i / selectedTextLangs.length) * 100);
-              setBurnProgress(basePct);
-              setBurnStatus(`[${i + 1}/${selectedTextLangs.length}] Wypalanie napisów dla rynku: ${lang} (9:16 TikTok)...`);
 
-              // Pobierz przetłumaczone kwestie dla danego rynku z matrycy
               const marketCues = subtitleCues.map((c) => ({
                 startSec: c.startSec,
                 endSec: c.endSec,
@@ -755,52 +828,56 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                 line2: c.translations?.[lang]?.line2 || c.translations?.["ENG"]?.line2 || c.line2 || "",
               }));
 
-              try {
-                // Wypal wideo 9:16 z napisami dla danego rynku przy 2.5x przyspieszeniu renderu
-                const burned916Blob = await burnSubtitlesToVideo({
-                  videoSrc: videoFile,
-                  targetRatio: "9:16",
-                  cropOffsetPercent: cropOffset,
-                  cues: marketCues,
-                  captionConfig: {
-                    yPercent: captionYPercent,
-                    font: captionFont,
-                    weight: captionWeight,
-                    style: captionStyle,
-                    size: captionSize,
-                  },
-                  durationSec: duration,
-                  playbackSpeed: 2.5,
-                  logoOutro: isLogoOutroEnabled
-                    ? {
-                        imageSrc: selectedLogo.gifPath,
-                        durationSec: selectedLogo.durationSec,
-                      }
-                    : undefined,
-                  onProgress: (subPct) => {
-                    const overall = Math.round(((i + subPct / 100) / selectedTextLangs.length) * 100);
-                    setBurnProgress(overall);
-                  },
-                });
-
-                // Zapisz faktycznie wypalony plik wideo w folderze rynku
-                root.file(`${langFolder}/01_Vertical_9x16_TikTok_${lang}_Napisy_Wypalone.mp4`, burned916Blob);
-                root.file(`${langFolder}/00_Master_3x4_${lang}.mp4`, vBlob);
-                root.file(`${langFolder}/02_Feed_4x5_${lang}.mp4`, vBlob);
-                root.file(`${langFolder}/03_Square_1x1_${lang}.mp4`, vBlob);
-
-                if (srtMap[lang]) {
-                  root.file(`${langFolder}/napisy_${lang.toLowerCase()}.srt`, srtMap[lang].srt);
-                  root.file(`${langFolder}/napisy_${lang.toLowerCase()}.vtt`, srtMap[lang].vtt);
+              for (const spec of specsToRender) {
+                setBurnStatus(
+                  `[${i + 1}/${selectedTextLangs.length}] Wypalanie ${lang} (${spec.targetRatio})...`
+                );
+                try {
+                  const burnedBlob = await burnSubtitlesToVideo({
+                    videoSrc: videoFile,
+                    targetRatio: spec.targetRatio,
+                    cropOffsetPercent: cropOffset,
+                    cues: marketCues,
+                    captionConfig: {
+                      yPercent: captionYPercent,
+                      font: captionFont,
+                      weight: captionWeight,
+                      style: captionStyle,
+                      size: captionSize,
+                    },
+                    durationSec: duration,
+                    playbackSpeed: 3.0,
+                    logoOutro: isLogoOutroEnabled
+                      ? {
+                          imageSrc: selectedLogo.gifPath,
+                          durationSec: selectedLogo.durationSec,
+                        }
+                      : undefined,
+                    onProgress: (subPct) => {
+                      const overall = Math.round(((completedSteps + subPct / 100) / totalSteps) * 100);
+                      setBurnProgress(overall);
+                    },
+                  });
+                  root.file(`${langFolder}/${spec.marketName(lang)}`, burnedBlob);
+                } catch (burnErr) {
+                  console.warn(`Błąd wypalania dla ${lang} (${spec.targetRatio}):`, burnErr);
+                  root.file(`${langFolder}/${spec.marketName(lang)}`, cleanBlobs[spec.key] || vBlob);
                 }
-              } catch (burnErr) {
-                console.warn(`Błąd wypalania dla ${lang}:`, burnErr);
-                root.file(`${langFolder}/01_Vertical_9x16_TikTok_${lang}.mp4`, vBlob);
+                completedSteps++;
+                setBurnProgress(Math.round((completedSteps / totalSteps) * 100));
+              }
+
+              if (srtMap[lang]) {
+                root.file(`${langFolder}/napisy_${lang.toLowerCase()}.srt`, srtMap[lang].srt);
+                root.file(`${langFolder}/napisy_${lang.toLowerCase()}.vtt`, srtMap[lang].vtt);
               }
             }
 
             setBurnProgress(100);
-            setBurnStatus("Wszystkie wersje rynkowe wypalone! Generowanie pliku ZIP...");
+            setBurnStatus("Wszystkie formaty i wersje rynkowe wypalone! Generowanie pliku ZIP...");
+          } else {
+            setBurnProgress(100);
+            setBurnStatus("Czyste formaty skadrowane! Generowanie pliku ZIP...");
           }
         } catch (e) {
           root.file("00_Czyste_Bez_Napisow/README.txt", "Wideo zmontowane z pliku: " + (uploadedFileName || "upload"));
