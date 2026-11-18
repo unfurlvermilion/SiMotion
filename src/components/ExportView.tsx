@@ -418,7 +418,7 @@ export default function ExportView({
                 style: "pill",
                 size: "base",
               },
-              playbackSpeed: 3.0,
+              playbackSpeed: 1.0,
               logoOutro: {
                 imageSrc: "/brand/logo_anim/biale/logo_outro_all_WH.gif",
                 durationSec: 1.5,

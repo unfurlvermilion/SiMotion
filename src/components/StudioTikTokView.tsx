@@ -942,7 +942,7 @@ ${titleNodes}
                   size: captionSize,
                 },
                 durationSec: duration,
-                playbackSpeed: 3.0,
+                playbackSpeed: 1.0,
                 logoOutro: isLogoOutroEnabled
                   ? {
                       imageSrc: selectedLogo.gifPath,
@@ -991,7 +991,7 @@ ${titleNodes}
                       size: captionSize,
                     },
                     durationSec: duration,
-                    playbackSpeed: 3.0,
+                    playbackSpeed: 1.0,
                     logoOutro: isLogoOutroEnabled
                       ? {
                           imageSrc: selectedLogo.gifPath,

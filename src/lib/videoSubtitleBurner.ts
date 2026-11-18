@@ -50,13 +50,36 @@ export async function burnSubtitlesToVideo(options: BurnSubtitlesOptions): Promi
     onProgress = () => {},
   } = options;
 
-  return new Promise((resolve, reject) => {
-    onProgress(5, "Inicjalizacja silnika renderującego klatki...");
+  return new Promise(async (resolve, reject) => {
+    onProgress(5, "Pobieranie wideo źródłowego do pamięci...");
+
+    let localObjectUrl: string | null = null;
+    let effectiveSrc = videoSrc;
+    if (!videoSrc.startsWith("blob:") && !videoSrc.startsWith("data:")) {
+      try {
+        const res = await fetch(videoSrc, { cache: "no-store" });
+        if (res.ok) {
+          const blob = await res.blob();
+          localObjectUrl = URL.createObjectURL(blob);
+          effectiveSrc = localObjectUrl;
+        }
+      } catch (e) {
+        console.warn("Pre-fetch wideo nieudany, używam bezpośredniego URL:", e);
+      }
+    }
+
+    const cleanupLocalUrl = () => {
+      if (localObjectUrl) {
+        URL.revokeObjectURL(localObjectUrl);
+        localObjectUrl = null;
+      }
+    };
 
     const video = document.createElement("video");
     video.crossOrigin = "anonymous";
-    video.src = videoSrc;
-    video.muted = false;
+    video.preload = "auto";
+    video.src = effectiveSrc;
+    video.muted = true; // Gwarantuje brak blokady autoplay w pętlach wielojęzycznych
     video.playsInline = true;
     video.autoplay = false;
 
@@ -68,7 +91,11 @@ export async function burnSubtitlesToVideo(options: BurnSubtitlesOptions): Promi
       outroImg.src = logoOutro.imageSrc;
     }
 
-    video.onloadedmetadata = () => {
+    let started = false;
+    const startRendering = () => {
+      if (started) return;
+      started = true;
+
       const actualVideoDur = isFinite(video.duration) && video.duration > 0 ? video.duration : 10;
       const totalDur = options.durationSec ? Math.min(options.durationSec, actualVideoDur) : actualVideoDur;
       const canvas = document.createElement("canvas");
@@ -77,6 +104,7 @@ export async function burnSubtitlesToVideo(options: BurnSubtitlesOptions): Promi
       const ctx = canvas.getContext("2d");
 
       if (!ctx) {
+        cleanupLocalUrl();
         reject(new Error("Nie można utworzyć kontekstu Canvas 2D."));
         return;
       }
@@ -130,6 +158,7 @@ export async function burnSubtitlesToVideo(options: BurnSubtitlesOptions): Promi
       };
 
       mediaRecorder.onstop = () => {
+        cleanupLocalUrl();
         onProgress(100, "Zakończono wypalanie napisów!");
         const finalBlob = new Blob(chunks, { type: mimeType.split(";")[0] || "video/mp4" });
         resolve(finalBlob);
@@ -137,10 +166,11 @@ export async function burnSubtitlesToVideo(options: BurnSubtitlesOptions): Promi
 
       mediaRecorder.start(200);
 
-      // Render loop with playback acceleration
+      // Render loop at 1.0x speed so output duration & motion match source 1:1
       let animId: number;
-      const speed = options.playbackSpeed || 2.0;
+      const speed = options.playbackSpeed ?? 1.0;
       video.playbackRate = speed;
+      video.currentTime = 0;
       video.play().catch((err) => {
         console.warn("Auto-play error, proceeding:", err);
       });
@@ -312,7 +342,13 @@ export async function burnSubtitlesToVideo(options: BurnSubtitlesOptions): Promi
       animId = requestAnimationFrame(drawFrame);
     };
 
+    video.oncanplaythrough = startRendering;
+    video.onloadeddata = () => {
+      setTimeout(startRendering, 150);
+    };
+
     video.onerror = (err) => {
+      cleanupLocalUrl();
       reject(new Error("Błąd wczytywania wideo źródłowego do renderowania: " + String(err)));
     };
   });
