@@ -18,6 +18,7 @@ interface BatchItem {
   status: "idle" | "queued" | "rendering" | "completed" | "failed";
   videoUrl?: string;
   jobId?: string;
+  customPrompt?: string;
 }
 
 async function batchPackshotToDataUri(url: string): Promise<string> {
@@ -183,61 +184,74 @@ export default function BatchProductionView() {
     }
 
     for (const item of pending) {
-      setItems((prev) =>
-        prev.map((it) => (it.id === item.id ? { ...it, status: "rendering", progress: 15 } : it))
-      );
-
-      // Pobierz packshoty z PCM przed wysłaniem do BytePlus (szczególnie ważne w trybie Live)
-      let referenceImages: string[] = [];
-      if (mode === "live") {
-        addLog(`[${item.mdk}] Pobieranie packshotów referencyjnych z PCM...`);
-        try {
-          const pcmRes = await fetch(`/api/pcm?mdk=${encodeURIComponent(item.mdk)}`);
-          if (pcmRes.ok) {
-            const pcmData = await pcmRes.json();
-            if (pcmData.pcmFound && Array.isArray(pcmData.assets) && pcmData.assets.length > 0) {
-              const chosen = pcmData.assets.slice(0, 4);
-              referenceImages = await Promise.all(
-                chosen.map((a: any) => batchPackshotToDataUri(a.url || a.rawPcmUrl))
-              );
-              addLog(`[${item.mdk}] ✓ Załączono ${referenceImages.length} packshotów z PCM.`);
-            } else {
-              addLog(`[${item.mdk}] ⚠ Brak zdjęć w PCM — generacja z samego promptu.`);
-            }
-          }
-        } catch (pcmErr: any) {
-          addLog(`[${item.mdk}] ⚠ Błąd PCM (${pcmErr?.message || "brak sieci"}) — generacja z promptu.`);
-        }
-      }
-
-      addLog(`[${item.mdk}] Zlecanie wideo Seedance 2.5: ${item.name}...`);
+      let jobId: string | undefined =
+        item.status === "rendering" && item.jobId ? item.jobId : undefined;
+      let pollIntervalMs = mode === "live" ? 5000 : 700;
+      let isLiveJob = mode === "live" || (jobId ? jobId.startsWith("sd_") : false);
 
       try {
-        const res = await fetch("/api/video", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            prompt: `Kolekcja Sinsay: ${item.name} (${item.category}). Dynamiczny try-on, naturalny ruch tkaniny, oświetlenie atelier.`,
-            model: "seedance-2.5",
-            duration: 10,
-            aspectRatio: "9:16",
-            mode,
-            ...(referenceImages.length > 0 ? { referenceImages } : {}),
-          }),
-        });
+        if (jobId) {
+          addLog(`[${item.mdk}] Wznawiam sprawdzanie aktywnego zadania ${jobId} (bez ponownego naliczania kosztu)...`);
+        } else {
+          setItems((prev) =>
+            prev.map((it) => (it.id === item.id ? { ...it, status: "rendering", progress: 15 } : it))
+          );
 
-        const data = await res.json();
-        if (!res.ok || data.status === "error" || !data.jobId) {
-          throw new Error(data.message || `HTTP ${res.status}`);
+          // Pobierz packshoty z PCM przed wysłaniem do BytePlus (szczególnie ważne w trybie Live)
+          let referenceImages: string[] = [];
+          if (mode === "live") {
+            addLog(`[${item.mdk}] Pobieranie packshotów referencyjnych z PCM...`);
+            try {
+              const pcmRes = await fetch(`/api/pcm?mdk=${encodeURIComponent(item.mdk)}`);
+              if (pcmRes.ok) {
+                const pcmData = await pcmRes.json();
+                if (pcmData.pcmFound && Array.isArray(pcmData.assets) && pcmData.assets.length > 0) {
+                  const chosen = pcmData.assets.slice(0, 4);
+                  referenceImages = await Promise.all(
+                    chosen.map((a: any) => batchPackshotToDataUri(a.url || a.rawPcmUrl))
+                  );
+                  addLog(`[${item.mdk}] ✓ Załączono ${referenceImages.length} packshotów z PCM.`);
+                } else {
+                  addLog(`[${item.mdk}] ⚠ Brak zdjęć w PCM — generacja z samego promptu.`);
+                }
+              }
+            } catch (pcmErr: any) {
+              addLog(`[${item.mdk}] ⚠ Błąd PCM (${pcmErr?.message || "brak sieci"}) — generacja z promptu.`);
+            }
+          }
+
+          addLog(`[${item.mdk}] Zlecanie wideo Seedance 2.5: ${item.name}...`);
+
+          const res = await fetch("/api/video", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              prompt:
+                item.customPrompt ||
+                `Kolekcja Sinsay: ${item.name} (${item.category}). Dynamiczny try-on, naturalny ruch tkaniny, oświetlenie atelier.`,
+              model: "seedance-2.5",
+              duration: 10,
+              aspectRatio: "9:16",
+              mode,
+              ...(referenceImages.length > 0 ? { referenceImages } : {}),
+            }),
+          });
+
+          const data = await res.json();
+          if (!res.ok || data.status === "error" || !data.jobId) {
+            throw new Error(data.message || `HTTP ${res.status}`);
+          }
+          jobId = data.jobId;
+          pollIntervalMs = data.pollIntervalMs || 700;
+          isLiveJob = data.source === "seedance_live";
+          setItems((prev) =>
+            prev.map((it) => (it.id === item.id ? { ...it, jobId, progress: 25 } : it))
+          );
         }
-        const jobId: string = data.jobId;
-        setItems((prev) =>
-          prev.map((it) => (it.id === item.id ? { ...it, jobId, progress: 25 } : it))
-        );
-        const pollIntervalMs: number = data.pollIntervalMs || 700;
+
         // Limit odpytywania: czas ważności zadania BytePlus (48 h) lub ~15 s w symulacji
         const deadline =
-          data.source === "seedance_live" ? Date.now() + 48 * 3600 * 1000 : Date.now() + 15 * 700;
+          isLiveJob ? Date.now() + 48 * 3600 * 1000 : Date.now() + 15 * 700;
 
         // Poll status
         let done = false;
@@ -246,7 +260,7 @@ export default function BatchProductionView() {
             throw new Error("przekroczono czas oczekiwania na wynik");
           }
           await new Promise((r) => setTimeout(r, pollIntervalMs));
-          const statusRes = await fetch(`/api/video?jobId=${encodeURIComponent(jobId)}`, { cache: "no-store" });
+          const statusRes = await fetch(`/api/video?jobId=${encodeURIComponent(jobId!)}`, { cache: "no-store" });
           if (statusRes.ok) {
             const statusData = await statusRes.json();
             setItems((prev) =>
@@ -309,19 +323,21 @@ export default function BatchProductionView() {
       
       const newItems: BatchItem[] = [];
       lines.slice(1).forEach((line, idx) => {
-        const parts = line.split(/[,;\t]/).map((p) => p.trim());
+        const parts = line.split(/[,;\t]/).map((p) => p.trim().replace(/^["']|["']$/g, ""));
         if (parts.length >= 1 && parts[0]) {
+          const cleanMdk = parts[0].replace(/[\u2010-\u2015\u2212]/g, "-").replace(/\s+/g, "").toUpperCase();
           newItems.push({
             id: `upload-${Date.now()}-${idx}`,
-            mdk: parts[0],
-            name: parts[1] || `Produkt ${parts[0]}`,
+            mdk: cleanMdk,
+            name: parts[1] || `Produkt ${cleanMdk}`,
             category: parts[2] || "Kolekcja Sinsay",
-            markets: parts[3] ? parts[3].split(/[+/|]/).map(s => s.trim()) : ["PL", "RO", "CZ", "DE"],
+            markets: parts[3] ? parts[3].split(/[+/|]/).map((s) => s.trim()).filter(Boolean) : ["PL", "RO", "CZ", "DE"],
             formats: ["9:16", "4:5", "1:1"],
             pcmStatus: "ready",
             qaStatus: "passed",
             progress: 0,
             status: "queued",
+            ...(parts[4] ? { customPrompt: parts[4] } : {}),
           });
         }
       });
@@ -383,8 +399,8 @@ export default function BatchProductionView() {
       const zip = new JSZip();
       const root = zip.folder(`Sinsay_Batch_Export_${new Date().toISOString().slice(0, 10)}`) || zip;
 
-      // 1. Master CSV Summary
-      let csv = "MDK,Nazwa,Kategoria,Status,Rynki,Formaty,Data\n";
+      // 1. Master CSV Summary (UTF-8 BOM dla polskiego Excela)
+      let csv = "\uFEFFMDK,Nazwa,Kategoria,Status,Rynki,Formaty,Data\n";
       doneItems.forEach((it) => {
         csv += `${it.mdk},"${it.name}","${it.category}",${it.status},"${it.markets.join("+")}","${it.formats.join("+")}",${new Date().toISOString()}\n`;
       });

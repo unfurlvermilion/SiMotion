@@ -128,9 +128,14 @@ export default function SiMotionApp() {
   const [activeStaticLang, setActiveStaticLang] = useState("PL");
   const [staticRatio, setStaticRatio] = useState("1:1");
 
+  const [studioCaptionsOverride, setStudioCaptionsOverride] = useState<Record<
+    string,
+    { line1: string; line2: string }
+  > | null>(null);
+
   // Sync translation row to all campaign formats (Grafiki + Wideo + Eksport)
   const handleApplyTranslationsToCampaign = (row: any) => {
-    setStaticTexts({
+    const mapped = {
       PL: { headline: row.pl, subline: "Kolekcja na Twój sposób · Sinsay" },
       ENG: { headline: row.en || row.pl, subline: "New Collection, your way · Sinsay" },
       DE: { headline: row.de || row.en || row.pl, subline: "Neue Kollektion, dein Stil · Sinsay" },
@@ -139,6 +144,17 @@ export default function SiMotionApp() {
       SK: { headline: row.sk || row.cs || row.pl, subline: "Nová kolekcia podľa teba · Sinsay" },
       HU: { headline: row.hu || row.en || row.pl, subline: "Új kollekció a te stílusodban · Sinsay" },
       IT: { headline: row.it || row.en || row.pl, subline: "Nuova collezione a modo tuo · Sinsay" },
+    };
+    setStaticTexts(mapped);
+    setStudioCaptionsOverride({
+      PL: { line1: mapped.PL.headline, line2: "Sinsay · Nowości" },
+      ENG: { line1: mapped.ENG.headline, line2: "Sinsay · New In" },
+      DE: { line1: mapped.DE.headline, line2: "Sinsay · Neu" },
+      RO: { line1: mapped.RO.headline, line2: "Sinsay · Noutăți" },
+      CZ: { line1: mapped.CZ.headline, line2: "Sinsay · Novinky" },
+      SK: { line1: mapped.SK.headline, line2: "Sinsay · Novinky" },
+      HU: { line1: mapped.HU.headline, line2: "Sinsay · Újdonság" },
+      IT: { line1: mapped.IT.headline, line2: "Sinsay · Novità" },
     });
     showToast(`Zastosowano hasło „${row.pl}” do całej kampanii (Grafiki + Wideo)!`);
   };
@@ -281,6 +297,7 @@ export default function SiMotionApp() {
             onProceedToPost={() => setActiveTab("export")}
             initialVideoUrl={studioVideoUrl}
             onVideoReady={setStudioVideoUrl}
+            externalCaptions={studioCaptionsOverride}
           />
         )}
 

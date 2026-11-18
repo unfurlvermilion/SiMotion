@@ -112,24 +112,35 @@ export async function POST(req: Request) {
       if (marketCount >= 20) score += 12;
       else if (marketCount >= 10) score += 6;
 
-      // D. Clean slogan length bonus (fashion copy should be catchy, not an essay)
+      // D. Clean slogan length bonus & encoding quality check
       if (plRepaired.length >= 8 && plRepaired.length <= 48) {
         score += 8;
       } else if (plRepaired.length > 65) {
         score -= 10;
       }
 
+      // Wykryj uszkodzone kodowanie (pytajnik w środku słowa albo ??) — nie psujemy prawdziwych pytań na końcu zdania
+      const hasCorruptedChars = (str: string) =>
+        /\?\?/.test(str) ||
+        /[a-zA-ZąćęłńóśźżĄĆĘŁŃÓŚŹŻ]\?[a-zA-ZąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/.test(str) ||
+        /(^|\s)\?[a-zA-ZąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/.test(str);
+
+      // Kara za niezniszczone polskie znaki (np. "Sprawd?"), żeby na górze listy były wyłącznie czyste hasła
+      if (hasCorruptedChars(plRepaired) || /\b(si|ju|kolekcj|sprawd|b|w|t|z|na)\?$/i.test(plRepaired)) {
+        score -= 500;
+      }
+
       // E. Clean multilingual translations (repair special characters and handle corrupted scripts)
       const cleanTranslations: Record<string, string> = {};
       const enClean = entry.en ? repairMultilingualText(entry.en, "ENG") : "";
+      const isEnClean = Boolean(enClean && !hasCorruptedChars(enClean));
       if (entry.translations && typeof entry.translations === "object") {
         for (const [mCode, rawVal] of Object.entries(entry.translations)) {
           if (typeof rawVal === "string" && rawVal.trim()) {
             const repaired = repairMultilingualText(rawVal, mCode);
-            // If repaired text is clean and doesn't have broken ? characters, keep it
-            if (repaired && !repaired.includes("?")) {
+            if (repaired && !hasCorruptedChars(repaired)) {
               cleanTranslations[mCode] = repaired;
-            } else if (enClean && !enClean.includes("?")) {
+            } else if (isEnClean) {
               cleanTranslations[mCode] = enClean;
             } else {
               cleanTranslations[mCode] = plRepaired;

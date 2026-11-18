@@ -311,7 +311,7 @@ export const StaticGraphicsView: React.FC<StaticGraphicsViewProps> = ({
       ctx.fill();
 
       ctx.fillStyle = "#ffffff";
-      ctx.font = `800 ${Math.round(badgeH * 0.45)}px "Euclid Circular B", sans-serif`;
+      ctx.font = `700 ${Math.round(badgeH * 0.45)}px "Euclid Circular B", sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(activeAsset.text || "NOWOŚĆ", badgeX + badgeW / 2, badgeY + badgeH / 2);

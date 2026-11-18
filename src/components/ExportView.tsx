@@ -221,7 +221,7 @@ export default function ExportView({
     let ext = "";
 
     if (format === "csv") {
-      const headers = "ID,MDK,Format,Jezyk,NazwaPliku,Rozmiar,Typ,Kampania\n";
+      const headers = "\uFEFFID,MDK,Format,Jezyk,NazwaPliku,Rozmiar,Typ,Kampania\n";
       const rows = selectedFiles
         .map(
           (f) =>
@@ -276,7 +276,7 @@ export default function ExportView({
       const rootFolder = zip.folder(`Sinsay_${mdkCode}_CampaignPackage`) || zip;
 
       // 1. Generate Manifest CSV & JSON
-      const headers = "ID,MDK,Format,Jezyk,NazwaPliku,Rozmiar,Typ,Kampania\n";
+      const headers = "\uFEFFID,MDK,Format,Jezyk,NazwaPliku,Rozmiar,Typ,Kampania\n";
       const rows = selectedFiles
         .map(
           (f) =>

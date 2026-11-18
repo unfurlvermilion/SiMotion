@@ -300,7 +300,7 @@ export async function burnSubtitlesToVideo(options: BurnSubtitlesOptions): Promi
 
           const fontWeight =
             captionConfig.weight === "bold"
-              ? "800"
+              ? "700"
               : captionConfig.weight === "semibold"
               ? "600"
               : "500";

@@ -160,6 +160,7 @@ interface StudioTikTokViewProps {
   onProceedToPost: () => void;
   initialVideoUrl?: string | null;
   onVideoReady?: (url: string | null) => void;
+  externalCaptions?: Record<string, { line1: string; line2: string }> | null;
 }
 
 export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
@@ -169,6 +170,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
   onProceedToPost,
   initialVideoUrl = null,
   onVideoReady,
+  externalCaptions = null,
 }) => {
   // Primary Workspace Mode: Generator is DEFAULT, Montage is second
   const [workspaceMode, setWorkspaceMode] = useState<"generate" | "edit">("generate");
@@ -184,6 +186,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
 
   // Model & AI Generation Settings
   const [aiEngine, setAiEngine] = useState<VideoEngine>("seedance-2.5");
+  const [videoResolution, setVideoResolution] = useState<"480p" | "720p" | "1080p">("720p");
   const [videoServerConfig, setVideoServerConfig] = useState<VideoServerConfig | null>(null);
   const [integrationMode, setIntegrationMode] = useState<"sandbox" | "live">("sandbox");
 
@@ -401,6 +404,14 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
     SI: { line1: "Nova kolekcija", line2: "po tvoje" },
     UA: { line1: "Нова колекція", line2: "на твій смак" },
   });
+
+  useEffect(() => {
+    if (externalCaptions) {
+      setVideoCaptions((prev) => ({ ...prev, ...externalCaptions }));
+      setIsSubtitlesEnabled(true);
+      setSubtitleMode("static");
+    }
+  }, [externalCaptions]);
   const [previewLang, setPreviewLang] = useState<string>("PL");
   const [showPhraseAssistant, setShowPhraseAssistant] = useState<boolean>(false);
   const [isExportingZip, setIsExportingZip] = useState<boolean>(false);
@@ -1309,6 +1320,7 @@ ${titleNodes}
           prompt: effectivePrompt,
           model: aiEngine,
           duration,
+          resolution: videoResolution,
           aspectRatio: "9:16",
           mode,
           ...(isLiveSeedance ? { referenceImages } : { packshotUrl: primaryPackshot }),
@@ -1423,27 +1435,21 @@ ${titleNodes}
     }
   };
 
-  // Cost calculation for AI generate mode
-  // Seedance rozlicza się tokenami BytePlus — stawki za sekundę nie są znane przed
-  // generacją, więc szacunek nie jest pokazywany (koszt rzeczywisty po zakończeniu).
-  const getRatePerSec = (engine: string): number | null => {
-    switch (engine) {
-      case "higgsfield-cinema-2.0":
-        return 0.26;
-      default:
-        return null;
+  // Cost calculation for AI generate mode (depends on model, resolution & duration)
+  const getRatePerSec = (engine: string, res: "480p" | "720p" | "1080p" = videoResolution): number => {
+    if (engine === "higgsfield-cinema-2.0") return 0.26;
+    if (engine === "seedance-2.0") {
+      return res === "480p" ? 0.08 : res === "1080p" ? 0.40 : 0.18;
     }
+    // Seedance 2.5 (BytePlus ModelArk estimated per-second token equivalent)
+    return res === "480p" ? 0.10 : res === "1080p" ? 0.50 : 0.22;
   };
-  const ratePerSec = getRatePerSec(aiEngine);
+  const ratePerSec = getRatePerSec(aiEngine, videoResolution);
   const renderMultiplier = separateRender ? Math.max(1, selectedRatios.length) : 1;
-  const videoCost = ratePerSec === null ? null : duration * ratePerSec * renderMultiplier;
-  const ttsCost = (isDubEnabled ? selectedDubLangs.length : 0) * 0.3;
-  const totalCost = videoCost === null ? null : (videoCost + ttsCost).toFixed(2);
-  const generateCostLabel = totalCost === null ? "koszt: —" : `$${totalCost}`;
-  const engineResolutionLabel =
-    aiEngine.startsWith("seedance") && integrationMode === "live" && videoServerConfig
-      ? videoServerConfig.seedance.resolution
-      : "1080×1920";
+  const videoCost = duration * ratePerSec * renderMultiplier;
+  const totalCost = videoCost.toFixed(2);
+  const generateCostLabel = `~$${totalCost}`;
+  const engineResolutionLabel = videoResolution;
 
   const toggleRatio = (ratio: string) => {
     setSelectedRatios((prev) =>
@@ -2209,12 +2215,11 @@ ${titleNodes}
                       className="w-full px-3 py-2 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)] font-medium cursor-pointer"
                     >
                       {VIDEO_ENGINE_OPTIONS.map((opt) => {
-                        const rate = getRatePerSec(opt.value);
+                        const rate = getRatePerSec(opt.value, videoResolution);
                         const icon = opt.value === "seedance-2.5" ? "⚡" : opt.value === "seedance-2.0" ? "🚀" : "🌪️";
                         return (
                           <option key={opt.value} value={opt.value}>
-                            {icon} {opt.label}
-                            {rate !== null ? ` ($${rate.toFixed(2)}/s)` : ""}
+                            {icon} {opt.label} (~${rate.toFixed(2)}/s)
                           </option>
                         );
                       })}
@@ -2222,7 +2227,7 @@ ${titleNodes}
                     <p className="text-[10px] text-[var(--ink-muted)] mt-1">
                       {integrationMode === "live"
                         ? videoServerConfig?.seedance.keyConfigured
-                          ? `Tryb Live · BytePlus · ${videoServerConfig.seedance.resolution}`
+                          ? `Tryb Live · BytePlus · ${videoResolution}`
                           : "Tryb Live · brak klucza Seedance na serwerze"
                         : "Tryb testowy (symulacja) — zmiana w Ustawieniach API"}
                     </p>
@@ -2239,6 +2244,71 @@ ${titleNodes}
                       <option value="storyboard">Storyboard (6 scen)</option>
                       <option value="single">Pojedyncze ujęcie</option>
                     </select>
+                  </div>
+                </div>
+
+                {/* Rozdzielczość Seedance, długość oraz kalkulator kosztu */}
+                <div className="p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] space-y-2.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] font-bold text-[var(--ink-primary)] block mb-1">
+                        Rozdzielczość (Seedance)
+                      </label>
+                      <div className="grid grid-cols-3 gap-1">
+                        {(
+                          [
+                            { id: "480p", label: "480p", hint: "Test" },
+                            { id: "720p", label: "720p", hint: "Social" },
+                            { id: "1080p", label: "1080p", hint: "Master" },
+                          ] as const
+                        ).map((resOpt) => (
+                          <button
+                            key={resOpt.id}
+                            type="button"
+                            onClick={() => setVideoResolution(resOpt.id)}
+                            className={`py-1.5 px-2 rounded-lg text-[11px] font-bold border transition-all cursor-pointer flex flex-col items-center leading-tight ${
+                              videoResolution === resOpt.id
+                                ? "bg-[var(--accent)] text-white border-[var(--accent)] shadow-xs"
+                                : "bg-[var(--bg-card)] border-[var(--border-strong)] text-[var(--ink-secondary)] hover:border-[var(--accent)]"
+                            }`}
+                          >
+                            <span>{resOpt.label}</span>
+                            <span className="text-[9px] font-normal opacity-80">{resOpt.hint}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-[var(--ink-primary)] block mb-1">
+                        Długość klipu ({duration} s)
+                      </label>
+                      <div className="flex flex-wrap gap-1">
+                        {[4, 5, 8, 10, 15].map((sec) => (
+                          <button
+                            key={sec}
+                            type="button"
+                            onClick={() => setDuration(sec)}
+                            className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold border transition-all cursor-pointer ${
+                              duration === sec
+                                ? "bg-[var(--accent)] text-white border-[var(--accent)] shadow-xs"
+                                : "bg-[var(--bg-card)] border-[var(--border-strong)] text-[var(--ink-secondary)] hover:border-[var(--accent)]"
+                            }`}
+                          >
+                            {sec}s
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between text-[11px]">
+                    <span className="text-[var(--ink-secondary)]">
+                      Szacowany koszt ({duration}s · {videoResolution} · ${ratePerSec.toFixed(2)}/s{renderMultiplier > 1 ? ` × ${renderMultiplier} formaty` : ""}):
+                    </span>
+                    <span className="font-mono font-extrabold text-[#c84b31] dark:text-[#e56b4e]">
+                      ~${totalCost} USD
+                    </span>
                   </div>
                 </div>
 

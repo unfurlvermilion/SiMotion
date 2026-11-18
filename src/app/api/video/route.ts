@@ -29,6 +29,7 @@ const HIGGSFIELD_ENDPOINT =
   process.env.HIGGSFIELD_API_ENDPOINT || "https://api.higgsfield.ai/v1/video/generate";
 
 const SEEDANCE_RESOLUTION = process.env.SEEDANCE_RESOLUTION || "720p";
+const SEEDANCE_ALLOWED_RESOLUTIONS = ["480p", "720p", "1080p"];
 const SEEDANCE_GENERATE_AUDIO = false;
 const SEEDANCE_ALLOWED_RATIOS = ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9", "adaptive"];
 
@@ -398,6 +399,10 @@ export async function POST(req: Request) {
       const requestedDuration = Math.round(Number(duration) || 10);
       const clampedDuration = Math.min(spec.maxDuration, Math.max(spec.minDuration, requestedDuration));
       const ratio = SEEDANCE_ALLOWED_RATIOS.includes(aspectRatio) ? aspectRatio : "adaptive";
+      const requestedRes = typeof body.resolution === "string" ? body.resolution.toLowerCase() : "";
+      const chosenResolution = SEEDANCE_ALLOWED_RESOLUTIONS.includes(requestedRes)
+        ? requestedRes
+        : SEEDANCE_RESOLUTION;
       const images = collectReferenceImages(body, spec);
 
       const content: any[] = [
@@ -419,7 +424,7 @@ export async function POST(req: Request) {
           content,
           ratio,
           duration: clampedDuration,
-          resolution: SEEDANCE_RESOLUTION,
+          resolution: chosenResolution,
           generate_audio: SEEDANCE_GENERATE_AUDIO,
           watermark: false,
         }),
@@ -438,7 +443,7 @@ export async function POST(req: Request) {
         duration: clampedDuration,
         durationAdjusted: clampedDuration !== Number(duration),
         referenceImages: images.length,
-        resolution: SEEDANCE_RESOLUTION,
+        resolution: chosenResolution,
         costUsd: null,
         pollIntervalMs: 5000,
         message: `Zadanie wysłane do ${spec.label} (BytePlus ModelArk).`,
