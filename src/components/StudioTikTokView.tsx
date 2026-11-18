@@ -649,6 +649,74 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
     setShowPhraseAssistant(false);
   };
 
+  const escapeXml = (str: string) =>
+    str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&apos;");
+
+  const buildDaVinciFCPXML = (lang: string) => {
+    const cues = buildCuesForLang(lang);
+    const totalFrames = Math.max(1, Math.round(duration * 30));
+    const titleNodes =
+      cues.length > 0
+        ? cues
+            .map((c, idx) => {
+              const offsetFrames = Math.max(0, Math.round(c.startSec * 30));
+              const durFrames = Math.max(15, Math.round((c.endSec - c.startSec) * 30));
+              const fullText = c.line2 ? `${c.text}\n${c.line2}` : c.text;
+              return `            <title ref="r2" offset="${offsetFrames}/30s" name="Subtitle_${idx + 1}_${lang}" start="0s" duration="${durFrames}/30s">
+              <text>
+                <text-style font="Euclid Circular B" fontSize="48" fontFace="Bold" alignment="center">${escapeXml(fullText)}</text-style>
+              </text>
+            </title>`;
+            })
+            .join("\n")
+        : `            <title ref="r2" offset="0s" name="Sinsay_Title_${lang}" start="0s" duration="${totalFrames}/30s">
+              <text>
+                <text-style font="Euclid Circular B" fontSize="48" fontFace="Bold" alignment="center">${escapeXml(productId || "Sinsay Kolekcja")}</text-style>
+              </text>
+            </title>`;
+
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE fcpxml>
+<fcpxml version="1.9">
+  <resources>
+    <format id="r1" name="FFVideoFormat1080p1920" frameDuration="1/30s" width="1080" height="1920"/>
+    <effect id="r2" name="Text" uid=".../Titles.localized/Bumper:Opener.localized/Basic Title.localized/Basic Title.moti"/>
+  </resources>
+  <library>
+    <event name="Sinsay Fashion Studio (${escapeXml(productId || "MDK")})">
+      <project name="Sinsay_${escapeXml(productId || "Master")}_${lang}_9x16">
+        <sequence format="r1" duration="${totalFrames}/30s" tcStart="0s" tcFormat="NDF">
+          <spine>
+            <gap offset="0s" name="Master_Track_9x16" start="0s" duration="${totalFrames}/30s">
+${titleNodes}
+            </gap>
+          </spine>
+        </sequence>
+      </project>
+    </event>
+  </library>
+</fcpxml>`;
+  };
+
+  const handleExportDaVinciFCPXML = () => {
+    const fcpxml = buildDaVinciFCPXML(previewLang);
+    const blob = new Blob([fcpxml], { type: "application/xml" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Sinsay_${productId || "001KR-83X"}_DaVinci_${previewLang}_9x16.fcpxml`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showToast(`✓ Pobrano oś czasu DaVinci Resolve (.fcpxml) dla ${previewLang}!`);
+  };
+
   const getSubtitleStyleClasses = () => {
     let classes = "";
     if (captionFont === "euclid") classes += " font-sinsay ";
@@ -1925,6 +1993,15 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                 ? `💾 Pobierz ZIP z wersjami rynkowymi (${selectedTextLangs.length} rynków)`
                 : "💾 Zapisz & Pobierz formaty (ZIP)"}
             </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleExportDaVinciFCPXML}
+            className="px-3.5 py-2 rounded-xl text-xs font-bold border bg-[var(--bg-card)] border-[var(--border-strong)] hover:border-[var(--accent)] text-[var(--ink-primary)] cursor-pointer flex items-center gap-1.5"
+            title="Pobierz oś czasu do DaVinci Resolve (File → Import Timeline)"
+          >
+            <span>🎬 DaVinci (.fcpxml)</span>
           </button>
 
           {onProceedToPost && (
