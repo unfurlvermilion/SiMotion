@@ -153,7 +153,7 @@ export default function SharePointSyncBar({ onSyncComplete }: SharePointSyncBarP
           <span className="text-[#13111c] dark:text-[#f4f4f8] font-semibold text-xs">
             SharePoint
           </span>
-          <span className="text-[10px] text-[#7c7894] dark:text-[#6b6880]">
+          <span className="text-[10px] text-[#7c7894] dark:text-[#9d99b5]">
             ⚙
           </span>
         </button>
@@ -188,7 +188,7 @@ export default function SharePointSyncBar({ onSyncComplete }: SharePointSyncBarP
               </div>
               <button
                 onClick={() => setIsSettingsOpen(false)}
-                className="text-[#6b6880] hover:text-[#f4f4f8] text-lg font-bold"
+                className="text-[#9d99b5] hover:text-[#f4f4f8] text-lg font-bold"
               >
                 ✕
               </button>
@@ -226,7 +226,7 @@ export default function SharePointSyncBar({ onSyncComplete }: SharePointSyncBarP
                   placeholder="https://twojadomena.sharepoint.com/:x:/r/sites/.../Plik.xlsx?web=1"
                   className="w-full px-3 py-2 rounded-xl border border-[#262338] bg-[#151320] text-[#f4f4f8] font-mono text-[11px] focus:outline-none focus:border-[#9d85ff]"
                 />
-                <p className="text-[10px] text-[#6b6880]">
+                <p className="text-[10px] text-[#9d99b5]">
                   Wklej link z opcji <em>Udostępnij / Kopiuj link</em> ze swojego Excela w SharePoint.
                 </p>
               </div>
@@ -264,7 +264,7 @@ export default function SharePointSyncBar({ onSyncComplete }: SharePointSyncBarP
               <div className="p-3 rounded-xl border border-[#262338] bg-[#151320] flex items-center justify-between">
                 <div>
                   <p className="font-medium text-[#f4f4f8]">Automatyczna synchronizacja w tle</p>
-                  <p className="text-[11px] text-[#6b6880]">
+                  <p className="text-[11px] text-[#9d99b5]">
                     Pobiera zmiany z SharePoint bez konieczności odświeżania strony
                   </p>
                 </div>
@@ -294,7 +294,7 @@ export default function SharePointSyncBar({ onSyncComplete }: SharePointSyncBarP
             </div>
 
             <div className="flex items-center justify-between border-t border-[#262338] pt-4">
-              <span className="text-[11px] text-[#6b6880]">
+              <span className="text-[11px] text-[#9d99b5]">
                 Liczba wykonanych synchronizacji: <strong>{syncCount}</strong>
               </span>
               <div className="flex gap-2">

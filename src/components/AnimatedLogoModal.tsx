@@ -165,7 +165,7 @@ export default function AnimatedLogoModal({
 
           <button
             onClick={onClose}
-            className="text-[#6b6880] hover:text-[#f4f4f8] text-xl font-bold transition-colors"
+            className="text-[#9d99b5] hover:text-[#f4f4f8] text-xl font-bold transition-colors"
           >
             ✕
           </button>
@@ -219,7 +219,7 @@ export default function AnimatedLogoModal({
                 className={`px-2.5 py-1 rounded-lg transition-colors ${
                   filterType === f.id
                     ? "bg-[#7c5cff] text-white font-semibold"
-                    : "text-[#6b6880] hover:text-[#f4f4f8] hover:bg-[#1c192b]"
+                    : "text-[#9d99b5] hover:text-[#f4f4f8] hover:bg-[#1c192b]"
                 }`}
               >
                 {f.label}
@@ -273,7 +273,7 @@ export default function AnimatedLogoModal({
                       <p className="text-[11px] text-[#9e9bb3] leading-relaxed line-clamp-1">
                         {v.desc}
                       </p>
-                      <span className="text-[10px] font-mono text-[#6b6880] block">
+                      <span className="text-[10px] font-mono text-[#9d99b5] block">
                         Czas: {v.durationSec}s · After Effects (Alfa)
                       </span>
                     </div>
@@ -328,7 +328,7 @@ export default function AnimatedLogoModal({
                   </span>
                 </div>
 
-                <div className="absolute bottom-2 inset-x-2 flex justify-between text-[9px] text-[#6b6880] font-mono px-2">
+                <div className="absolute bottom-2 inset-x-2 flex justify-between text-[9px] text-[#9d99b5] font-mono px-2">
                   <span>Outro: {currentVariant.durationSec}s</span>
                   <span>Kanał Alfa: 100%</span>
                 </div>
@@ -358,7 +358,7 @@ export default function AnimatedLogoModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-[#262338] pt-3 text-xs text-[#6b6880]">
+        <div className="flex items-center justify-between border-t border-[#262338] pt-3 text-xs text-[#9d99b5]">
           <span>
             Wszystkie 12 plików .mov zostały skopiowane do repozytorium projektu (
             <code>/brand/logo_anim/</code>).

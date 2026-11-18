@@ -534,7 +534,7 @@ export default function BatchProductionView() {
           <h2 className="text-2xl font-extrabold tracking-tight text-[#13111c] dark:text-[#f4f4f8]">
             Produkcja seryjna (Batch)
           </h2>
-          <p className="text-xs text-[#5c5870] dark:text-[#9e9bb3] mt-0.5">
+          <p className="text-xs text-[#5c5870] dark:text-[#c4c1d6] mt-0.5">
             Generowanie partii wideo z pliku CSV lub SharePointa.
           </p>
         </div>
@@ -558,13 +558,13 @@ export default function BatchProductionView() {
           </label>
           <button
             onClick={loadPresetCSV}
-            className="px-3 py-2 text-xs font-medium rounded-lg border border-dashed border-[#c4bfdc] dark:border-[#383352] text-[#5c5870] dark:text-[#9e9bb3] hover:text-[#13111c] dark:hover:text-[#f4f4f8] transition-colors"
+            className="px-3 py-2 text-xs font-medium rounded-lg border border-dashed border-[#c4bfdc] dark:border-[#383352] text-[#5c5870] dark:text-[#c4c1d6] hover:text-[#13111c] dark:hover:text-[#f4f4f8] transition-colors"
           >
             + Przykładowy CSV
           </button>
           <button
             onClick={handleClearBatch}
-            className="px-3 py-2 text-xs font-medium rounded-lg border border-[#dcd9ec] dark:border-[#262338] bg-white dark:bg-[#151320] hover:bg-[#f4f4fa] dark:hover:bg-[#1c192b] text-[#5c5870] dark:text-[#9e9bb3] hover:text-[#7c5cff] transition-colors"
+            className="px-3 py-2 text-xs font-medium rounded-lg border border-[#dcd9ec] dark:border-[#262338] bg-white dark:bg-[#151320] hover:bg-[#f4f4fa] dark:hover:bg-[#1c192b] text-[#5c5870] dark:text-[#c4c1d6] hover:text-[#7c5cff] transition-colors"
             title="Wyczyść kolejkę zadań"
           >
             🗑️ Wyczyść
@@ -599,43 +599,43 @@ export default function BatchProductionView() {
       {/* Metric Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="p-4 rounded-xl border border-[#dcd9ec] dark:border-[#262338] bg-white dark:bg-[#151320] shadow-sm">
-          <p className="text-xs uppercase tracking-wider text-[#7c7894] dark:text-[#6b6880]">
+          <p className="text-xs uppercase tracking-wider text-[#7c7894] dark:text-[#9d99b5]">
             Wszystkie kody MDK
           </p>
           <p className="text-2xl font-serif text-[#13111c] dark:text-[#f4f4f8] mt-1">
             {items.length}
           </p>
-          <p className="text-xs text-[#5c5870] dark:text-[#9e9bb3] mt-1">
+          <p className="text-xs text-[#5c5870] dark:text-[#c4c1d6] mt-1">
             Ukończone: {completedItems} / {items.length}
           </p>
         </div>
 
         <div className="p-4 rounded-xl border border-[#dcd9ec] dark:border-[#262338] bg-white dark:bg-[#151320] shadow-sm">
-          <p className="text-xs uppercase tracking-wider text-[#7c7894] dark:text-[#6b6880]">
+          <p className="text-xs uppercase tracking-wider text-[#7c7894] dark:text-[#9d99b5]">
             Wszystkie warianty
           </p>
           <p className="text-2xl font-serif text-[#7c5cff] dark:text-[#9d85ff] mt-1">
             {totalVariants}
           </p>
-          <p className="text-xs text-[#5c5870] dark:text-[#9e9bb3] mt-1">
+          <p className="text-xs text-[#5c5870] dark:text-[#c4c1d6] mt-1">
             Formaty × Rynki językowe
           </p>
         </div>
 
         <div className="p-4 rounded-xl border border-[#dcd9ec] dark:border-[#262338] bg-white dark:bg-[#151320] shadow-sm">
-          <p className="text-xs uppercase tracking-wider text-[#7c7894] dark:text-[#6b6880]">
+          <p className="text-xs uppercase tracking-wider text-[#7c7894] dark:text-[#9d99b5]">
             Oszczędność API (Smart Crop)
           </p>
           <p className="text-2xl font-serif text-[#10b981] dark:text-[#75d9ae] mt-1">
             -66.7%
           </p>
-          <p className="text-xs text-[#5c5870] dark:text-[#9e9bb3] mt-1">
+          <p className="text-xs text-[#5c5870] dark:text-[#c4c1d6] mt-1">
             Tylko 1 bazowy render na MDK
           </p>
         </div>
 
         <div className="p-4 rounded-xl border border-[#dcd9ec] dark:border-[#262338] bg-white dark:bg-[#151320] shadow-sm">
-          <p className="text-xs uppercase tracking-wider text-[#7c7894] dark:text-[#6b6880]">
+          <p className="text-xs uppercase tracking-wider text-[#7c7894] dark:text-[#9d99b5]">
             Status kolejki
           </p>
           <p className="text-lg font-medium text-[#13111c] dark:text-[#f4f4f8] mt-1 flex items-center gap-2">
@@ -643,12 +643,12 @@ export default function BatchProductionView() {
               className={`w-2.5 h-2.5 rounded-full ${
                 isProcessing
                   ? "bg-[#10b981] dark:bg-[#75d9ae] animate-pulse"
-                  : "bg-[#7c7894] dark:text-[#6b6880]"
+                  : "bg-[#7c7894] dark:text-[#9d99b5]"
               }`}
             />
             {isProcessing ? "Przetwarzanie..." : "Gotowa do startu"}
           </p>
-          <p className="text-xs text-[#5c5870] dark:text-[#9e9bb3] mt-1">
+          <p className="text-xs text-[#5c5870] dark:text-[#c4c1d6] mt-1">
             Silnik: Seedance 2.5 + ElevenLabs
           </p>
         </div>
@@ -657,7 +657,7 @@ export default function BatchProductionView() {
       {/* Filter and Search Bar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-[#151320] p-3 rounded-xl border border-[#dcd9ec] dark:border-[#262338]">
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <span className="text-xs text-[#7c7894] dark:text-[#6b6880]">Szukaj:</span>
+          <span className="text-xs text-[#7c7894] dark:text-[#9d99b5]">Szukaj:</span>
           <input
             type="text"
             value={searchTerm}
@@ -668,7 +668,7 @@ export default function BatchProductionView() {
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-          <span className="text-xs text-[#7c7894] dark:text-[#6b6880]">Filtruj rynek:</span>
+          <span className="text-xs text-[#7c7894] dark:text-[#9d99b5]">Filtruj rynek:</span>
           {["ALL", "PL", "DE", "CZ", "RO", "HU"].map((m) => (
             <button
               key={m}
@@ -676,7 +676,7 @@ export default function BatchProductionView() {
               className={`px-2.5 py-1 text-xs rounded-lg transition-colors ${
                 filterMarket === m
                   ? "bg-[#7c5cff] dark:bg-[#9d85ff] text-white"
-                  : "bg-[#f4f4fa] dark:bg-[#0d0c14] text-[#5c5870] dark:text-[#9e9bb3] hover:bg-[#f2ece1] dark:hover:bg-[#1c192b]"
+                  : "bg-[#f4f4fa] dark:bg-[#0d0c14] text-[#5c5870] dark:text-[#c4c1d6] hover:bg-[#f2ece1] dark:hover:bg-[#1c192b]"
               }`}
             >
               {m}
@@ -689,7 +689,7 @@ export default function BatchProductionView() {
       <div className="rounded-xl border border-[#dcd9ec] dark:border-[#262338] bg-white dark:bg-[#151320] overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-[#f4f4fa] dark:bg-[#0d0c14] border-b border-[#dcd9ec] dark:border-[#262338] text-[#7c7894] dark:text-[#6b6880] uppercase font-semibold">
+            <thead className="bg-[#f4f4fa] dark:bg-[#0d0c14] border-b border-[#dcd9ec] dark:border-[#262338] text-[#7c7894] dark:text-[#9d99b5] uppercase font-semibold">
               <tr>
                 <th className="py-3 px-4">Kod MDK</th>
                 <th className="py-3 px-4">Produkt & Kategoria</th>
@@ -713,7 +713,7 @@ export default function BatchProductionView() {
                     <p className="font-medium text-[#13111c] dark:text-[#f4f4f8]">
                       {item.name}
                     </p>
-                    <p className="text-[11px] text-[#7c7894] dark:text-[#6b6880]">
+                    <p className="text-[11px] text-[#7c7894] dark:text-[#9d99b5]">
                       {item.category}
                     </p>
                   </td>
@@ -722,7 +722,7 @@ export default function BatchProductionView() {
                       {item.markets.map((m) => (
                         <span
                           key={m}
-                          className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-[#f2ece1] dark:bg-[#1c192b] text-[#5c5870] dark:text-[#9e9bb3]"
+                          className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-[#f2ece1] dark:bg-[#1c192b] text-[#5c5870] dark:text-[#c4c1d6]"
                         >
                           {m}
                         </span>
@@ -734,7 +734,7 @@ export default function BatchProductionView() {
                       {item.formats.map((f) => (
                         <span
                           key={f}
-                          className="px-1.5 py-0.5 rounded bg-[#f6f1e8] dark:bg-[#0d0c14] border border-[#dcd9ec] dark:border-[#262338] text-[#5c5870] dark:text-[#9e9bb3]"
+                          className="px-1.5 py-0.5 rounded bg-[#f6f1e8] dark:bg-[#0d0c14] border border-[#dcd9ec] dark:border-[#262338] text-[#5c5870] dark:text-[#c4c1d6]"
                         >
                           {f}
                         </span>
@@ -766,7 +766,7 @@ export default function BatchProductionView() {
                           style={{ width: `${item.progress}%` }}
                         />
                       </div>
-                      <span className="text-[11px] font-mono text-[#7c7894] dark:text-[#6b6880] w-8 text-right">
+                      <span className="text-[11px] font-mono text-[#7c7894] dark:text-[#9d99b5] w-8 text-right">
                         {item.progress}%
                       </span>
                     </div>
@@ -787,7 +787,7 @@ export default function BatchProductionView() {
                         );
                         addLog(`Przełączono status dla ${item.mdk}`);
                       }}
-                      className="px-2.5 py-1 text-[11px] rounded border border-[#dcd9ec] dark:border-[#262338] hover:bg-[#f4f4fa] dark:hover:bg-[#0d0c14] text-[#5c5870] dark:text-[#9e9bb3] transition-colors"
+                      className="px-2.5 py-1 text-[11px] rounded border border-[#dcd9ec] dark:border-[#262338] hover:bg-[#f4f4fa] dark:hover:bg-[#0d0c14] text-[#5c5870] dark:text-[#c4c1d6] transition-colors"
                     >
                       {item.status === "completed" ? "Resetuj" : "Oznacz gotowe"}
                     </button>
@@ -808,14 +808,14 @@ export default function BatchProductionView() {
           </span>
           <button
             onClick={() => setLogMessages([])}
-            className="text-[10px] text-[#6b6880] hover:text-[#f4f4f8] transition-colors"
+            className="text-[10px] text-[#9d99b5] hover:text-[#f4f4f8] transition-colors"
           >
             Wyczyść log
           </button>
         </div>
         <div className="space-y-1.5 max-h-36 overflow-y-auto pr-2 text-[#9e9bb3]">
           {logMessages.length === 0 ? (
-            <p className="text-[#6b6880] italic">Brak nowych zdarzeń.</p>
+            <p className="text-[#9d99b5] italic">Brak nowych zdarzeń.</p>
           ) : (
             logMessages.map((msg, idx) => (
               <p key={idx} className={idx === 0 ? "text-[#f4f4f8]" : ""}>

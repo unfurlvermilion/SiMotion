@@ -171,7 +171,7 @@ export default function IntegrationsView() {
           <h2 className="text-2xl font-extrabold tracking-tight text-[#13111c] dark:text-[#f4f4f8]">
             Ustawienia API
           </h2>
-          <p className="text-xs text-[#5c5870] dark:text-[#9e9bb3] mt-0.5">
+          <p className="text-xs text-[#5c5870] dark:text-[#c4c1d6] mt-0.5">
             Połączenia z Seedance, ElevenLabs, PCM i arkuszem SharePoint.
           </p>
         </div>
@@ -184,7 +184,7 @@ export default function IntegrationsView() {
               className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
                 config.mode === "sandbox"
                   ? "bg-white dark:bg-[#151320] text-[#13111c] dark:text-[#f4f4f8] shadow-sm font-semibold"
-                  : "text-[#5c5870] dark:text-[#9e9bb3]"
+                  : "text-[#5c5870] dark:text-[#c4c1d6]"
               }`}
             >
               Testowy (Sandbox)
@@ -194,7 +194,7 @@ export default function IntegrationsView() {
               className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
                 config.mode === "live"
                   ? "bg-[#7c5cff] text-white shadow-sm font-semibold"
-                  : "text-[#5c5870] dark:text-[#9e9bb3]"
+                  : "text-[#5c5870] dark:text-[#c4c1d6]"
               }`}
             >
               Produkcyjny (Live)
@@ -269,7 +269,7 @@ export default function IntegrationsView() {
               >
                 {tab.label}
               </p>
-              <p className="text-[11px] text-[#7c7894] dark:text-[#6b6880] mt-0.5">
+              <p className="text-[11px] text-[#7c7894] dark:text-[#9d99b5] mt-0.5">
                 {tab.desc}
               </p>
             </button>
@@ -286,7 +286,7 @@ export default function IntegrationsView() {
                   <h3 className="font-serif text-lg text-[#13111c] dark:text-[#f4f4f8]">
                     Konfiguracja Silnika Generacji Wideo AI
                   </h3>
-                  <p className="text-xs text-[#5c5870] dark:text-[#9e9bb3]">
+                  <p className="text-xs text-[#5c5870] dark:text-[#c4c1d6]">
                     Seedance 2.5 / 2.0 (BytePlus ModelArk) oraz Higgsfield z automatycznym Smart Cropem 9:16 do 4:5 i 1:1.
                   </p>
                 </div>
@@ -318,7 +318,7 @@ export default function IntegrationsView() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                 <div className="space-y-1.5">
-                  <label className="text-[#5c5870] dark:text-[#9e9bb3]">
+                  <label className="text-[#5c5870] dark:text-[#c4c1d6]">
                     Wybór modelu AI:
                   </label>
                   <select
@@ -340,12 +340,12 @@ export default function IntegrationsView() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[#5c5870] dark:text-[#9e9bb3]">
+                  <label className="text-[#5c5870] dark:text-[#c4c1d6]">
                     Klucz API Seedance:
                   </label>
                   <div className="w-full px-3 py-2 rounded-lg border border-[#dcd9ec] dark:border-[#262338] bg-[#f4f4fa] dark:bg-[#0d0c14] text-[#13111c] dark:text-[#f4f4f8] flex items-center gap-2">
                     {videoServerConfig === null ? (
-                      <span className="text-[#7c7894] dark:text-[#6b6880]">Sprawdzanie...</span>
+                      <span className="text-[#7c7894] dark:text-[#9d99b5]">Sprawdzanie...</span>
                     ) : videoServerConfig.seedance.keyConfigured ? (
                       <>
                         <span className="w-2 h-2 rounded-full bg-[#10b981] dark:bg-[#75d9ae]" />
@@ -364,20 +364,20 @@ export default function IntegrationsView() {
               {videoServerConfig && (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
                   <div className="space-y-1">
-                    <p className="text-[#5c5870] dark:text-[#9e9bb3]">Rozdzielczość:</p>
+                    <p className="text-[#5c5870] dark:text-[#c4c1d6]">Rozdzielczość:</p>
                     <p className="font-mono text-[11px] text-[#13111c] dark:text-[#f4f4f8]">
                       {videoServerConfig.seedance.resolution}
                       {videoServerConfig.seedance.generateAudio ? " · z dźwiękiem" : " · bez dźwięku"}
                     </p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-[#5c5870] dark:text-[#9e9bb3]">API:</p>
+                    <p className="text-[#5c5870] dark:text-[#c4c1d6]">API:</p>
                     <p className="font-mono text-[11px] text-[#13111c] dark:text-[#f4f4f8] break-all">
                       {videoServerConfig.seedance.endpointHost}
                     </p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-[#5c5870] dark:text-[#9e9bb3]">Archiwum wideo:</p>
+                    <p className="text-[#5c5870] dark:text-[#c4c1d6]">Archiwum wideo:</p>
                     <p className="font-mono text-[11px] text-[#13111c] dark:text-[#f4f4f8]">
                       {videoServerConfig.seedance.storageConfigured
                         ? "Cloud Storage"
@@ -397,7 +397,7 @@ export default function IntegrationsView() {
                   <h3 className="font-serif text-lg text-[#13111c] dark:text-[#f4f4f8]">
                     Konfiguracja ElevenLabs TTS & Napisów
                   </h3>
-                  <p className="text-xs text-[#5c5870] dark:text-[#9e9bb3]">
+                  <p className="text-xs text-[#5c5870] dark:text-[#c4c1d6]">
                     Synteza lektora z precyzyjnymi znacznikami czasu dla animacji napisów karaoke.
                   </p>
                 </div>
@@ -415,7 +415,7 @@ export default function IntegrationsView() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                 <div className="space-y-1.5">
-                  <label className="text-[#5c5870] dark:text-[#9e9bb3]">
+                  <label className="text-[#5c5870] dark:text-[#c4c1d6]">
                     ElevenLabs API Key:
                   </label>
                   <input
@@ -430,7 +430,7 @@ export default function IntegrationsView() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[#5c5870] dark:text-[#9e9bb3]">
+                  <label className="text-[#5c5870] dark:text-[#c4c1d6]">
                     Domyślny Voice ID:
                   </label>
                   <input
@@ -471,7 +471,7 @@ export default function IntegrationsView() {
                   <h3 className="font-serif text-lg text-[#13111c] dark:text-[#f4f4f8]">
                     Połączenie z Katalogiem Produktów PCM
                   </h3>
-                  <p className="text-xs text-[#5c5870] dark:text-[#9e9bb3]">
+                  <p className="text-xs text-[#5c5870] dark:text-[#c4c1d6]">
                     Automatyczne pobieranie packshotów i danych o tkaninach po kodzie MDK.
                   </p>
                 </div>
@@ -489,7 +489,7 @@ export default function IntegrationsView() {
 
               <div className="space-y-3 text-xs">
                 <div className="space-y-1.5">
-                  <label className="text-[#5c5870] dark:text-[#9e9bb3]">
+                  <label className="text-[#5c5870] dark:text-[#c4c1d6]">
                     PCM API Endpoint URL:
                   </label>
                   <input
@@ -503,7 +503,7 @@ export default function IntegrationsView() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[#5c5870] dark:text-[#9e9bb3]">
+                  <label className="text-[#5c5870] dark:text-[#c4c1d6]">
                     Klucz autoryzacyjny (Bearer Token):
                   </label>
                   <input
@@ -527,7 +527,7 @@ export default function IntegrationsView() {
                   <h3 className="font-serif text-lg text-[#13111c] dark:text-[#f4f4f8]">
                     Microsoft Excel Online & Graph API
                   </h3>
-                  <p className="text-xs text-[#5c5870] dark:text-[#9e9bb3]">
+                  <p className="text-xs text-[#5c5870] dark:text-[#c4c1d6]">
                     Dwukierunkowa synchronizacja: odczyt zleceń wideo i automatyczny zapis statusów/linków do arkusza.
                   </p>
                 </div>
@@ -545,7 +545,7 @@ export default function IntegrationsView() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                 <div className="space-y-1.5">
-                  <label className="text-[#5c5870] dark:text-[#9e9bb3]">
+                  <label className="text-[#5c5870] dark:text-[#c4c1d6]">
                     Microsoft Azure Tenant ID:
                   </label>
                   <input
@@ -559,7 +559,7 @@ export default function IntegrationsView() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[#5c5870] dark:text-[#9e9bb3]">
+                  <label className="text-[#5c5870] dark:text-[#c4c1d6]">
                     App / Client ID:
                   </label>
                   <input
@@ -575,7 +575,7 @@ export default function IntegrationsView() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                 <div className="space-y-1.5">
-                  <label className="text-[#5c5870] dark:text-[#9e9bb3]">
+                  <label className="text-[#5c5870] dark:text-[#c4c1d6]">
                     ID Skoroszytu (Drive Item ID):
                   </label>
                   <input
@@ -589,7 +589,7 @@ export default function IntegrationsView() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[#5c5870] dark:text-[#9e9bb3]">
+                  <label className="text-[#5c5870] dark:text-[#c4c1d6]">
                     Nazwa zakładki arkusza:
                   </label>
                   <input

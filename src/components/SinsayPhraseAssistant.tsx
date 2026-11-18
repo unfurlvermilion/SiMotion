@@ -259,7 +259,7 @@ export default function SinsayPhraseAssistant({
                 4 524 haseł · 28 rynków
               </span>
             </div>
-            <p className="text-xs text-[#5c5870] dark:text-[#9e9bb3]">
+            <p className="text-xs text-[#5c5870] dark:text-[#c4c1d6]">
               Wrzuć packshot produktu (np. okulary → Wiosna/Lato, kurtka lub buty zimowe → Zima) lub wybierz kategorię.
             </p>
           </div>
@@ -284,10 +284,10 @@ export default function SinsayPhraseAssistant({
       {/* Interactive Category & Season Chips (Quick One-Click Filters) */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[#7c7894] dark:text-[#6b6880]">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-[#7c7894] dark:text-[#9d99b5]">
             Wybierz kategorię produktu lub sezon (1-klik):
           </span>
-          <span className="text-[11px] text-[#5c5870] dark:text-[#9e9bb3]">
+          <span className="text-[11px] text-[#5c5870] dark:text-[#c4c1d6]">
             Automatyczne reguły sezonowości
           </span>
         </div>
@@ -303,7 +303,7 @@ export default function SinsayPhraseAssistant({
                 className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
                   isActive
                     ? "bg-[#7c5cff] text-white shadow-sm scale-[1.02]"
-                    : "bg-[#f4f4fa] dark:bg-[#0d0c14] border border-[#dcd9ec] dark:border-[#262338] text-[#5c5870] dark:text-[#9e9bb3] hover:border-[#7c5cff] hover:text-[#13111c] dark:hover:text-[#f4f4f8]"
+                    : "bg-[#f4f4fa] dark:bg-[#0d0c14] border border-[#dcd9ec] dark:border-[#262338] text-[#5c5870] dark:text-[#c4c1d6] hover:border-[#7c5cff] hover:text-[#13111c] dark:hover:text-[#f4f4f8]"
                 }`}
               >
                 <span>{cat.icon}</span>
@@ -312,7 +312,7 @@ export default function SinsayPhraseAssistant({
                   className={`text-[9px] px-1 py-0.2 rounded font-normal ${
                     isActive
                       ? "bg-white/20 text-white"
-                      : "bg-[#e8e2d8] dark:bg-[#2b2521] text-[#7c7894] dark:text-[#6b6880]"
+                      : "bg-[#e8e2d8] dark:bg-[#2b2521] text-[#7c7894] dark:text-[#9d99b5]"
                   }`}
                 >
                   {cat.seasonLabel}
@@ -360,7 +360,7 @@ export default function SinsayPhraseAssistant({
                   Sezon: {detectedProfile.seasonLabel}
                 </span>
                 {colorAnalysis && (
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-white/70 dark:bg-black/40 text-[#5c5870] dark:text-[#9e9bb3]">
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-white/70 dark:bg-black/40 text-[#5c5870] dark:text-[#c4c1d6]">
                     {colorAnalysis}
                   </span>
                 )}
@@ -382,7 +382,7 @@ export default function SinsayPhraseAssistant({
                 className="w-14 h-14 object-cover rounded-lg border border-[#dcd9ec] dark:border-[#262338]"
               />
             ) : (
-              <div className="w-14 h-14 rounded-lg bg-[#f2ece1] dark:bg-[#1c192b] text-[#7c7894] dark:text-[#6b6880] grid place-items-center text-2xl flex-shrink-0">
+              <div className="w-14 h-14 rounded-lg bg-[#f2ece1] dark:bg-[#1c192b] text-[#7c7894] dark:text-[#9d99b5] grid place-items-center text-2xl flex-shrink-0">
                 📷
               </div>
             )}
@@ -390,7 +390,7 @@ export default function SinsayPhraseAssistant({
               <p className="text-xs font-semibold text-[#13111c] dark:text-[#f4f4f8] truncate">
                 {uploadedImageName || "Kliknij lub upuść plik ze zdjęciem"}
               </p>
-              <p className="text-[10px] text-[#7c7894] dark:text-[#6b6880]">
+              <p className="text-[10px] text-[#7c7894] dark:text-[#9d99b5]">
                 Automatycznie rozpozna: okulary, kurtki, buty, płaszcze, sezon
               </p>
             </div>
@@ -410,10 +410,10 @@ export default function SinsayPhraseAssistant({
           {/* Top 20 List (6 columns) */}
           <div className="lg:col-span-6 space-y-2">
             <div className="flex items-center justify-between pb-1">
-              <span className="text-xs font-semibold uppercase tracking-wider text-[#7c7894] dark:text-[#6b6880]">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#7c7894] dark:text-[#9d99b5]">
                 Top 20 rekomendacji dopasowanych do produktu:
               </span>
-              <span className="text-xs text-[#5c5870] dark:text-[#9e9bb3]">
+              <span className="text-xs text-[#5c5870] dark:text-[#c4c1d6]">
                 Kliknij, aby podglądnąć
               </span>
             </div>
@@ -432,7 +432,7 @@ export default function SinsayPhraseAssistant({
                     }`}
                   >
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                      <span className="w-6 h-6 rounded-full bg-[#f2ece1] dark:bg-[#1c192b] text-[#5c5870] dark:text-[#9e9bb3] text-[11px] font-mono font-bold grid place-items-center flex-shrink-0">
+                      <span className="w-6 h-6 rounded-full bg-[#f2ece1] dark:bg-[#1c192b] text-[#5c5870] dark:text-[#c4c1d6] text-[11px] font-mono font-bold grid place-items-center flex-shrink-0">
                         {index + 1}
                       </span>
                       <div className="min-w-0 flex-1">
@@ -440,7 +440,7 @@ export default function SinsayPhraseAssistant({
                           {item.pl}
                         </p>
                         {item.en && (
-                          <p className="text-[11px] text-[#7c7894] dark:text-[#6b6880] line-clamp-1 mt-0.5">
+                          <p className="text-[11px] text-[#7c7894] dark:text-[#9d99b5] line-clamp-1 mt-0.5">
                             ENG: {item.en}
                           </p>
                         )}
@@ -451,7 +451,7 @@ export default function SinsayPhraseAssistant({
                       <div className="flex items-center gap-1">
                         {item.season && (
                           <span
-                            className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-[#f4f4fa] dark:bg-[#151320] border border-[#dcd9ec] dark:border-[#262338] text-[#5c5870] dark:text-[#9e9bb3]"
+                            className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-[#f4f4fa] dark:bg-[#151320] border border-[#dcd9ec] dark:border-[#262338] text-[#5c5870] dark:text-[#c4c1d6]"
                             title={item.season}
                           >
                             {item.seasonIcon}
@@ -501,7 +501,7 @@ export default function SinsayPhraseAssistant({
                     „{selectedItem.pl}”
                   </h4>
                   {selectedItem.en && (
-                    <p className="text-xs text-[#7c7894] dark:text-[#6b6880] italic mt-0.5">
+                    <p className="text-xs text-[#7c7894] dark:text-[#9d99b5] italic mt-0.5">
                       ENG: {selectedItem.en}
                     </p>
                   )}
@@ -548,7 +548,7 @@ export default function SinsayPhraseAssistant({
 
                   {/* Quick Shortcut Pills for Top Sinsay Markets */}
                   <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                    <span className="text-[10px] text-[#7c7894] dark:text-[#6b6880] mr-1">
+                    <span className="text-[10px] text-[#7c7894] dark:text-[#9d99b5] mr-1">
                       Szybki skrót:
                     </span>
                     {["RO", "DE", "CZ", "SK", "HU", "IT", "HR", "GR"].map((code) => {
@@ -563,7 +563,7 @@ export default function SinsayPhraseAssistant({
                           className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition-all flex items-center gap-1.5 ${
                             isActive
                               ? "bg-[#7c5cff] text-white shadow-sm"
-                              : "bg-white dark:bg-[#151320] border border-[#dcd9ec] dark:border-[#262338] text-[#5c5870] dark:text-[#9e9bb3] hover:border-[#7c5cff]"
+                              : "bg-white dark:bg-[#151320] border border-[#dcd9ec] dark:border-[#262338] text-[#5c5870] dark:text-[#c4c1d6] hover:border-[#7c5cff]"
                           }`}
                         >
                           <span>{m?.flag}</span>
@@ -585,12 +585,12 @@ export default function SinsayPhraseAssistant({
                       <div className="flex items-center gap-1.5 text-xs font-semibold text-[#13111c] dark:text-[#f4f4f8]">
                         <span className="text-base">{activeMarket.flag}</span>
                         <span>{activeMarket.name}</span>
-                        <span className="font-mono text-[11px] text-[#7c7894] dark:text-[#6b6880]">
+                        <span className="font-mono text-[11px] text-[#7c7894] dark:text-[#9d99b5]">
                           ({activeMarket.code})
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-[#7c7894] dark:text-[#6b6880]">
+                        <span className="text-[10px] text-[#7c7894] dark:text-[#9d99b5]">
                           Długość: <strong>{activeTranslation.length}</strong> znaków
                         </span>
                         <button
@@ -639,7 +639,7 @@ export default function SinsayPhraseAssistant({
                 </button>
               </div>
             ) : (
-              <div className="h-full flex items-center justify-center text-xs text-[#7c7894] dark:text-[#6b6880] italic py-12">
+              <div className="h-full flex items-center justify-center text-xs text-[#7c7894] dark:text-[#9d99b5] italic py-12">
                 Wybierz hasło z listy po lewej stronie
               </div>
             )}
@@ -655,7 +655,7 @@ export default function SinsayPhraseAssistant({
               <h4 className="font-serif text-base font-semibold text-[#13111c] dark:text-[#f4f4f8]">
                 Pełna matryca 28 rynków Sinsay dla hasła: „{selectedItem.pl}”
               </h4>
-              <p className="text-xs text-[#5c5870] dark:text-[#9e9bb3]">
+              <p className="text-xs text-[#5c5870] dark:text-[#c4c1d6]">
                 Zatwierdzone oficjalne tłumaczenia LPP SA na wszystkie rynki eksportowe
               </p>
             </div>
@@ -695,7 +695,7 @@ export default function SinsayPhraseAssistant({
                   <p className="text-xs text-[#13111c] dark:text-[#f4f4f8] line-clamp-2 font-medium">
                     {text}
                   </p>
-                  <span className="text-[10px] text-[#7c7894] dark:text-[#6b6880] block">
+                  <span className="text-[10px] text-[#7c7894] dark:text-[#9d99b5] block">
                     {text.length} zn.
                   </span>
                 </div>

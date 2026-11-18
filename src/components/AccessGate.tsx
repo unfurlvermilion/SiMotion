@@ -83,7 +83,7 @@ export default function AccessGate({ children }: AccessGateProps) {
                 }}
                 placeholder="Wpisz hasło studyjne..."
                 autoFocus
-                className="w-full px-4 py-2.5 rounded-xl border border-[#262338] bg-[#151320] text-[#f4f4f8] text-sm focus:outline-none focus:border-[#9d85ff] transition-colors placeholder-[#6b6880]"
+                className="w-full px-4 py-2.5 rounded-xl border border-[#262338] bg-[#151320] text-[#f4f4f8] text-sm focus:outline-none focus:border-[#9d85ff] transition-colors placeholder-[#9d99b5]"
               />
             </div>
 
@@ -102,7 +102,7 @@ export default function AccessGate({ children }: AccessGateProps) {
           </form>
 
           <div className="pt-2 border-t border-[#262338] text-center">
-            <p className="text-[11px] text-[#6b6880]">
+            <p className="text-[11px] text-[#9d99b5]">
               Domyślne hasło zespołu: <code className="text-[#f4f4f8] bg-[#1c192b] px-1.5 py-0.5 rounded font-mono">atelier2026</code>
             </p>
           </div>
