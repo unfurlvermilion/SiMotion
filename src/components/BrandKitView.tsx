@@ -211,7 +211,7 @@ export const BrandKitView: React.FC<BrandKitViewProps> = ({
                 placeholder="🔍 Szukaj materiału lub tekstu badge'a..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-3 pr-8 py-1.5 rounded-lg text-xs border bg-white dark:bg-[#211d1a] border-[var(--border-strong)] text-[var(--ink-primary)] focus:outline-none focus:border-[var(--accent)] shadow-xs"
+                className="w-full pl-3 pr-8 py-1.5 rounded-lg text-xs border bg-white dark:bg-[#151320] border-[var(--border-strong)] text-[var(--ink-primary)] focus:outline-none focus:border-[var(--accent)] shadow-xs"
               />
               {searchQuery && (
                 <button
@@ -228,7 +228,7 @@ export const BrandKitView: React.FC<BrandKitViewProps> = ({
               <button
                 type="button"
                 onClick={() => toggleSelectAll(filteredAssets)}
-                className="px-2.5 py-1 rounded-lg border border-[var(--border-subtle)] bg-white dark:bg-[#211d1a] text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] font-medium text-[11px] transition-colors"
+                className="px-2.5 py-1 rounded-lg border border-[var(--border-subtle)] bg-white dark:bg-[#151320] text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] font-medium text-[11px] transition-colors"
               >
                 {selectedIds.length === filteredAssets.length && filteredAssets.length > 0
                   ? "Odznacz wszystkie"
@@ -275,7 +275,7 @@ export const BrandKitView: React.FC<BrandKitViewProps> = ({
                           type="checkbox"
                           checked={isChecked}
                           onChange={() => toggleSelectAsset(asset.id)}
-                          className="w-3.5 h-3.5 accent-[#c84b31] rounded cursor-pointer"
+                          className="w-3.5 h-3.5 accent-[#7c5cff] rounded cursor-pointer"
                         />
                         <span className="font-mono text-[9px] uppercase tracking-wider text-[var(--ink-muted)]">
                           {asset.type}
@@ -444,7 +444,7 @@ export const BrandKitView: React.FC<BrandKitViewProps> = ({
       <div className="p-6 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-5 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--border-subtle)] pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#c84b31] to-[#6e1d2f] text-white font-serif font-bold text-lg grid place-items-center shadow-md">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#7c5cff] to-[#6e1d2f] text-white font-serif font-bold text-lg grid place-items-center shadow-md">
               Aa
             </div>
             <div>
@@ -466,7 +466,7 @@ export const BrandKitView: React.FC<BrandKitViewProps> = ({
             <span className="px-2.5 py-1 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-subtle)]">
               format: OTF / TTF
             </span>
-            <span className="px-2.5 py-1 rounded-lg bg-[#e6f4ed] dark:bg-[#193328] text-[#1d6346] dark:text-[#75d9ae] font-bold">
+            <span className="px-2.5 py-1 rounded-lg bg-[#e6f4ed] dark:bg-[#193328] text-[#10b981] dark:text-[#75d9ae] font-bold">
               ✓ Zainstalowany
             </span>
           </div>
@@ -526,8 +526,8 @@ export const BrandKitView: React.FC<BrandKitViewProps> = ({
             </span>
           </div>
 
-          <div className="p-4 rounded-xl border border-[#c84b31]/40 dark:border-[#e56b4e]/40 bg-[var(--accent-soft)] space-y-1.5">
-            <div className="flex justify-between items-center text-[11px] text-[#c84b31] dark:text-[#e56b4e] font-mono font-bold">
+          <div className="p-4 rounded-xl border border-[#7c5cff]/40 dark:border-[#9d85ff]/40 bg-[var(--accent-soft)] space-y-1.5">
+            <div className="flex justify-between items-center text-[11px] text-[#7c5cff] dark:text-[#9d85ff] font-mono font-bold">
               <span>Euclid Circular B Bold (Główny)</span>
               <span>Weight 700 ★</span>
             </div>

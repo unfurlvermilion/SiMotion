@@ -141,23 +141,23 @@ export default function AnimatedLogoModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
-      <div className="w-full max-w-3xl rounded-2xl border border-[#38302b] bg-[#1a1714] text-[#f7f3ec] p-6 shadow-2xl space-y-6">
+      <div className="w-full max-w-3xl rounded-2xl border border-[#262338] bg-[#0d0c14] text-[#f4f4f8] p-6 shadow-2xl space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#38302b] pb-4">
+        <div className="flex items-center justify-between border-b border-[#262338] pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#c84b31] to-[#6e1d2f] text-white font-serif font-bold text-lg grid place-items-center shadow-md">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#7c5cff] to-[#6e1d2f] text-white font-serif font-bold text-lg grid place-items-center shadow-md">
               S
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-serif text-lg text-[#f7f3ec]">
+                <h3 className="font-serif text-lg text-[#f4f4f8]">
                   Wybierz Animowane Logo Sinsay na Koniec Wideo
                 </h3>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#193328] text-[#75d9ae]">
                   Brand Kit LPP
                 </span>
               </div>
-              <p className="text-xs text-[#b8aea4]">
+              <p className="text-xs text-[#9e9bb3]">
                 Oficjalne warianty animacji logo (.mov / After Effects) z przezroczystością.
               </p>
             </div>
@@ -165,25 +165,25 @@ export default function AnimatedLogoModal({
 
           <button
             onClick={onClose}
-            className="text-[#8e8379] hover:text-[#f7f3ec] text-xl font-bold transition-colors"
+            className="text-[#6b6880] hover:text-[#f4f4f8] text-xl font-bold transition-colors"
           >
             ✕
           </button>
         </div>
 
         {/* Color Scheme Switcher & Filter Tabs */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#211d1a] p-3 rounded-xl border border-[#38302b]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#151320] p-3 rounded-xl border border-[#262338]">
           {/* Color Switcher */}
           <div className="flex items-center gap-2">
-            <span className="text-xs text-[#b8aea4]">Wersja kolorystyczna:</span>
-            <div className="flex items-center p-1 rounded-lg bg-[#1a1714] border border-[#38302b]">
+            <span className="text-xs text-[#9e9bb3]">Wersja kolorystyczna:</span>
+            <div className="flex items-center p-1 rounded-lg bg-[#0d0c14] border border-[#262338]">
               <button
                 type="button"
                 onClick={() => setColorScheme("white")}
                 className={`px-3 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all ${
                   colorScheme === "white"
-                    ? "bg-white text-[#1c1816] shadow-sm"
-                    : "text-[#b8aea4] hover:text-white"
+                    ? "bg-white text-[#13111c] shadow-sm"
+                    : "text-[#9e9bb3] hover:text-white"
                 }`}
               >
                 <span className="w-2.5 h-2.5 rounded-full bg-white border border-gray-400" />
@@ -194,8 +194,8 @@ export default function AnimatedLogoModal({
                 onClick={() => setColorScheme("black")}
                 className={`px-3 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all ${
                   colorScheme === "black"
-                    ? "bg-[#292420] text-white border border-[#5c4d42] shadow-sm"
-                    : "text-[#b8aea4] hover:text-white"
+                    ? "bg-[#1c192b] text-white border border-[#383352] shadow-sm"
+                    : "text-[#9e9bb3] hover:text-white"
                 }`}
               >
                 <span className="w-2.5 h-2.5 rounded-full bg-black border border-gray-500" />
@@ -218,8 +218,8 @@ export default function AnimatedLogoModal({
                 onClick={() => setFilterType(f.id as any)}
                 className={`px-2.5 py-1 rounded-lg transition-colors ${
                   filterType === f.id
-                    ? "bg-[#c84b31] text-white font-semibold"
-                    : "text-[#8e8379] hover:text-[#f7f3ec] hover:bg-[#292420]"
+                    ? "bg-[#7c5cff] text-white font-semibold"
+                    : "text-[#6b6880] hover:text-[#f4f4f8] hover:bg-[#1c192b]"
                 }`}
               >
                 {f.label}
@@ -241,8 +241,8 @@ export default function AnimatedLogoModal({
                   onClick={() => setActiveVariantId(v.id)}
                   className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between gap-3 ${
                     isSelected
-                      ? "border-[#c84b31] bg-[#38211c]/40 shadow-sm"
-                      : "border-[#38302b] bg-[#211d1a]/60 hover:bg-[#211d1a]"
+                      ? "border-[#7c5cff] bg-[#221b3d]/40 shadow-sm"
+                      : "border-[#262338] bg-[#151320]/60 hover:bg-[#151320]"
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -261,7 +261,7 @@ export default function AnimatedLogoModal({
 
                     <div className="space-y-0.5">
                       <div className="flex items-center gap-2">
-                        <h4 className="text-xs font-semibold text-[#f7f3ec]">
+                        <h4 className="text-xs font-semibold text-[#f4f4f8]">
                           {v.name}
                         </h4>
                         {v.isRecommended && (
@@ -270,10 +270,10 @@ export default function AnimatedLogoModal({
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-[#b8aea4] leading-relaxed line-clamp-1">
+                      <p className="text-[11px] text-[#9e9bb3] leading-relaxed line-clamp-1">
                         {v.desc}
                       </p>
-                      <span className="text-[10px] font-mono text-[#8e8379] block">
+                      <span className="text-[10px] font-mono text-[#6b6880] block">
                         Czas: {v.durationSec}s · After Effects (Alfa)
                       </span>
                     </div>
@@ -283,8 +283,8 @@ export default function AnimatedLogoModal({
                     <span
                       className={`w-4 h-4 rounded-full border grid place-items-center text-[10px] ${
                         isSelected
-                          ? "border-[#c84b31] bg-[#c84b31] text-white"
-                          : "border-[#5c4d42] text-transparent"
+                          ? "border-[#7c5cff] bg-[#7c5cff] text-white"
+                          : "border-[#383352] text-transparent"
                       }`}
                     >
                       ✓
@@ -296,15 +296,15 @@ export default function AnimatedLogoModal({
           </div>
 
           {/* Live Preview & Simulation (5 columns) */}
-          <div className="md:col-span-5 p-4 rounded-xl border border-[#38302b] bg-[#211d1a] space-y-4 flex flex-col justify-between">
+          <div className="md:col-span-5 p-4 rounded-xl border border-[#262338] bg-[#151320] space-y-4 flex flex-col justify-between">
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#c84b31] block mb-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#7c5cff] block mb-2">
                 Oryginalna animacja After Effects
               </span>
 
               {/* Animated Canvas / Box Preview */}
               <div
-                className={`w-full aspect-[9/16] max-h-[220px] rounded-xl border border-[#38302b] grid place-items-center relative overflow-hidden transition-colors ${
+                className={`w-full aspect-[9/16] max-h-[220px] rounded-xl border border-[#262338] grid place-items-center relative overflow-hidden transition-colors ${
                   colorScheme === "white" ? "bg-[#12100e]" : "bg-[#f2ece1]"
                 }`}
               >
@@ -328,16 +328,16 @@ export default function AnimatedLogoModal({
                   </span>
                 </div>
 
-                <div className="absolute bottom-2 inset-x-2 flex justify-between text-[9px] text-[#8e8379] font-mono px-2">
+                <div className="absolute bottom-2 inset-x-2 flex justify-between text-[9px] text-[#6b6880] font-mono px-2">
                   <span>Outro: {currentVariant.durationSec}s</span>
                   <span>Kanał Alfa: 100%</span>
                 </div>
               </div>
 
-              <div className="mt-3 text-xs text-[#b8aea4] space-y-1">
+              <div className="mt-3 text-xs text-[#9e9bb3] space-y-1">
                 <p>
                   <strong>Plik źródłowy:</strong>{" "}
-                  <code className="text-[10px] font-mono text-[#f7f3ec]">
+                  <code className="text-[10px] font-mono text-[#f4f4f8]">
                     {currentFilePath.split("/").pop()}
                   </code>
                 </p>
@@ -350,7 +350,7 @@ export default function AnimatedLogoModal({
             <button
               type="button"
               onClick={handleApply}
-              className="w-full py-2.5 rounded-xl text-xs font-semibold bg-[#c84b31] hover:bg-[#e56b4e] text-white shadow-md transition-colors"
+              className="w-full py-2.5 rounded-xl text-xs font-semibold bg-[#7c5cff] hover:bg-[#9d85ff] text-white shadow-md transition-colors"
             >
               Zastosuj ten wariant logo
             </button>
@@ -358,7 +358,7 @@ export default function AnimatedLogoModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-[#38302b] pt-3 text-xs text-[#8e8379]">
+        <div className="flex items-center justify-between border-t border-[#262338] pt-3 text-xs text-[#6b6880]">
           <span>
             Wszystkie 12 plików .mov zostały skopiowane do repozytorium projektu (
             <code>/brand/logo_anim/</code>).
@@ -366,7 +366,7 @@ export default function AnimatedLogoModal({
           <button
             type="button"
             onClick={onClose}
-            className="text-[#b8aea4] hover:text-[#f7f3ec] underline"
+            className="text-[#9e9bb3] hover:text-[#f4f4f8] underline"
           >
             Anuluj
           </button>

@@ -632,7 +632,7 @@ export const LocalizationView: React.FC<LocalizationViewProps> = ({
                           if (onApplyToCampaign) onApplyToCampaign(r);
                           showToast(`Zastosowano hasło „${r.pl}” do całej kampanii (Grafiki + Wideo)!`);
                         }}
-                        className="px-2 py-1 rounded-md text-[10px] font-bold bg-[#1d6346] hover:bg-[#164e37] text-white transition-all mr-1.5 cursor-pointer shadow-xs inline-flex items-center gap-1"
+                        className="px-2 py-1 rounded-md text-[10px] font-bold bg-[#10b981] hover:bg-[#059669] text-white transition-all mr-1.5 cursor-pointer shadow-xs inline-flex items-center gap-1"
                         title="Zastosuj to hasło we wszystkich formatach grafik i wideo"
                       >
                         <span>✓</span>

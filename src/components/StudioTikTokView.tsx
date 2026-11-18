@@ -765,7 +765,7 @@ ${titleNodes}
     } else if (captionStyle === "tiktok_neon") {
       classes += " bg-[#ffee00] text-black font-black px-2.5 py-1 rounded shadow-[0_4px_12px_rgba(255,238,0,0.4)] ";
     } else {
-      classes += " bg-black/90 text-white px-3 py-1 rounded-sm shadow-md border-l-2 border-[#c84b31] ";
+      classes += " bg-black/90 text-white px-3 py-1 rounded-sm shadow-md border-l-2 border-[#7c5cff] ";
     }
 
     return classes;
@@ -1474,7 +1474,7 @@ ${titleNodes}
             <button
               type="button"
               onClick={() => setSelectedTextLangs(["PL", "RO", "CZ", "SK", "HU"])}
-              className="text-[#c84b31] dark:text-[#e56b4e] hover:underline font-bold cursor-pointer"
+              className="text-[#7c5cff] dark:text-[#9d85ff] hover:underline font-bold cursor-pointer"
             >
               Top 5 CEE
             </button>
@@ -1482,7 +1482,7 @@ ${titleNodes}
             <button
               type="button"
               onClick={() => setSelectedTextLangs(SINSAY_MARKETS.map((m) => m.code))}
-              className="text-[#c84b31] dark:text-[#e56b4e] hover:underline font-bold cursor-pointer"
+              className="text-[#7c5cff] dark:text-[#9d85ff] hover:underline font-bold cursor-pointer"
             >
               Wszystkie 28
             </button>
@@ -1511,9 +1511,9 @@ ${titleNodes}
                 }}
                 className={`px-2 py-0.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1 cursor-pointer ${
                   isPreview
-                    ? "ring-2 ring-[#c84b31] bg-[#c84b31] text-white border-[#c84b31] shadow-xs"
+                    ? "ring-2 ring-[#7c5cff] bg-[#7c5cff] text-white border-[#7c5cff] shadow-xs"
                     : isSelected
-                    ? "bg-[#c84b31]/15 border-[#c84b31]/40 text-[#c84b31] dark:text-[#e56b4e] font-bold"
+                    ? "bg-[#7c5cff]/15 border-[#7c5cff]/40 text-[#7c5cff] dark:text-[#9d85ff] font-bold"
                     : "bg-[var(--bg-card)] border-[var(--border-subtle)] text-[var(--ink-secondary)] opacity-60 hover:opacity-100"
                 }`}
                 title={`${m.name} (${m.region})`}
@@ -1531,7 +1531,7 @@ ${titleNodes}
         <button
           type="button"
           onClick={generateCuesFromPrompt}
-          className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-[#fceee9] dark:bg-[#38211c] text-[#c84b31] dark:text-[#e56b4e] hover:bg-[#c84b31] hover:text-white transition-all flex items-center gap-1 border border-[#c84b31]/30 cursor-pointer"
+          className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-[#efecff] dark:bg-[#221b3d] text-[#7c5cff] dark:text-[#9d85ff] hover:bg-[#7c5cff] hover:text-white transition-all flex items-center gap-1 border border-[#7c5cff]/30 cursor-pointer"
           title="Automatycznie wygeneruj plan 4 segmentów z promptu wideo"
         >
           <span>✨ Plan z promptu wideo</span>
@@ -1549,7 +1549,7 @@ ${titleNodes}
         <button
           type="button"
           onClick={() => setShowPhraseAssistant((prev) => !prev)}
-          className="px-2.5 py-1.5 rounded-xl text-xs font-bold border border-[#c84b31]/40 bg-[#fceee9]/40 dark:bg-[#38211c]/30 text-[#c84b31] dark:text-[#e56b4e] hover:bg-[#c84b31] hover:text-white transition-all flex items-center gap-1 ml-auto cursor-pointer"
+          className="px-2.5 py-1.5 rounded-xl text-xs font-bold border border-[#7c5cff]/40 bg-[#efecff]/40 dark:bg-[#221b3d]/30 text-[#7c5cff] dark:text-[#9d85ff] hover:bg-[#7c5cff] hover:text-white transition-all flex items-center gap-1 ml-auto cursor-pointer"
         >
           <span>✦ Hasła Sinsay (4 524)</span>
           <span>{showPhraseAssistant ? "▲" : "▼"}</span>
@@ -1572,7 +1572,7 @@ ${titleNodes}
           <span className="text-[var(--ink-secondary)]">
             Oś czasu napisów ({selectedCue ? selectedCue.label : "Wybierz segment"}):
           </span>
-          <span className="font-mono text-[#c84b31]">
+          <span className="font-mono text-[#7c5cff]">
             {currentTime.toFixed(1)}s / {duration}s
           </span>
         </div>
@@ -1588,9 +1588,9 @@ ${titleNodes}
               cue.type === "hook"
                 ? "bg-[#6e1d2f]"
                 : cue.type === "speech"
-                ? "bg-[#c84b31]"
+                ? "bg-[#7c5cff]"
                 : cue.type === "feature"
-                ? "bg-[#1d6346]"
+                ? "bg-[#10b981]"
                 : "bg-[#8f4f0e]";
 
             const cueText = cue.translations?.[previewLang]?.line1 || cue.text;
@@ -1639,9 +1639,9 @@ ${titleNodes}
                   selectedCue.type === "hook"
                     ? "bg-[#6e1d2f]"
                     : selectedCue.type === "speech"
-                    ? "bg-[#c84b31]"
+                    ? "bg-[#7c5cff]"
                     : selectedCue.type === "feature"
-                    ? "bg-[#1d6346]"
+                    ? "bg-[#10b981]"
                     : "bg-[#8f4f0e]"
                 }`}
               />
@@ -1825,7 +1825,7 @@ ${titleNodes}
                 setSelectedCueId(newId);
                 showToast("Dodano nowy segment napisów");
               }}
-              className="text-xs font-bold text-[#c84b31] dark:text-[#e56b4e] hover:underline flex items-center gap-1 cursor-pointer"
+              className="text-xs font-bold text-[#7c5cff] dark:text-[#9d85ff] hover:underline flex items-center gap-1 cursor-pointer"
             >
               <span>+ Dodaj kolejny segment</span>
             </button>
@@ -1838,7 +1838,7 @@ ${titleNodes}
         <div>
           <div className="flex items-center justify-between text-xs font-bold mb-1">
             <span>Wysokość w pionie (Oś Y):</span>
-            <span className="font-mono text-[#c84b31] font-extrabold">{captionYPercent}%</span>
+            <span className="font-mono text-[#7c5cff] font-extrabold">{captionYPercent}%</span>
           </div>
           <input
             type="range"
@@ -1847,7 +1847,7 @@ ${titleNodes}
             step={1}
             value={captionYPercent}
             onChange={(e) => setCaptionYPercent(Number(e.target.value))}
-            className="w-full accent-[#c84b31] cursor-pointer"
+            className="w-full accent-[#7c5cff] cursor-pointer"
           />
           <div className="flex items-center justify-between text-[10px] mt-1">
             <div className="flex items-center gap-1.5">
@@ -1856,8 +1856,8 @@ ${titleNodes}
                 onClick={() => setCaptionYPercent(64)}
                 className={`px-2 py-0.5 rounded-md text-[10px] font-bold border transition-all cursor-pointer ${
                   captionYPercent === 64
-                    ? "bg-[#c84b31] text-white border-[#c84b31]"
-                    : "bg-[var(--bg-card)] border-[var(--border-subtle)] text-[var(--ink-secondary)] hover:border-[#c84b31]"
+                    ? "bg-[#7c5cff] text-white border-[#7c5cff]"
+                    : "bg-[var(--bg-card)] border-[var(--border-subtle)] text-[var(--ink-secondary)] hover:border-[#7c5cff]"
                 }`}
               >
                 ✓ Safe Zone (64%)
@@ -1867,8 +1867,8 @@ ${titleNodes}
                 onClick={() => setCaptionYPercent(50)}
                 className={`px-2 py-0.5 rounded-md text-[10px] font-bold border transition-all cursor-pointer ${
                   captionYPercent === 50
-                    ? "bg-[#c84b31] text-white border-[#c84b31]"
-                    : "bg-[var(--bg-card)] border-[var(--border-subtle)] text-[var(--ink-secondary)] hover:border-[#c84b31]"
+                    ? "bg-[#7c5cff] text-white border-[#7c5cff]"
+                    : "bg-[var(--bg-card)] border-[var(--border-subtle)] text-[var(--ink-secondary)] hover:border-[#7c5cff]"
                 }`}
               >
                 Centrum (50%)
@@ -1878,8 +1878,8 @@ ${titleNodes}
                 onClick={() => setCaptionYPercent(24)}
                 className={`px-2 py-0.5 rounded-md text-[10px] font-bold border transition-all cursor-pointer ${
                   captionYPercent === 24
-                    ? "bg-[#c84b31] text-white border-[#c84b31]"
-                    : "bg-[var(--bg-card)] border-[var(--border-subtle)] text-[var(--ink-secondary)] hover:border-[#c84b31]"
+                    ? "bg-[#7c5cff] text-white border-[#7c5cff]"
+                    : "bg-[var(--bg-card)] border-[var(--border-subtle)] text-[var(--ink-secondary)] hover:border-[#7c5cff]"
                 }`}
               >
                 Góra (24%)
@@ -1972,7 +1972,7 @@ ${titleNodes}
               onClick={() => setWorkspaceMode("generate")}
               className={`px-4 py-2 rounded-lg text-xs font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
                 workspaceMode === "generate"
-                  ? "bg-[#c84b31] text-white shadow-sm"
+                  ? "bg-[#7c5cff] text-white shadow-sm"
                   : "text-[var(--ink-secondary)] hover:text-[var(--ink-primary)]"
               }`}
             >
@@ -1983,7 +1983,7 @@ ${titleNodes}
               onClick={() => setWorkspaceMode("edit")}
               className={`px-4 py-2 rounded-lg text-xs font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
                 workspaceMode === "edit"
-                  ? "bg-[#c84b31] text-white shadow-sm"
+                  ? "bg-[#7c5cff] text-white shadow-sm"
                   : "text-[var(--ink-secondary)] hover:text-[var(--ink-primary)]"
               }`}
             >
@@ -2014,7 +2014,7 @@ ${titleNodes}
             <button
               type="button"
               onClick={() => handleDownloadSrtOnly(previewLang)}
-              className="px-3.5 py-2 rounded-xl text-xs font-bold border border-[var(--border-strong)] bg-[var(--bg-subtle)] text-[var(--ink-primary)] hover:border-[#c84b31] hover:text-[#c84b31] transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+              className="px-3.5 py-2 rounded-xl text-xs font-bold border border-[var(--border-strong)] bg-[var(--bg-subtle)] text-[var(--ink-primary)] hover:border-[#7c5cff] hover:text-[#7c5cff] transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
               title="Pobierz plik napisów .SRT dla aktualnego języka"
             >
               <span>📄 Pobierz napisy .SRT ({previewLang})</span>
@@ -2025,7 +2025,7 @@ ${titleNodes}
             type="button"
             onClick={handleQuickExportZip}
             disabled={isExportingZip || isBurningVideo}
-            className="px-4 py-2 rounded-xl text-xs font-bold border border-[#c84b31] bg-[#fceee9] dark:bg-[#38211c] text-[#c84b31] dark:text-[#e56b4e] hover:bg-[#c84b31] hover:text-white transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+            className="px-4 py-2 rounded-xl text-xs font-bold border border-[#7c5cff] bg-[#efecff] dark:bg-[#221b3d] text-[#7c5cff] dark:text-[#9d85ff] hover:bg-[#7c5cff] hover:text-white transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
           >
             <span>
               {isExportingZip || isBurningVideo
@@ -2147,7 +2147,7 @@ ${titleNodes}
                       type="button"
                       onClick={handleFetchPcm}
                       disabled={isFetchingPcm}
-                      className="px-3.5 py-2 rounded-xl text-xs font-bold border border-[#c84b31] bg-[#fceee9] dark:bg-[#38211c] text-[#c84b31] dark:text-[#e56b4e] hover:bg-[#c84b31] hover:text-white transition-all flex items-center gap-1.5 shadow-sm cursor-pointer disabled:opacity-50"
+                      className="px-3.5 py-2 rounded-xl text-xs font-bold border border-[#7c5cff] bg-[#efecff] dark:bg-[#221b3d] text-[#7c5cff] dark:text-[#9d85ff] hover:bg-[#7c5cff] hover:text-white transition-all flex items-center gap-1.5 shadow-sm cursor-pointer disabled:opacity-50"
                     >
                       <span>{isFetchingPcm ? "Pobieranie..." : "Pobierz z PCM ↻"}</span>
                     </button>
@@ -2175,7 +2175,7 @@ ${titleNodes}
                         {pcmAssets.map((asset) => (
                           <div
                             key={asset.id}
-                            className="group relative flex-shrink-0 w-20 h-28 rounded-lg overflow-hidden border border-[var(--border-strong)] bg-white dark:bg-[#1a1714] shadow-xs cursor-pointer hover:border-[var(--accent)] transition-all"
+                            className="group relative flex-shrink-0 w-20 h-28 rounded-lg overflow-hidden border border-[var(--border-strong)] bg-white dark:bg-[#0d0c14] shadow-xs cursor-pointer hover:border-[var(--accent)] transition-all"
                             title={`${asset.label} (${asset.filename})`}
                           >
                             <img
@@ -2193,7 +2193,7 @@ ${titleNodes}
                               {asset.filename.replace(/^.*[\\/]/, '')}
                             </div>
                             <span className={`absolute top-1 right-1 text-[8px] font-bold px-1 rounded text-white ${
-                              asset.source === "pcm" ? "bg-emerald-600" : asset.source === "pdm" ? "bg-blue-600" : "bg-[#c84b31]"
+                              asset.source === "pcm" ? "bg-emerald-600" : asset.source === "pdm" ? "bg-blue-600" : "bg-[#7c5cff]"
                             }`}>
                               {asset.source.toUpperCase()}
                             </span>
@@ -2306,7 +2306,7 @@ ${titleNodes}
                     <span className="text-[var(--ink-secondary)]">
                       Szacowany koszt ({duration}s · {videoResolution} · ${ratePerSec.toFixed(2)}/s{renderMultiplier > 1 ? ` × ${renderMultiplier} formaty` : ""}):
                     </span>
-                    <span className="font-mono font-extrabold text-[#c84b31] dark:text-[#e56b4e]">
+                    <span className="font-mono font-extrabold text-[#7c5cff] dark:text-[#9d85ff]">
                       ~${totalCost} USD
                     </span>
                   </div>
@@ -2419,7 +2419,7 @@ ${titleNodes}
                     type="checkbox"
                     checked={isSubtitlesEnabled}
                     onChange={(e) => setIsSubtitlesEnabled(e.target.checked)}
-                    className="w-4 h-4 accent-[#c84b31] cursor-pointer"
+                    className="w-4 h-4 accent-[#7c5cff] cursor-pointer"
                   />
                 </div>
 
@@ -2445,7 +2445,7 @@ ${titleNodes}
                     type="checkbox"
                     checked={isDubEnabled}
                     onChange={(e) => setIsDubEnabled(e.target.checked)}
-                    className="w-4 h-4 accent-[#c84b31] cursor-pointer"
+                    className="w-4 h-4 accent-[#7c5cff] cursor-pointer"
                   />
                 </div>
 
@@ -2500,12 +2500,12 @@ ${titleNodes}
                     type="checkbox"
                     checked={isLogoOutroEnabled}
                     onChange={(e) => setIsLogoOutroEnabled(e.target.checked)}
-                    className="w-4 h-4 accent-[#c84b31] cursor-pointer"
+                    className="w-4 h-4 accent-[#7c5cff] cursor-pointer"
                   />
                 </div>
 
                 {isLogoOutroEnabled && (
-                  <div className="flex items-center justify-between gap-3 p-3 rounded-xl border border-[#dfd5c6] dark:border-[#38302b] bg-[var(--bg-subtle)]">
+                  <div className="flex items-center justify-between gap-3 p-3 rounded-xl border border-[#dcd9ec] dark:border-[#262338] bg-[var(--bg-subtle)]">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-10 rounded-lg bg-black/80 p-1 flex items-center justify-center shrink-0 border border-black/20">
                         <img
@@ -2527,7 +2527,7 @@ ${titleNodes}
                     <button
                       type="button"
                       onClick={() => setIsLogoModalOpen(true)}
-                      className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-[var(--bg-card)] border border-[var(--border-strong)] hover:border-[#c84b31] text-[var(--ink-primary)] cursor-pointer"
+                      className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-[var(--bg-card)] border border-[var(--border-strong)] hover:border-[#7c5cff] text-[var(--ink-primary)] cursor-pointer"
                     >
                       Zmień logo ⚙
                     </button>
@@ -2594,8 +2594,8 @@ ${titleNodes}
                     </div>
                   </div>
                 ) : (
-                  <label className="block border-2 border-dashed border-[#c84b31]/40 hover:border-[#c84b31] bg-[var(--bg-subtle)] hover:bg-[#c84b31]/5 p-6 rounded-2xl text-center cursor-pointer transition-all">
-                    <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-[#fceee9] dark:bg-[#38211c] text-[#c84b31] grid place-items-center text-xl shadow-xs">
+                  <label className="block border-2 border-dashed border-[#7c5cff]/40 hover:border-[#7c5cff] bg-[var(--bg-subtle)] hover:bg-[#7c5cff]/5 p-6 rounded-2xl text-center cursor-pointer transition-all">
+                    <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-[#efecff] dark:bg-[#221b3d] text-[#7c5cff] grid place-items-center text-xl shadow-xs">
                       ↑
                     </div>
                     <span className="text-xs font-extrabold text-[var(--ink-primary)] block">
@@ -2604,7 +2604,7 @@ ${titleNodes}
                     <span className="text-[11px] text-[var(--ink-muted)] block mt-1">
                       Obsługa MP4, MOV. Długość klipu zostanie dopasowana automatycznie.
                     </span>
-                    <span className="inline-block mt-3 px-3.5 py-1.5 rounded-xl text-xs font-bold text-white bg-[#c84b31] shadow-xs">
+                    <span className="inline-block mt-3 px-3.5 py-1.5 rounded-xl text-xs font-bold text-white bg-[#7c5cff] shadow-xs">
                       Wybierz wideo z komputera
                     </span>
                     <input
@@ -2642,7 +2642,7 @@ ${titleNodes}
                     type="checkbox"
                     checked={isSubtitlesEnabled}
                     onChange={(e) => setIsSubtitlesEnabled(e.target.checked)}
-                    className="w-4 h-4 accent-[#c84b31] cursor-pointer"
+                    className="w-4 h-4 accent-[#7c5cff] cursor-pointer"
                   />
                 </div>
 
@@ -2668,12 +2668,12 @@ ${titleNodes}
                     type="checkbox"
                     checked={isLogoOutroEnabled}
                     onChange={(e) => setIsLogoOutroEnabled(e.target.checked)}
-                    className="w-4 h-4 accent-[#c84b31] cursor-pointer"
+                    className="w-4 h-4 accent-[#7c5cff] cursor-pointer"
                   />
                 </div>
 
                 {isLogoOutroEnabled && (
-                  <div className="flex items-center justify-between gap-3 p-3 rounded-xl border border-[#dfd5c6] dark:border-[#38302b] bg-[var(--bg-subtle)]">
+                  <div className="flex items-center justify-between gap-3 p-3 rounded-xl border border-[#dcd9ec] dark:border-[#262338] bg-[var(--bg-subtle)]">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-10 rounded-lg bg-black/80 p-1 flex items-center justify-center shrink-0 border border-black/20">
                         <img
@@ -2695,7 +2695,7 @@ ${titleNodes}
                     <button
                       type="button"
                       onClick={() => setIsLogoModalOpen(true)}
-                      className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-[var(--bg-card)] border border-[var(--border-strong)] hover:border-[#c84b31] text-[var(--ink-primary)] cursor-pointer"
+                      className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-[var(--bg-card)] border border-[var(--border-strong)] hover:border-[#7c5cff] text-[var(--ink-primary)] cursor-pointer"
                     >
                       Zmień logo ⚙
                     </button>
@@ -2772,13 +2772,13 @@ ${titleNodes}
               <div className="flex flex-col items-center gap-1.5 w-full">
                 <div className="flex items-center justify-between w-full max-w-[155px] px-1 text-[10px] font-bold text-[var(--ink-secondary)]">
                   <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-[#c84b31]" />
-                    <span className="text-[#c84b31]">3:4 Master</span>
+                    <span className="w-2 h-2 rounded-full bg-[#7c5cff]" />
+                    <span className="text-[#7c5cff]">3:4 Master</span>
                   </span>
                   <span className="text-[9px] font-mono text-[var(--ink-muted)]">1440×1920</span>
                 </div>
 
-                <div className="w-full max-w-[155px] aspect-[3/4] rounded-2xl border-2 border-[#c84b31] bg-black relative overflow-hidden shadow-xl ring-1 ring-[#c84b31]/30">
+                <div className="w-full max-w-[155px] aspect-[3/4] rounded-2xl border-2 border-[#7c5cff] bg-black relative overflow-hidden shadow-xl ring-1 ring-[#7c5cff]/30">
                   {videoFile ? (
                     <video
                       ref={videoRef}
@@ -2796,7 +2796,7 @@ ${titleNodes}
                         setUploadedFileName("sample_atelier_9x16.mp4");
                         showToast("Załadowano wideo próbne atelier 9:16");
                       }}
-                      className="absolute inset-0 bg-gradient-to-tr from-[#3a151e] via-[#6e1d2f] to-[#c84b31] transition-transform duration-100 cursor-pointer group"
+                      className="absolute inset-0 bg-gradient-to-tr from-[#1a1535] via-[#4f35c2] to-[#7c5cff] transition-transform duration-100 cursor-pointer group"
                       style={{ transform: `scale(${1 + Math.sin(currentTime) * 0.05})` }}
                       title="Kliknij, aby wczytać wideo próbne atelier"
                     >
@@ -2831,7 +2831,7 @@ ${titleNodes}
                         alt={selectedLogo.name}
                         className="max-h-[50%] max-w-[80%] object-contain drop-shadow-xl"
                       />
-                      <span className="text-[7px] font-mono tracking-widest text-[#e56b4e] uppercase block mt-1">
+                      <span className="text-[7px] font-mono tracking-widest text-[#9d85ff] uppercase block mt-1">
                         {selectedLogo.name}
                       </span>
                     </div>
@@ -2856,7 +2856,7 @@ ${titleNodes}
                     type="button"
                     onClick={() => handleBurnAndDownloadSingleVideo("3:4")}
                     disabled={isBurningVideo}
-                    className="w-full max-w-[155px] px-2 py-1 rounded-lg text-[10px] font-extrabold bg-[#fceee9] dark:bg-[#38211c] border border-[#c84b31]/40 text-[#c84b31] dark:text-[#e56b4e] hover:bg-[#c84b31] hover:text-white transition-all shadow-xs flex items-center justify-center gap-1 cursor-pointer"
+                    className="w-full max-w-[155px] px-2 py-1 rounded-lg text-[10px] font-extrabold bg-[#efecff] dark:bg-[#221b3d] border border-[#7c5cff]/40 text-[#7c5cff] dark:text-[#9d85ff] hover:bg-[#7c5cff] hover:text-white transition-all shadow-xs flex items-center justify-center gap-1 cursor-pointer"
                     title="Wypala napisy w formacie 3:4 bez DaVinci Resolve"
                   >
                     <span>🔥 Wypal 3:4 ({previewLang})</span>
@@ -2888,7 +2888,7 @@ ${titleNodes}
                     />
                   ) : (
                     <div
-                      className="absolute inset-0 bg-gradient-to-tr from-[#3a151e] via-[#6e1d2f] to-[#c84b31] transition-transform duration-150"
+                      className="absolute inset-0 bg-gradient-to-tr from-[#1a1535] via-[#4f35c2] to-[#7c5cff] transition-transform duration-150"
                       style={{
                         transform: `scale(${1.25 + Math.sin(currentTime) * 0.05}) translateX(${cropOffset * 0.4}%)`,
                       }}
@@ -2907,7 +2907,7 @@ ${titleNodes}
                         alt={selectedLogo.name}
                         className="max-h-[50%] max-w-[80%] object-contain drop-shadow-xl"
                       />
-                      <span className="text-[7px] font-mono tracking-widest text-[#e56b4e] uppercase block mt-1">
+                      <span className="text-[7px] font-mono tracking-widest text-[#9d85ff] uppercase block mt-1">
                         {selectedLogo.name}
                       </span>
                     </div>
@@ -2932,7 +2932,7 @@ ${titleNodes}
                     type="button"
                     onClick={() => handleBurnAndDownloadSingleVideo("9:16")}
                     disabled={isBurningVideo}
-                    className="w-full max-w-[155px] px-2 py-1 rounded-lg text-[10px] font-extrabold bg-[#fceee9] dark:bg-[#38211c] border border-[#c84b31]/40 text-[#c84b31] dark:text-[#e56b4e] hover:bg-[#c84b31] hover:text-white transition-all shadow-xs flex items-center justify-center gap-1 cursor-pointer"
+                    className="w-full max-w-[155px] px-2 py-1 rounded-lg text-[10px] font-extrabold bg-[#efecff] dark:bg-[#221b3d] border border-[#7c5cff]/40 text-[#7c5cff] dark:text-[#9d85ff] hover:bg-[#7c5cff] hover:text-white transition-all shadow-xs flex items-center justify-center gap-1 cursor-pointer"
                     title="Wypala napisy w pikselach wideo bez DaVinci Resolve"
                   >
                     <span>🔥 Wypal 9:16 ({previewLang})</span>
@@ -2962,7 +2962,7 @@ ${titleNodes}
                     />
                   ) : (
                     <div
-                      className="absolute inset-0 bg-gradient-to-tr from-[#3a151e] via-[#6e1d2f] to-[#c84b31] transition-transform duration-150"
+                      className="absolute inset-0 bg-gradient-to-tr from-[#1a1535] via-[#4f35c2] to-[#7c5cff] transition-transform duration-150"
                       style={{
                         transform: `scale(${1.1 + Math.sin(currentTime) * 0.05})`,
                       }}
@@ -2981,7 +2981,7 @@ ${titleNodes}
                         alt={selectedLogo.name}
                         className="max-h-[50%] max-w-[80%] object-contain drop-shadow-xl"
                       />
-                      <span className="text-[7px] font-mono tracking-widest text-[#e56b4e] uppercase block mt-1">
+                      <span className="text-[7px] font-mono tracking-widest text-[#9d85ff] uppercase block mt-1">
                         {selectedLogo.name}
                       </span>
                     </div>
@@ -3006,7 +3006,7 @@ ${titleNodes}
                     type="button"
                     onClick={() => handleBurnAndDownloadSingleVideo("4:5")}
                     disabled={isBurningVideo}
-                    className="w-full max-w-[155px] px-2 py-1 rounded-lg text-[10px] font-extrabold bg-[#fceee9] dark:bg-[#38211c] border border-[#c84b31]/40 text-[#c84b31] dark:text-[#e56b4e] hover:bg-[#c84b31] hover:text-white transition-all shadow-xs flex items-center justify-center gap-1 cursor-pointer"
+                    className="w-full max-w-[155px] px-2 py-1 rounded-lg text-[10px] font-extrabold bg-[#efecff] dark:bg-[#221b3d] border border-[#7c5cff]/40 text-[#7c5cff] dark:text-[#9d85ff] hover:bg-[#7c5cff] hover:text-white transition-all shadow-xs flex items-center justify-center gap-1 cursor-pointer"
                     title="Wypala napisy w formacie 4:5 bez DaVinci Resolve"
                   >
                     <span>🔥 Wypal 4:5 ({previewLang})</span>
@@ -3036,7 +3036,7 @@ ${titleNodes}
                     />
                   ) : (
                     <div
-                      className="absolute inset-0 bg-gradient-to-tr from-[#3a151e] via-[#6e1d2f] to-[#c84b31] transition-transform duration-150"
+                      className="absolute inset-0 bg-gradient-to-tr from-[#1a1535] via-[#4f35c2] to-[#7c5cff] transition-transform duration-150"
                       style={{
                         transform: `scale(${1 + Math.sin(currentTime) * 0.05})`,
                       }}
@@ -3055,7 +3055,7 @@ ${titleNodes}
                         alt={selectedLogo.name}
                         className="max-h-[50%] max-w-[80%] object-contain drop-shadow-xl"
                       />
-                      <span className="text-[7px] font-mono tracking-widest text-[#e56b4e] uppercase block mt-1">
+                      <span className="text-[7px] font-mono tracking-widest text-[#9d85ff] uppercase block mt-1">
                         {selectedLogo.name}
                       </span>
                     </div>
@@ -3080,7 +3080,7 @@ ${titleNodes}
                     type="button"
                     onClick={() => handleBurnAndDownloadSingleVideo("1:1")}
                     disabled={isBurningVideo}
-                    className="w-full max-w-[155px] px-2 py-1 rounded-lg text-[10px] font-extrabold bg-[#fceee9] dark:bg-[#38211c] border border-[#c84b31]/40 text-[#c84b31] dark:text-[#e56b4e] hover:bg-[#c84b31] hover:text-white transition-all shadow-xs flex items-center justify-center gap-1 cursor-pointer"
+                    className="w-full max-w-[155px] px-2 py-1 rounded-lg text-[10px] font-extrabold bg-[#efecff] dark:bg-[#221b3d] border border-[#7c5cff]/40 text-[#7c5cff] dark:text-[#9d85ff] hover:bg-[#7c5cff] hover:text-white transition-all shadow-xs flex items-center justify-center gap-1 cursor-pointer"
                     title="Wypala napisy w formacie 1:1 bez DaVinci Resolve"
                   >
                     <span>🔥 Wypal 1:1 ({previewLang})</span>
@@ -3116,7 +3116,7 @@ ${titleNodes}
               <div className="flex items-center gap-3">
                 <button
                   onClick={togglePlayback}
-                  className="w-10 h-10 rounded-full bg-[#c84b31] text-white font-extrabold text-sm grid place-items-center shadow-md hover:opacity-95 cursor-pointer"
+                  className="w-10 h-10 rounded-full bg-[#7c5cff] text-white font-extrabold text-sm grid place-items-center shadow-md hover:opacity-95 cursor-pointer"
                   title={isPlaying ? "Zatrzymaj" : "Odtwórz"}
                 >
                   {isPlaying ? "❚❚" : "▶"}
@@ -3138,12 +3138,12 @@ ${titleNodes}
                     setCurrentTime(time);
                     if (videoRef.current) videoRef.current.currentTime = time;
                   }}
-                  className="w-full accent-[#c84b31] cursor-pointer"
+                  className="w-full accent-[#7c5cff] cursor-pointer"
                 />
               </div>
 
               <div className="text-xs font-bold text-[var(--ink-secondary)]">
-                Fokus kadru: <span className="text-[#c84b31]">{cropOffset}%</span>
+                Fokus kadru: <span className="text-[#7c5cff]">{cropOffset}%</span>
               </div>
             </div>
           </div>
@@ -3167,7 +3167,7 @@ ${titleNodes}
                       type="button"
                       onClick={() => handleBurnAndDownloadSingleVideo("9:16")}
                       disabled={isBurningVideo}
-                      className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#c84b31] to-[#e56b4e] hover:opacity-95 shadow-md flex items-center gap-1.5 cursor-pointer"
+                      className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#7c5cff] to-[#9d85ff] hover:opacity-95 shadow-md flex items-center gap-1.5 cursor-pointer"
                       title="Wypala napisy w pikselach wideo bezpośrednio w przeglądarce bez DaVinci Resolve"
                     >
                       <span>{isBurningVideo ? "Wypalanie..." : `🔥 Wypal wideo 9:16 (${previewLang})`}</span>
@@ -3175,7 +3175,7 @@ ${titleNodes}
                     <button
                       type="button"
                       onClick={() => handleDownloadSrtOnly(previewLang)}
-                      className="px-3.5 py-2 rounded-xl text-xs font-bold border border-[var(--border-strong)] bg-[var(--bg-subtle)] text-[var(--ink-primary)] hover:border-[#c84b31] hover:text-[#c84b31] transition-all cursor-pointer"
+                      className="px-3.5 py-2 rounded-xl text-xs font-bold border border-[var(--border-strong)] bg-[var(--bg-subtle)] text-[var(--ink-primary)] hover:border-[#7c5cff] hover:text-[#7c5cff] transition-all cursor-pointer"
                     >
                       📄 Tylko .SRT ({previewLang})
                     </button>
@@ -3185,7 +3185,7 @@ ${titleNodes}
                   type="button"
                   onClick={handleQuickExportZip}
                   disabled={isExportingZip || isBurningVideo}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#c84b31] shadow-[var(--shadow-pop)] hover:opacity-95 transition-all cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#7c5cff] shadow-[var(--shadow-pop)] hover:opacity-95 transition-all cursor-pointer"
                 >
                   {isExportingZip || isBurningVideo
                     ? "Wypalanie & Pakowanie..."
@@ -3209,7 +3209,7 @@ ${titleNodes}
                     Zmieniaj czasówki poszczególnych ujęć przyciskami „−” i „+”, a całkowity czas klipu dostosuje się automatycznie
                   </small>
                 </div>
-                <span className="text-xs font-bold px-3 py-1 rounded-full bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-[#c84b31] font-mono">
+                <span className="text-xs font-bold px-3 py-1 rounded-full bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-[#7c5cff] font-mono">
                   {duration} s łącznie
                 </span>
               </div>
@@ -3221,9 +3221,9 @@ ${titleNodes}
                     const pct = Math.max(5, (sc.durationSec / duration) * 100);
                     const colors = [
                       "bg-[#6e1d2f]",
-                      "bg-[#c84b31]",
+                      "bg-[#7c5cff]",
                       "bg-[#8f4f0e]",
-                      "bg-[#1d6346]",
+                      "bg-[#10b981]",
                       "bg-[#1b4353]",
                       "bg-[#4a1c40]",
                     ];
@@ -3257,7 +3257,7 @@ ${titleNodes}
                     <div>
                       <div className="flex justify-between items-center text-[10px] font-bold text-[var(--accent)] mb-1">
                         <span className="truncate pr-1">{scene.name}</span>
-                        <span className="font-mono text-[11px] text-[#c84b31] font-extrabold whitespace-nowrap">
+                        <span className="font-mono text-[11px] text-[#7c5cff] font-extrabold whitespace-nowrap">
                           {scene.timeRange}
                         </span>
                       </div>
@@ -3269,18 +3269,18 @@ ${titleNodes}
                           <button
                             type="button"
                             onClick={() => handleSceneDurationChange(scene.id, scene.durationSec - 0.5)}
-                            className="w-4 h-4 rounded bg-black/10 dark:bg-white/10 text-[10px] font-bold grid place-items-center hover:bg-[#c84b31] hover:text-white transition-all cursor-pointer"
+                            className="w-4 h-4 rounded bg-black/10 dark:bg-white/10 text-[10px] font-bold grid place-items-center hover:bg-[#7c5cff] hover:text-white transition-all cursor-pointer"
                             title="Skróć ujęcie o 0.5s"
                           >
                             −
                           </button>
-                          <span className="font-mono font-extrabold text-[11px] text-[#c84b31] px-0.5">
+                          <span className="font-mono font-extrabold text-[11px] text-[#7c5cff] px-0.5">
                             {scene.durationSec.toFixed(1)}s
                           </span>
                           <button
                             type="button"
                             onClick={() => handleSceneDurationChange(scene.id, scene.durationSec + 0.5)}
-                            className="w-4 h-4 rounded bg-black/10 dark:bg-white/10 text-[10px] font-bold grid place-items-center hover:bg-[#c84b31] hover:text-white transition-all cursor-pointer"
+                            className="w-4 h-4 rounded bg-black/10 dark:bg-white/10 text-[10px] font-bold grid place-items-center hover:bg-[#7c5cff] hover:text-white transition-all cursor-pointer"
                             title="Wydłuż ujęcie o 0.5s"
                           >
                             +
@@ -3365,7 +3365,7 @@ ${titleNodes}
       {isBurningVideo && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-[var(--bg-card)] border border-[var(--border-strong)] p-6 rounded-2xl max-w-md w-full shadow-2xl space-y-4 text-center">
-            <div className="w-14 h-14 mx-auto rounded-full bg-[#fceee9] dark:bg-[#38211c] text-[#c84b31] grid place-items-center text-2xl animate-pulse shadow-md">
+            <div className="w-14 h-14 mx-auto rounded-full bg-[#efecff] dark:bg-[#221b3d] text-[#7c5cff] grid place-items-center text-2xl animate-pulse shadow-md">
               🔥
             </div>
             <div>
@@ -3380,13 +3380,13 @@ ${titleNodes}
             <div className="space-y-1.5 pt-1">
               <div className="w-full h-3 bg-[var(--bg-subtle)] rounded-full overflow-hidden border border-[var(--border-subtle)]">
                 <div
-                  className="h-full bg-gradient-to-r from-[#c84b31] to-[#e56b4e] transition-all duration-150"
+                  className="h-full bg-gradient-to-r from-[#7c5cff] to-[#9d85ff] transition-all duration-150"
                   style={{ width: `${burnProgress}%` }}
                 />
               </div>
               <div className="flex justify-between text-[11px] font-mono text-[var(--ink-muted)]">
                 <span>{burnStatus}</span>
-                <span className="font-bold text-[#c84b31]">{burnProgress}%</span>
+                <span className="font-bold text-[#7c5cff]">{burnProgress}%</span>
               </div>
             </div>
           </div>

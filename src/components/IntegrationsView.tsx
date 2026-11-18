@@ -166,25 +166,25 @@ export default function IntegrationsView() {
   return (
     <div className="space-y-8">
       {/* Header bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#dfd5c6] dark:border-[#38302b] pb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#dcd9ec] dark:border-[#262338] pb-6">
         <div>
-          <h2 className="text-2xl font-extrabold tracking-tight text-[#1c1816] dark:text-[#f7f3ec]">
+          <h2 className="text-2xl font-extrabold tracking-tight text-[#13111c] dark:text-[#f4f4f8]">
             Ustawienia API
           </h2>
-          <p className="text-xs text-[#655a53] dark:text-[#b8aea4] mt-0.5">
+          <p className="text-xs text-[#5c5870] dark:text-[#9e9bb3] mt-0.5">
             Połączenia z Seedance, ElevenLabs, PCM i arkuszem SharePoint.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           {/* Mode Switcher */}
-          <div className="flex items-center gap-2 bg-[#f2ece1] dark:bg-[#1a1714] p-1 rounded-xl border border-[#dfd5c6] dark:border-[#38302b]">
+          <div className="flex items-center gap-2 bg-[#f2ece1] dark:bg-[#0d0c14] p-1 rounded-xl border border-[#dcd9ec] dark:border-[#262338]">
             <button
               onClick={() => setConfig((prev) => ({ ...prev, mode: "sandbox" }))}
               className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
                 config.mode === "sandbox"
-                  ? "bg-white dark:bg-[#211d1a] text-[#1c1816] dark:text-[#f7f3ec] shadow-sm font-semibold"
-                  : "text-[#655a53] dark:text-[#b8aea4]"
+                  ? "bg-white dark:bg-[#151320] text-[#13111c] dark:text-[#f4f4f8] shadow-sm font-semibold"
+                  : "text-[#5c5870] dark:text-[#9e9bb3]"
               }`}
             >
               Testowy (Sandbox)
@@ -193,8 +193,8 @@ export default function IntegrationsView() {
               onClick={() => setConfig((prev) => ({ ...prev, mode: "live" }))}
               className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
                 config.mode === "live"
-                  ? "bg-[#c84b31] text-white shadow-sm font-semibold"
-                  : "text-[#655a53] dark:text-[#b8aea4]"
+                  ? "bg-[#7c5cff] text-white shadow-sm font-semibold"
+                  : "text-[#5c5870] dark:text-[#9e9bb3]"
               }`}
             >
               Produkcyjny (Live)
@@ -203,7 +203,7 @@ export default function IntegrationsView() {
 
           <button
             onClick={handleSave}
-            className="px-4 py-2 text-xs font-bold rounded-lg bg-[#c84b31] dark:bg-[#e56b4e] hover:opacity-90 text-white shadow-sm transition-colors"
+            className="px-4 py-2 text-xs font-bold rounded-lg bg-[#7c5cff] dark:bg-[#9d85ff] hover:opacity-90 text-white shadow-sm transition-colors"
           >
             Zapisz
           </button>
@@ -211,14 +211,14 @@ export default function IntegrationsView() {
       </div>
 
       {saveSuccess && (
-        <div className="p-3 rounded-xl border border-[#1d6346] dark:border-[#75d9ae] bg-[#e6f4ed] dark:bg-[#193328] text-[#1d6346] dark:text-[#75d9ae] text-xs flex items-center gap-2">
+        <div className="p-3 rounded-xl border border-[#10b981] dark:border-[#75d9ae] bg-[#e6f4ed] dark:bg-[#193328] text-[#10b981] dark:text-[#75d9ae] text-xs flex items-center gap-2">
           <span>✓</span>
           <span>Zapisano ustawienia.</span>
         </div>
       )}
 
       {config.mode === "sandbox" ? (
-        <div className="p-3.5 rounded-xl border border-[#bfa890] dark:border-[#5c4d42] bg-[#fdf1e1]/50 dark:bg-[#382916]/30 text-xs text-[#8f4f0e] dark:text-[#f5bc7a] flex items-center justify-between">
+        <div className="p-3.5 rounded-xl border border-[#c4bfdc] dark:border-[#383352] bg-[#fdf1e1]/50 dark:bg-[#382916]/30 text-xs text-[#8f4f0e] dark:text-[#f5bc7a] flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span>ℹ</span>
             <span>
@@ -233,7 +233,7 @@ export default function IntegrationsView() {
           </button>
         </div>
       ) : (
-        <div className="p-4 rounded-xl border border-[#c84b31] dark:border-[#e56b4e] bg-[#fceee9]/40 dark:bg-[#38211c]/30 text-xs text-[#c84b31] dark:text-[#e56b4e] flex items-center gap-2">
+        <div className="p-4 rounded-xl border border-[#7c5cff] dark:border-[#9d85ff] bg-[#efecff]/40 dark:bg-[#221b3d]/30 text-xs text-[#7c5cff] dark:text-[#9d85ff] flex items-center gap-2">
           <span>⚡</span>
           <span>
             <strong>Aktywny Tryb Live:</strong> Generowanie wideo trafia do płatnego API BytePlus ModelArk (Seedance) z kluczem skonfigurowanym na serwerze. Prompt i packshot są wysyłane poza infrastrukturę LPP. Ustawienie obowiązuje po kliknięciu „Zapisz”.
@@ -256,20 +256,20 @@ export default function IntegrationsView() {
               onClick={() => setActiveTab(tab.id as any)}
               className={`w-full text-left p-3 rounded-xl border transition-colors ${
                 activeTab === tab.id
-                  ? "border-[#c84b31] dark:border-[#e56b4e] bg-white dark:bg-[#211d1a] shadow-sm"
-                  : "border-[#dfd5c6] dark:border-[#38302b] bg-[#faf7f2]/50 dark:bg-[#1a1714]/50 hover:bg-white dark:hover:bg-[#211d1a]"
+                  ? "border-[#7c5cff] dark:border-[#9d85ff] bg-white dark:bg-[#151320] shadow-sm"
+                  : "border-[#dcd9ec] dark:border-[#262338] bg-[#f4f4fa]/50 dark:bg-[#0d0c14]/50 hover:bg-white dark:hover:bg-[#151320]"
               }`}
             >
               <p
                 className={`text-xs font-semibold ${
                   activeTab === tab.id
-                    ? "text-[#c84b31] dark:text-[#e56b4e]"
-                    : "text-[#1c1816] dark:text-[#f7f3ec]"
+                    ? "text-[#7c5cff] dark:text-[#9d85ff]"
+                    : "text-[#13111c] dark:text-[#f4f4f8]"
                 }`}
               >
                 {tab.label}
               </p>
-              <p className="text-[11px] text-[#877b72] dark:text-[#8e8379] mt-0.5">
+              <p className="text-[11px] text-[#7c7894] dark:text-[#6b6880] mt-0.5">
                 {tab.desc}
               </p>
             </button>
@@ -277,22 +277,22 @@ export default function IntegrationsView() {
         </div>
 
         {/* Tab Content Panel */}
-        <div className="md:col-span-3 p-6 rounded-xl border border-[#dfd5c6] dark:border-[#38302b] bg-white dark:bg-[#211d1a] shadow-sm space-y-6">
+        <div className="md:col-span-3 p-6 rounded-xl border border-[#dcd9ec] dark:border-[#262338] bg-white dark:bg-[#151320] shadow-sm space-y-6">
           {/* TAB 1: VIDEO ENGINE */}
           {activeTab === "video" && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between border-b border-[#dfd5c6] dark:border-[#38302b] pb-3">
+              <div className="flex items-center justify-between border-b border-[#dcd9ec] dark:border-[#262338] pb-3">
                 <div>
-                  <h3 className="font-serif text-lg text-[#1c1816] dark:text-[#f7f3ec]">
+                  <h3 className="font-serif text-lg text-[#13111c] dark:text-[#f4f4f8]">
                     Konfiguracja Silnika Generacji Wideo AI
                   </h3>
-                  <p className="text-xs text-[#655a53] dark:text-[#b8aea4]">
+                  <p className="text-xs text-[#5c5870] dark:text-[#9e9bb3]">
                     Seedance 2.5 / 2.0 (BytePlus ModelArk) oraz Higgsfield z automatycznym Smart Cropem 9:16 do 4:5 i 1:1.
                   </p>
                 </div>
                 <button
                   onClick={() => handleTestConnection("video")}
-                  className="px-3 py-1.5 text-xs font-medium rounded-lg border border-[#dfd5c6] dark:border-[#38302b] hover:bg-[#faf7f2] dark:hover:bg-[#1a1714] text-[#1c1816] dark:text-[#f7f3ec] transition-colors"
+                  className="px-3 py-1.5 text-xs font-medium rounded-lg border border-[#dcd9ec] dark:border-[#262338] hover:bg-[#f4f4fa] dark:hover:bg-[#0d0c14] text-[#13111c] dark:text-[#f4f4f8] transition-colors"
                 >
                   {testStatus.video === "testing"
                     ? "Testowanie..."
@@ -308,8 +308,8 @@ export default function IntegrationsView() {
                 <div
                   className={`p-2.5 rounded-lg border text-[11px] ${
                     testStatus.video === "error"
-                      ? "border-[#c84b31] text-[#c84b31] dark:border-[#e56b4e] dark:text-[#e56b4e]"
-                      : "border-[#1d6346] text-[#1d6346] dark:border-[#75d9ae] dark:text-[#75d9ae]"
+                      ? "border-[#7c5cff] text-[#7c5cff] dark:border-[#9d85ff] dark:text-[#9d85ff]"
+                      : "border-[#10b981] text-[#10b981] dark:border-[#75d9ae] dark:text-[#75d9ae]"
                   }`}
                 >
                   {videoTestMessage}
@@ -318,7 +318,7 @@ export default function IntegrationsView() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                 <div className="space-y-1.5">
-                  <label className="text-[#655a53] dark:text-[#b8aea4]">
+                  <label className="text-[#5c5870] dark:text-[#9e9bb3]">
                     Wybór modelu AI:
                   </label>
                   <select
@@ -326,7 +326,7 @@ export default function IntegrationsView() {
                     onChange={(e) =>
                       setConfig((prev) => ({ ...prev, seedanceModel: e.target.value }))
                     }
-                    className="w-full px-3 py-2 rounded-lg border border-[#dfd5c6] dark:border-[#38302b] bg-[#faf7f2] dark:bg-[#1a1714] text-[#1c1816] dark:text-[#f7f3ec]"
+                    className="w-full px-3 py-2 rounded-lg border border-[#dcd9ec] dark:border-[#262338] bg-[#f4f4fa] dark:bg-[#0d0c14] text-[#13111c] dark:text-[#f4f4f8]"
                   >
                     {VIDEO_ENGINE_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>
@@ -340,20 +340,20 @@ export default function IntegrationsView() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[#655a53] dark:text-[#b8aea4]">
+                  <label className="text-[#5c5870] dark:text-[#9e9bb3]">
                     Klucz API Seedance:
                   </label>
-                  <div className="w-full px-3 py-2 rounded-lg border border-[#dfd5c6] dark:border-[#38302b] bg-[#faf7f2] dark:bg-[#1a1714] text-[#1c1816] dark:text-[#f7f3ec] flex items-center gap-2">
+                  <div className="w-full px-3 py-2 rounded-lg border border-[#dcd9ec] dark:border-[#262338] bg-[#f4f4fa] dark:bg-[#0d0c14] text-[#13111c] dark:text-[#f4f4f8] flex items-center gap-2">
                     {videoServerConfig === null ? (
-                      <span className="text-[#877b72] dark:text-[#8e8379]">Sprawdzanie...</span>
+                      <span className="text-[#7c7894] dark:text-[#6b6880]">Sprawdzanie...</span>
                     ) : videoServerConfig.seedance.keyConfigured ? (
                       <>
-                        <span className="w-2 h-2 rounded-full bg-[#1d6346] dark:bg-[#75d9ae]" />
+                        <span className="w-2 h-2 rounded-full bg-[#10b981] dark:bg-[#75d9ae]" />
                         <span>skonfigurowany (Secret Manager)</span>
                       </>
                     ) : (
                       <>
-                        <span className="w-2 h-2 rounded-full bg-[#c84b31] dark:bg-[#e56b4e]" />
+                        <span className="w-2 h-2 rounded-full bg-[#7c5cff] dark:bg-[#9d85ff]" />
                         <span>brak — tylko tryb testowy</span>
                       </>
                     )}
@@ -364,21 +364,21 @@ export default function IntegrationsView() {
               {videoServerConfig && (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
                   <div className="space-y-1">
-                    <p className="text-[#655a53] dark:text-[#b8aea4]">Rozdzielczość:</p>
-                    <p className="font-mono text-[11px] text-[#1c1816] dark:text-[#f7f3ec]">
+                    <p className="text-[#5c5870] dark:text-[#9e9bb3]">Rozdzielczość:</p>
+                    <p className="font-mono text-[11px] text-[#13111c] dark:text-[#f4f4f8]">
                       {videoServerConfig.seedance.resolution}
                       {videoServerConfig.seedance.generateAudio ? " · z dźwiękiem" : " · bez dźwięku"}
                     </p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-[#655a53] dark:text-[#b8aea4]">API:</p>
-                    <p className="font-mono text-[11px] text-[#1c1816] dark:text-[#f7f3ec] break-all">
+                    <p className="text-[#5c5870] dark:text-[#9e9bb3]">API:</p>
+                    <p className="font-mono text-[11px] text-[#13111c] dark:text-[#f4f4f8] break-all">
                       {videoServerConfig.seedance.endpointHost}
                     </p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-[#655a53] dark:text-[#b8aea4]">Archiwum wideo:</p>
-                    <p className="font-mono text-[11px] text-[#1c1816] dark:text-[#f7f3ec]">
+                    <p className="text-[#5c5870] dark:text-[#9e9bb3]">Archiwum wideo:</p>
+                    <p className="font-mono text-[11px] text-[#13111c] dark:text-[#f4f4f8]">
                       {videoServerConfig.seedance.storageConfigured
                         ? "Cloud Storage"
                         : "brak — link ważny 24 h"}
@@ -392,18 +392,18 @@ export default function IntegrationsView() {
           {/* TAB 2: AUDIO & TTS */}
           {activeTab === "audio" && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between border-b border-[#dfd5c6] dark:border-[#38302b] pb-3">
+              <div className="flex items-center justify-between border-b border-[#dcd9ec] dark:border-[#262338] pb-3">
                 <div>
-                  <h3 className="font-serif text-lg text-[#1c1816] dark:text-[#f7f3ec]">
+                  <h3 className="font-serif text-lg text-[#13111c] dark:text-[#f4f4f8]">
                     Konfiguracja ElevenLabs TTS & Napisów
                   </h3>
-                  <p className="text-xs text-[#655a53] dark:text-[#b8aea4]">
+                  <p className="text-xs text-[#5c5870] dark:text-[#9e9bb3]">
                     Synteza lektora z precyzyjnymi znacznikami czasu dla animacji napisów karaoke.
                   </p>
                 </div>
                 <button
                   onClick={() => handleTestConnection("audio")}
-                  className="px-3 py-1.5 text-xs font-medium rounded-lg border border-[#dfd5c6] dark:border-[#38302b] hover:bg-[#faf7f2] dark:hover:bg-[#1a1714] text-[#1c1816] dark:text-[#f7f3ec] transition-colors"
+                  className="px-3 py-1.5 text-xs font-medium rounded-lg border border-[#dcd9ec] dark:border-[#262338] hover:bg-[#f4f4fa] dark:hover:bg-[#0d0c14] text-[#13111c] dark:text-[#f4f4f8] transition-colors"
                 >
                   {testStatus.audio === "testing"
                     ? "Testowanie..."
@@ -415,7 +415,7 @@ export default function IntegrationsView() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                 <div className="space-y-1.5">
-                  <label className="text-[#655a53] dark:text-[#b8aea4]">
+                  <label className="text-[#5c5870] dark:text-[#9e9bb3]">
                     ElevenLabs API Key:
                   </label>
                   <input
@@ -424,13 +424,13 @@ export default function IntegrationsView() {
                     onChange={(e) =>
                       setConfig((prev) => ({ ...prev, elevenLabsApiKey: e.target.value }))
                     }
-                    className="w-full px-3 py-2 rounded-lg border border-[#dfd5c6] dark:border-[#38302b] bg-[#faf7f2] dark:bg-[#1a1714] text-[#1c1816] dark:text-[#f7f3ec] font-mono text-[11px]"
+                    className="w-full px-3 py-2 rounded-lg border border-[#dcd9ec] dark:border-[#262338] bg-[#f4f4fa] dark:bg-[#0d0c14] text-[#13111c] dark:text-[#f4f4f8] font-mono text-[11px]"
                     placeholder="xi_..."
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[#655a53] dark:text-[#b8aea4]">
+                  <label className="text-[#5c5870] dark:text-[#9e9bb3]">
                     Domyślny Voice ID:
                   </label>
                   <input
@@ -439,13 +439,13 @@ export default function IntegrationsView() {
                     onChange={(e) =>
                       setConfig((prev) => ({ ...prev, elevenLabsVoiceId: e.target.value }))
                     }
-                    className="w-full px-3 py-2 rounded-lg border border-[#dfd5c6] dark:border-[#38302b] bg-[#faf7f2] dark:bg-[#1a1714] text-[#1c1816] dark:text-[#f7f3ec] font-mono text-[11px]"
+                    className="w-full px-3 py-2 rounded-lg border border-[#dcd9ec] dark:border-[#262338] bg-[#f4f4fa] dark:bg-[#0d0c14] text-[#13111c] dark:text-[#f4f4f8] font-mono text-[11px]"
                   />
                 </div>
               </div>
 
               <div className="pt-2">
-                <label className="flex items-center gap-2 cursor-pointer text-xs text-[#1c1816] dark:text-[#f7f3ec]">
+                <label className="flex items-center gap-2 cursor-pointer text-xs text-[#13111c] dark:text-[#f4f4f8]">
                   <input
                     type="checkbox"
                     checked={config.elevenLabsTimestamps}
@@ -455,7 +455,7 @@ export default function IntegrationsView() {
                         elevenLabsTimestamps: e.target.checked,
                       }))
                     }
-                    className="accent-[#c84b31]"
+                    className="accent-[#7c5cff]"
                   />
                   <span>Włącz generowanie znaczników czasu słów (Word Timestamps) do karaoke</span>
                 </label>
@@ -466,18 +466,18 @@ export default function IntegrationsView() {
           {/* TAB 3: PCM API */}
           {activeTab === "pcm" && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between border-b border-[#dfd5c6] dark:border-[#38302b] pb-3">
+              <div className="flex items-center justify-between border-b border-[#dcd9ec] dark:border-[#262338] pb-3">
                 <div>
-                  <h3 className="font-serif text-lg text-[#1c1816] dark:text-[#f7f3ec]">
+                  <h3 className="font-serif text-lg text-[#13111c] dark:text-[#f4f4f8]">
                     Połączenie z Katalogiem Produktów PCM
                   </h3>
-                  <p className="text-xs text-[#655a53] dark:text-[#b8aea4]">
+                  <p className="text-xs text-[#5c5870] dark:text-[#9e9bb3]">
                     Automatyczne pobieranie packshotów i danych o tkaninach po kodzie MDK.
                   </p>
                 </div>
                 <button
                   onClick={() => handleTestConnection("pcm")}
-                  className="px-3 py-1.5 text-xs font-medium rounded-lg border border-[#dfd5c6] dark:border-[#38302b] hover:bg-[#faf7f2] dark:hover:bg-[#1a1714] text-[#1c1816] dark:text-[#f7f3ec] transition-colors"
+                  className="px-3 py-1.5 text-xs font-medium rounded-lg border border-[#dcd9ec] dark:border-[#262338] hover:bg-[#f4f4fa] dark:hover:bg-[#0d0c14] text-[#13111c] dark:text-[#f4f4f8] transition-colors"
                 >
                   {testStatus.pcm === "testing"
                     ? "Sprawdzanie..."
@@ -489,7 +489,7 @@ export default function IntegrationsView() {
 
               <div className="space-y-3 text-xs">
                 <div className="space-y-1.5">
-                  <label className="text-[#655a53] dark:text-[#b8aea4]">
+                  <label className="text-[#5c5870] dark:text-[#9e9bb3]">
                     PCM API Endpoint URL:
                   </label>
                   <input
@@ -498,12 +498,12 @@ export default function IntegrationsView() {
                     onChange={(e) =>
                       setConfig((prev) => ({ ...prev, pcmEndpoint: e.target.value }))
                     }
-                    className="w-full px-3 py-2 rounded-lg border border-[#dfd5c6] dark:border-[#38302b] bg-[#faf7f2] dark:bg-[#1a1714] text-[#1c1816] dark:text-[#f7f3ec] font-mono text-[11px]"
+                    className="w-full px-3 py-2 rounded-lg border border-[#dcd9ec] dark:border-[#262338] bg-[#f4f4fa] dark:bg-[#0d0c14] text-[#13111c] dark:text-[#f4f4f8] font-mono text-[11px]"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[#655a53] dark:text-[#b8aea4]">
+                  <label className="text-[#5c5870] dark:text-[#9e9bb3]">
                     Klucz autoryzacyjny (Bearer Token):
                   </label>
                   <input
@@ -512,7 +512,7 @@ export default function IntegrationsView() {
                     onChange={(e) =>
                       setConfig((prev) => ({ ...prev, pcmToken: e.target.value }))
                     }
-                    className="w-full px-3 py-2 rounded-lg border border-[#dfd5c6] dark:border-[#38302b] bg-[#faf7f2] dark:bg-[#1a1714] text-[#1c1816] dark:text-[#f7f3ec] font-mono text-[11px]"
+                    className="w-full px-3 py-2 rounded-lg border border-[#dcd9ec] dark:border-[#262338] bg-[#f4f4fa] dark:bg-[#0d0c14] text-[#13111c] dark:text-[#f4f4f8] font-mono text-[11px]"
                   />
                 </div>
               </div>
@@ -522,18 +522,18 @@ export default function IntegrationsView() {
           {/* TAB 4: EXCEL ONLINE */}
           {activeTab === "excel" && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between border-b border-[#dfd5c6] dark:border-[#38302b] pb-3">
+              <div className="flex items-center justify-between border-b border-[#dcd9ec] dark:border-[#262338] pb-3">
                 <div>
-                  <h3 className="font-serif text-lg text-[#1c1816] dark:text-[#f7f3ec]">
+                  <h3 className="font-serif text-lg text-[#13111c] dark:text-[#f4f4f8]">
                     Microsoft Excel Online & Graph API
                   </h3>
-                  <p className="text-xs text-[#655a53] dark:text-[#b8aea4]">
+                  <p className="text-xs text-[#5c5870] dark:text-[#9e9bb3]">
                     Dwukierunkowa synchronizacja: odczyt zleceń wideo i automatyczny zapis statusów/linków do arkusza.
                   </p>
                 </div>
                 <button
                   onClick={() => handleTestConnection("excel")}
-                  className="px-3 py-1.5 text-xs font-medium rounded-lg border border-[#dfd5c6] dark:border-[#38302b] hover:bg-[#faf7f2] dark:hover:bg-[#1a1714] text-[#1c1816] dark:text-[#f7f3ec] transition-colors"
+                  className="px-3 py-1.5 text-xs font-medium rounded-lg border border-[#dcd9ec] dark:border-[#262338] hover:bg-[#f4f4fa] dark:hover:bg-[#0d0c14] text-[#13111c] dark:text-[#f4f4f8] transition-colors"
                 >
                   {testStatus.excel === "testing"
                     ? "Łączenie..."
@@ -545,7 +545,7 @@ export default function IntegrationsView() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                 <div className="space-y-1.5">
-                  <label className="text-[#655a53] dark:text-[#b8aea4]">
+                  <label className="text-[#5c5870] dark:text-[#9e9bb3]">
                     Microsoft Azure Tenant ID:
                   </label>
                   <input
@@ -554,12 +554,12 @@ export default function IntegrationsView() {
                     onChange={(e) =>
                       setConfig((prev) => ({ ...prev, excelTenantId: e.target.value }))
                     }
-                    className="w-full px-3 py-2 rounded-lg border border-[#dfd5c6] dark:border-[#38302b] bg-[#faf7f2] dark:bg-[#1a1714] text-[#1c1816] dark:text-[#f7f3ec] font-mono text-[11px]"
+                    className="w-full px-3 py-2 rounded-lg border border-[#dcd9ec] dark:border-[#262338] bg-[#f4f4fa] dark:bg-[#0d0c14] text-[#13111c] dark:text-[#f4f4f8] font-mono text-[11px]"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[#655a53] dark:text-[#b8aea4]">
+                  <label className="text-[#5c5870] dark:text-[#9e9bb3]">
                     App / Client ID:
                   </label>
                   <input
@@ -568,14 +568,14 @@ export default function IntegrationsView() {
                     onChange={(e) =>
                       setConfig((prev) => ({ ...prev, excelClientId: e.target.value }))
                     }
-                    className="w-full px-3 py-2 rounded-lg border border-[#dfd5c6] dark:border-[#38302b] bg-[#faf7f2] dark:bg-[#1a1714] text-[#1c1816] dark:text-[#f7f3ec] font-mono text-[11px]"
+                    className="w-full px-3 py-2 rounded-lg border border-[#dcd9ec] dark:border-[#262338] bg-[#f4f4fa] dark:bg-[#0d0c14] text-[#13111c] dark:text-[#f4f4f8] font-mono text-[11px]"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                 <div className="space-y-1.5">
-                  <label className="text-[#655a53] dark:text-[#b8aea4]">
+                  <label className="text-[#5c5870] dark:text-[#9e9bb3]">
                     ID Skoroszytu (Drive Item ID):
                   </label>
                   <input
@@ -584,12 +584,12 @@ export default function IntegrationsView() {
                     onChange={(e) =>
                       setConfig((prev) => ({ ...prev, excelWorkbookId: e.target.value }))
                     }
-                    className="w-full px-3 py-2 rounded-lg border border-[#dfd5c6] dark:border-[#38302b] bg-[#faf7f2] dark:bg-[#1a1714] text-[#1c1816] dark:text-[#f7f3ec] font-mono text-[11px]"
+                    className="w-full px-3 py-2 rounded-lg border border-[#dcd9ec] dark:border-[#262338] bg-[#f4f4fa] dark:bg-[#0d0c14] text-[#13111c] dark:text-[#f4f4f8] font-mono text-[11px]"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[#655a53] dark:text-[#b8aea4]">
+                  <label className="text-[#5c5870] dark:text-[#9e9bb3]">
                     Nazwa zakładki arkusza:
                   </label>
                   <input
@@ -598,7 +598,7 @@ export default function IntegrationsView() {
                     onChange={(e) =>
                       setConfig((prev) => ({ ...prev, excelSheetName: e.target.value }))
                     }
-                    className="w-full px-3 py-2 rounded-lg border border-[#dfd5c6] dark:border-[#38302b] bg-[#faf7f2] dark:bg-[#1a1714] text-[#1c1816] dark:text-[#f7f3ec]"
+                    className="w-full px-3 py-2 rounded-lg border border-[#dcd9ec] dark:border-[#262338] bg-[#f4f4fa] dark:bg-[#0d0c14] text-[#13111c] dark:text-[#f4f4f8]"
                   />
                 </div>
               </div>

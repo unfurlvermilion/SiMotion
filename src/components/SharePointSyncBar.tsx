@@ -138,22 +138,22 @@ export default function SharePointSyncBar({ onSyncComplete }: SharePointSyncBarP
       <div className="flex items-center gap-1.5 shrink-0">
         <button
           onClick={() => setIsSettingsOpen(true)}
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border border-[#dfd5c6] dark:border-[#38302b] bg-white dark:bg-[#211d1a] hover:border-[#c84b31] dark:hover:border-[#e56b4e] transition-colors shadow-xs"
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border border-[#dcd9ec] dark:border-[#262338] bg-white dark:bg-[#151320] hover:border-[#7c5cff] dark:hover:border-[#9d85ff] transition-colors shadow-xs"
           title="Kliknij, aby otworzyć menu i ustawienia połączenia ze skoroszytem SharePoint"
         >
           <span
             className={`w-2 h-2 rounded-full shrink-0 ${
               isSyncing
-                ? "bg-[#c84b31] animate-ping"
+                ? "bg-[#7c5cff] animate-ping"
                 : isAutoSync
-                ? "bg-[#1d6346] dark:bg-[#75d9ae]"
-                : "bg-[#877b72]"
+                ? "bg-[#10b981] dark:bg-[#75d9ae]"
+                : "bg-[#7c7894]"
             }`}
           />
-          <span className="text-[#1c1816] dark:text-[#f7f3ec] font-semibold text-xs">
+          <span className="text-[#13111c] dark:text-[#f4f4f8] font-semibold text-xs">
             SharePoint
           </span>
-          <span className="text-[10px] text-[#877b72] dark:text-[#8e8379]">
+          <span className="text-[10px] text-[#7c7894] dark:text-[#6b6880]">
             ⚙
           </span>
         </button>
@@ -161,7 +161,7 @@ export default function SharePointSyncBar({ onSyncComplete }: SharePointSyncBarP
         <button
           onClick={triggerSync}
           disabled={isSyncing}
-          className="w-7 h-7 rounded-full border border-[#dfd5c6] dark:border-[#38302b] bg-white dark:bg-[#211d1a] hover:bg-[#faf7f2] dark:hover:bg-[#292420] text-[#1c1816] dark:text-[#f7f3ec] text-xs transition-colors shadow-xs disabled:opacity-50 grid place-items-center shrink-0"
+          className="w-7 h-7 rounded-full border border-[#dcd9ec] dark:border-[#262338] bg-white dark:bg-[#151320] hover:bg-[#f4f4fa] dark:hover:bg-[#1c192b] text-[#13111c] dark:text-[#f4f4f8] text-xs transition-colors shadow-xs disabled:opacity-50 grid place-items-center shrink-0"
           title="Wymuś synchronizację z SharePoint teraz"
         >
           <span className={`inline-block ${isSyncing ? "animate-spin" : ""}`}>↻</span>
@@ -171,24 +171,24 @@ export default function SharePointSyncBar({ onSyncComplete }: SharePointSyncBarP
       {/* Settings Modal */}
       {isSettingsOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-xl rounded-2xl border border-[#38302b] bg-[#1a1714] text-[#f7f3ec] p-6 shadow-2xl space-y-6">
-            <div className="flex items-center justify-between border-b border-[#38302b] pb-3">
+          <div className="w-full max-w-xl rounded-2xl border border-[#262338] bg-[#0d0c14] text-[#f4f4f8] p-6 shadow-2xl space-y-6">
+            <div className="flex items-center justify-between border-b border-[#262338] pb-3">
               <div className="flex items-center gap-2.5">
                 <span className="w-8 h-8 rounded-lg bg-[#193328] text-[#75d9ae] grid place-items-center font-bold text-sm">
                   ⊞
                 </span>
                 <div>
-                  <h3 className="font-serif text-lg text-[#f7f3ec]">
+                  <h3 className="font-serif text-lg text-[#f4f4f8]">
                     Połączenie z Microsoft SharePoint / Excel Online
                   </h3>
-                  <p className="text-xs text-[#b8aea4]">
+                  <p className="text-xs text-[#9e9bb3]">
                     Automatyczna, stała synchronizacja zleceń wideo z Twoim arkuszem w chmurze
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setIsSettingsOpen(false)}
-                className="text-[#8e8379] hover:text-[#f7f3ec] text-lg font-bold"
+                className="text-[#6b6880] hover:text-[#f4f4f8] text-lg font-bold"
               >
                 ✕
               </button>
@@ -201,7 +201,7 @@ export default function SharePointSyncBar({ onSyncComplete }: SharePointSyncBarP
                   <p className="font-semibold text-[#75d9ae] text-xs">
                     Arkusz produkcyjny Sinsay_TRANSLATIONS.xlsx
                   </p>
-                  <p className="text-[10px] text-[#b8aea4]">
+                  <p className="text-[10px] text-[#9e9bb3]">
                     Otwórz bieżący skoroszyt bezpośrednio w portalu Microsoft SharePoint w nowej karcie
                   </p>
                 </div>
@@ -209,14 +209,14 @@ export default function SharePointSyncBar({ onSyncComplete }: SharePointSyncBarP
                   href={sharepointUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-3.5 py-1.5 rounded-lg bg-[#193328] hover:bg-[#1d6346] border border-[#75d9ae]/40 text-white font-bold text-xs transition-colors whitespace-nowrap flex items-center gap-1 shadow-sm"
+                  className="px-3.5 py-1.5 rounded-lg bg-[#193328] hover:bg-[#10b981] border border-[#75d9ae]/40 text-white font-bold text-xs transition-colors whitespace-nowrap flex items-center gap-1 shadow-sm"
                 >
                   <span>Otwórz arkusz ↗</span>
                 </a>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[#b8aea4] block font-medium">
+                <label className="text-[#9e9bb3] block font-medium">
                   Link do skoroszytu Excel na SharePoint / OneDrive:
                 </label>
                 <input
@@ -224,34 +224,34 @@ export default function SharePointSyncBar({ onSyncComplete }: SharePointSyncBarP
                   value={sharepointUrl}
                   onChange={(e) => setSharepointUrl(e.target.value)}
                   placeholder="https://twojadomena.sharepoint.com/:x:/r/sites/.../Plik.xlsx?web=1"
-                  className="w-full px-3 py-2 rounded-xl border border-[#38302b] bg-[#211d1a] text-[#f7f3ec] font-mono text-[11px] focus:outline-none focus:border-[#e56b4e]"
+                  className="w-full px-3 py-2 rounded-xl border border-[#262338] bg-[#151320] text-[#f4f4f8] font-mono text-[11px] focus:outline-none focus:border-[#9d85ff]"
                 />
-                <p className="text-[10px] text-[#8e8379]">
+                <p className="text-[10px] text-[#6b6880]">
                   Wklej link z opcji <em>Udostępnij / Kopiuj link</em> ze swojego Excela w SharePoint.
                 </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-[#b8aea4] block font-medium">
+                  <label className="text-[#9e9bb3] block font-medium">
                     Nazwa arkusza (zakładki):
                   </label>
                   <input
                     type="text"
                     value={sheetName}
                     onChange={(e) => setSheetName(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-[#38302b] bg-[#211d1a] text-[#f7f3ec]"
+                    className="w-full px-3 py-2 rounded-xl border border-[#262338] bg-[#151320] text-[#f4f4f8]"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[#b8aea4] block font-medium">
+                  <label className="text-[#9e9bb3] block font-medium">
                     Częstotliwość Auto-Sync w tle:
                   </label>
                   <select
                     value={syncIntervalSec}
                     onChange={(e) => setSyncIntervalSec(Number(e.target.value))}
-                    className="w-full px-3 py-2 rounded-xl border border-[#38302b] bg-[#211d1a] text-[#f7f3ec]"
+                    className="w-full px-3 py-2 rounded-xl border border-[#262338] bg-[#151320] text-[#f4f4f8]"
                   >
                     <option value={15}>Co 15 sekund (Na żywo)</option>
                     <option value={30}>Co 30 sekund (Rekomendowane)</option>
@@ -261,10 +261,10 @@ export default function SharePointSyncBar({ onSyncComplete }: SharePointSyncBarP
                 </div>
               </div>
 
-              <div className="p-3 rounded-xl border border-[#38302b] bg-[#211d1a] flex items-center justify-between">
+              <div className="p-3 rounded-xl border border-[#262338] bg-[#151320] flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-[#f7f3ec]">Automatyczna synchronizacja w tle</p>
-                  <p className="text-[11px] text-[#8e8379]">
+                  <p className="font-medium text-[#f4f4f8]">Automatyczna synchronizacja w tle</p>
+                  <p className="text-[11px] text-[#6b6880]">
                     Pobiera zmiany z SharePoint bez konieczności odświeżania strony
                   </p>
                 </div>
@@ -272,41 +272,41 @@ export default function SharePointSyncBar({ onSyncComplete }: SharePointSyncBarP
                   type="checkbox"
                   checked={isAutoSync}
                   onChange={(e) => setIsAutoSync(e.target.checked)}
-                  className="w-4 h-4 accent-[#c84b31]"
+                  className="w-4 h-4 accent-[#7c5cff]"
                 />
               </div>
 
               <div className="p-3 rounded-xl border border-[#193328] bg-[#193328]/40 text-[#75d9ae] flex items-center justify-between">
                 <div>
                   <p className="font-medium">Potrzebujesz wzorca kolumn?</p>
-                  <p className="text-[11px] text-[#b8aea4]">
+                  <p className="text-[11px] text-[#9e9bb3]">
                     Pobierz gotowy plik CSV ze strukturą kolumn (MDK, Nazwa, Rynki, Status) do wgrania na SharePoint.
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={downloadExcelTemplate}
-                  className="px-3 py-1.5 rounded-lg bg-[#193328] hover:bg-[#1d6346] border border-[#75d9ae]/30 text-white font-medium text-xs transition-colors whitespace-nowrap"
+                  className="px-3 py-1.5 rounded-lg bg-[#193328] hover:bg-[#10b981] border border-[#75d9ae]/30 text-white font-medium text-xs transition-colors whitespace-nowrap"
                 >
                   ↓ Pobierz szablon
                 </button>
               </div>
             </div>
 
-            <div className="flex items-center justify-between border-t border-[#38302b] pt-4">
-              <span className="text-[11px] text-[#8e8379]">
+            <div className="flex items-center justify-between border-t border-[#262338] pt-4">
+              <span className="text-[11px] text-[#6b6880]">
                 Liczba wykonanych synchronizacji: <strong>{syncCount}</strong>
               </span>
               <div className="flex gap-2">
                 <button
                   onClick={() => setIsSettingsOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs text-[#b8aea4] hover:text-[#f7f3ec]"
+                  className="px-4 py-2 rounded-xl text-xs text-[#9e9bb3] hover:text-[#f4f4f8]"
                 >
                   Anuluj
                 </button>
                 <button
                   onClick={saveSettings}
-                  className="px-5 py-2 rounded-xl text-xs font-semibold bg-[#c84b31] hover:bg-[#e56b4e] text-white transition-colors"
+                  className="px-5 py-2 rounded-xl text-xs font-semibold bg-[#7c5cff] hover:bg-[#9d85ff] text-white transition-colors"
                 >
                   Zapisz i połącz na stałe
                 </button>

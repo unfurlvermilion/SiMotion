@@ -44,34 +44,34 @@ export default function AccessGate({ children }: AccessGateProps) {
   if (isAuthenticated === null) {
     return (
       <div className="min-h-screen bg-[#12100e] flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-[#e56b4e] border-t-transparent rounded-full animate-spin" />
+        <div className="w-6 h-6 border-2 border-[#9d85ff] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-[#12100e] text-[#f7f3ec] flex flex-col items-center justify-center p-6 relative overflow-hidden">
+      <div className="min-h-screen bg-[#12100e] text-[#f4f4f8] flex flex-col items-center justify-center p-6 relative overflow-hidden">
         {/* Subtle background ambient glow */}
-        <div className="absolute -top-40 -left-40 w-96 h-96 bg-[#c84b31]/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -top-40 -left-40 w-96 h-96 bg-[#7c5cff]/15 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-[#6e1d2f]/20 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="w-full max-w-md p-8 rounded-2xl border border-[#38302b] bg-[#1a1714]/90 backdrop-blur-xl shadow-2xl space-y-6 relative z-10">
+        <div className="w-full max-w-md p-8 rounded-2xl border border-[#262338] bg-[#0d0c14]/90 backdrop-blur-xl shadow-2xl space-y-6 relative z-10">
           <div className="text-center space-y-2">
-            <div className="h-12 px-4 mx-auto w-fit rounded-xl bg-gradient-to-br from-[#c84b31] to-[#6e1d2f] text-white font-sinsay font-bold text-base tracking-tight flex items-center justify-center shadow-lg border border-white/15">
+            <div className="h-12 px-4 mx-auto w-fit rounded-xl bg-gradient-to-br from-[#7c5cff] to-[#6e1d2f] text-white font-sinsay font-bold text-base tracking-tight flex items-center justify-center shadow-lg border border-white/15">
               SiMo
             </div>
-            <h1 className="text-2xl font-sinsay font-bold tracking-tight text-[#f7f3ec] pt-2">
+            <h1 className="text-2xl font-sinsay font-bold tracking-tight text-[#f4f4f8] pt-2">
               SiMotion
             </h1>
-            <p className="text-xs font-sinsay text-[#b8aea4] uppercase tracking-wider">
+            <p className="text-xs font-sinsay text-[#9e9bb3] uppercase tracking-wider">
               Sinsay Motion Studio
             </p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-[#b8aea4] block">
+              <label className="text-xs font-medium text-[#9e9bb3] block">
                 Hasło studyjne / PIN dostępu:
               </label>
               <input
@@ -83,27 +83,27 @@ export default function AccessGate({ children }: AccessGateProps) {
                 }}
                 placeholder="Wpisz hasło studyjne..."
                 autoFocus
-                className="w-full px-4 py-2.5 rounded-xl border border-[#38302b] bg-[#211d1a] text-[#f7f3ec] text-sm focus:outline-none focus:border-[#e56b4e] transition-colors placeholder-[#8e8379]"
+                className="w-full px-4 py-2.5 rounded-xl border border-[#262338] bg-[#151320] text-[#f4f4f8] text-sm focus:outline-none focus:border-[#9d85ff] transition-colors placeholder-[#6b6880]"
               />
             </div>
 
             {errorMsg && (
-              <p className="text-xs text-[#e56b4e] bg-[#38211c] p-2.5 rounded-lg border border-[#e56b4e]/30">
+              <p className="text-xs text-[#9d85ff] bg-[#221b3d] p-2.5 rounded-lg border border-[#9d85ff]/30">
                 {errorMsg}
               </p>
             )}
 
             <button
               type="submit"
-              className="w-full py-2.5 rounded-xl text-xs font-semibold bg-[#c84b31] hover:bg-[#e56b4e] text-white transition-colors shadow-md"
+              className="w-full py-2.5 rounded-xl text-xs font-semibold bg-[#7c5cff] hover:bg-[#9d85ff] text-white transition-colors shadow-md"
             >
               Odblokuj Atelier SiMotion
             </button>
           </form>
 
-          <div className="pt-2 border-t border-[#38302b] text-center">
-            <p className="text-[11px] text-[#8e8379]">
-              Domyślne hasło zespołu: <code className="text-[#f7f3ec] bg-[#292420] px-1.5 py-0.5 rounded font-mono">atelier2026</code>
+          <div className="pt-2 border-t border-[#262338] text-center">
+            <p className="text-[11px] text-[#6b6880]">
+              Domyślne hasło zespołu: <code className="text-[#f4f4f8] bg-[#1c192b] px-1.5 py-0.5 rounded font-mono">atelier2026</code>
             </p>
           </div>
         </div>
@@ -118,7 +118,7 @@ export default function AccessGate({ children }: AccessGateProps) {
         <button
           onClick={handleLogout}
           title="Zablokuj sesję"
-          className="px-3 py-1.5 rounded-full text-[11px] font-medium bg-[#1a1714]/90 text-[#b8aea4] hover:text-[#f7f3ec] hover:bg-[#292420] border border-[#38302b] backdrop-blur-md shadow-lg transition-colors flex items-center gap-1.5"
+          className="px-3 py-1.5 rounded-full text-[11px] font-medium bg-[#0d0c14]/90 text-[#9e9bb3] hover:text-[#f4f4f8] hover:bg-[#1c192b] border border-[#262338] backdrop-blur-md shadow-lg transition-colors flex items-center gap-1.5"
         >
           <span>🔒</span>
           <span>Zablokuj sesję</span>

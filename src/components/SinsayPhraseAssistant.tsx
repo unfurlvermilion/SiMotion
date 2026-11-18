@@ -241,25 +241,25 @@ export default function SinsayPhraseAssistant({
   };
 
   return (
-    <div className="rounded-2xl border border-[#dfd5c6] dark:border-[#38302b] bg-white dark:bg-[#211d1a] p-6 shadow-sm space-y-6">
+    <div className="rounded-2xl border border-[#dcd9ec] dark:border-[#262338] bg-white dark:bg-[#151320] p-6 shadow-sm space-y-6">
       <canvas ref={canvasRef} className="hidden" />
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#dfd5c6] dark:border-[#38302b] pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#dcd9ec] dark:border-[#262338] pb-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#c84b31] to-[#6e1d2f] text-white font-serif font-bold text-lg grid place-items-center shadow-md">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#7c5cff] to-[#6e1d2f] text-white font-serif font-bold text-lg grid place-items-center shadow-md">
             S
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="font-serif text-lg text-[#1c1816] dark:text-[#f7f3ec]">
+              <h3 className="font-serif text-lg text-[#13111c] dark:text-[#f4f4f8]">
                 Inteligentny Dobór Haseł Sinsay do Produktu & Sezonu
               </h3>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#e6f4ed] dark:bg-[#193328] text-[#1d6346] dark:text-[#75d9ae]">
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#e6f4ed] dark:bg-[#193328] text-[#10b981] dark:text-[#75d9ae]">
                 4 524 haseł · 28 rynków
               </span>
             </div>
-            <p className="text-xs text-[#655a53] dark:text-[#b8aea4]">
+            <p className="text-xs text-[#5c5870] dark:text-[#9e9bb3]">
               Wrzuć packshot produktu (np. okulary → Wiosna/Lato, kurtka lub buty zimowe → Zima) lub wybierz kategorię.
             </p>
           </div>
@@ -268,7 +268,7 @@ export default function SinsayPhraseAssistant({
         <button
           onClick={() => handleSearch()}
           disabled={isSearching}
-          className="px-5 py-2.5 text-xs font-semibold rounded-xl bg-[#c84b31] dark:bg-[#e56b4e] hover:opacity-90 disabled:opacity-50 text-white shadow-sm transition-all flex items-center justify-center gap-2 flex-shrink-0"
+          className="px-5 py-2.5 text-xs font-semibold rounded-xl bg-[#7c5cff] dark:bg-[#9d85ff] hover:opacity-90 disabled:opacity-50 text-white shadow-sm transition-all flex items-center justify-center gap-2 flex-shrink-0"
         >
           {isSearching ? (
             <>
@@ -284,10 +284,10 @@ export default function SinsayPhraseAssistant({
       {/* Interactive Category & Season Chips (Quick One-Click Filters) */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[#877b72] dark:text-[#8e8379]">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-[#7c7894] dark:text-[#6b6880]">
             Wybierz kategorię produktu lub sezon (1-klik):
           </span>
-          <span className="text-[11px] text-[#655a53] dark:text-[#b8aea4]">
+          <span className="text-[11px] text-[#5c5870] dark:text-[#9e9bb3]">
             Automatyczne reguły sezonowości
           </span>
         </div>
@@ -302,8 +302,8 @@ export default function SinsayPhraseAssistant({
                 onClick={() => handleSelectCategoryChip(cat)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
                   isActive
-                    ? "bg-[#c84b31] text-white shadow-sm scale-[1.02]"
-                    : "bg-[#faf7f2] dark:bg-[#1a1714] border border-[#dfd5c6] dark:border-[#38302b] text-[#655a53] dark:text-[#b8aea4] hover:border-[#c84b31] hover:text-[#1c1816] dark:hover:text-[#f7f3ec]"
+                    ? "bg-[#7c5cff] text-white shadow-sm scale-[1.02]"
+                    : "bg-[#f4f4fa] dark:bg-[#0d0c14] border border-[#dcd9ec] dark:border-[#262338] text-[#5c5870] dark:text-[#9e9bb3] hover:border-[#7c5cff] hover:text-[#13111c] dark:hover:text-[#f4f4f8]"
                 }`}
               >
                 <span>{cat.icon}</span>
@@ -312,7 +312,7 @@ export default function SinsayPhraseAssistant({
                   className={`text-[9px] px-1 py-0.2 rounded font-normal ${
                     isActive
                       ? "bg-white/20 text-white"
-                      : "bg-[#e8e2d8] dark:bg-[#2b2521] text-[#877b72] dark:text-[#8e8379]"
+                      : "bg-[#e8e2d8] dark:bg-[#2b2521] text-[#7c7894] dark:text-[#6b6880]"
                   }`}
                 >
                   {cat.seasonLabel}
@@ -327,7 +327,7 @@ export default function SinsayPhraseAssistant({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Prompt Input & Search */}
         <div className="lg:col-span-2 space-y-2">
-          <label className="text-xs font-medium text-[#1c1816] dark:text-[#f7f3ec] block">
+          <label className="text-xs font-medium text-[#13111c] dark:text-[#f4f4f8] block">
             Prompt wideo, cechy ubioru lub fraza kampanijna:
           </label>
           <div className="flex gap-2">
@@ -337,17 +337,17 @@ export default function SinsayPhraseAssistant({
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
               placeholder="np. okulary przeciwsłoneczne, kurtka zimowa puffer, sukienka satynowa..."
-              className="flex-1 px-4 py-2.5 rounded-xl border border-[#dfd5c6] dark:border-[#38302b] bg-[#faf7f2] dark:bg-[#1a1714] text-xs text-[#1c1816] dark:text-[#f7f3ec] focus:outline-none focus:border-[#c84b31]"
+              className="flex-1 px-4 py-2.5 rounded-xl border border-[#dcd9ec] dark:border-[#262338] bg-[#f4f4fa] dark:bg-[#0d0c14] text-xs text-[#13111c] dark:text-[#f4f4f8] focus:outline-none focus:border-[#7c5cff]"
             />
           </div>
 
           {/* AI Detected Profile Banner */}
           {detectedProfile && (
-            <div className="p-3 rounded-xl border border-[#1d6346]/30 bg-[#e6f4ed]/60 dark:bg-[#193328]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+            <div className="p-3 rounded-xl border border-[#10b981]/30 bg-[#e6f4ed]/60 dark:bg-[#193328]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
               <div className="flex items-center gap-2">
                 <span className="text-base">{detectedProfile.seasonIcon}</span>
                 <div>
-                  <span className="font-bold text-[#1d6346] dark:text-[#75d9ae]">
+                  <span className="font-bold text-[#10b981] dark:text-[#75d9ae]">
                     Wykryto: {detectedProfile.category.label}
                   </span>
                   <p className="text-[11px] text-[#2e5241] dark:text-[#a0dbc0]">
@@ -356,11 +356,11 @@ export default function SinsayPhraseAssistant({
                 </div>
               </div>
               <div className="flex items-center gap-1.5 flex-shrink-0">
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#1d6346] text-white">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#10b981] text-white">
                   Sezon: {detectedProfile.seasonLabel}
                 </span>
                 {colorAnalysis && (
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-white/70 dark:bg-black/40 text-[#655a53] dark:text-[#b8aea4]">
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-white/70 dark:bg-black/40 text-[#5c5870] dark:text-[#9e9bb3]">
                     {colorAnalysis}
                   </span>
                 )}
@@ -371,26 +371,26 @@ export default function SinsayPhraseAssistant({
 
         {/* Image Packshot Drop / Upload */}
         <div className="space-y-2">
-          <label className="text-xs font-medium text-[#1c1816] dark:text-[#f7f3ec] block">
+          <label className="text-xs font-medium text-[#13111c] dark:text-[#f4f4f8] block">
             Przeciągnij zdjęcie packshotu produktu (PSH):
           </label>
-          <label className="flex items-center gap-3 p-2.5 rounded-xl border border-dashed border-[#bfa890] dark:border-[#5c4d42] bg-[#faf7f2]/70 dark:bg-[#1a1714]/60 hover:bg-[#f2ece1] dark:hover:bg-[#211d1a] cursor-pointer transition-colors">
+          <label className="flex items-center gap-3 p-2.5 rounded-xl border border-dashed border-[#c4bfdc] dark:border-[#383352] bg-[#f4f4fa]/70 dark:bg-[#0d0c14]/60 hover:bg-[#f2ece1] dark:hover:bg-[#151320] cursor-pointer transition-colors">
             {imagePreview ? (
               <img
                 src={imagePreview}
                 alt="Packshot preview"
-                className="w-14 h-14 object-cover rounded-lg border border-[#dfd5c6] dark:border-[#38302b]"
+                className="w-14 h-14 object-cover rounded-lg border border-[#dcd9ec] dark:border-[#262338]"
               />
             ) : (
-              <div className="w-14 h-14 rounded-lg bg-[#f2ece1] dark:bg-[#292420] text-[#877b72] dark:text-[#8e8379] grid place-items-center text-2xl flex-shrink-0">
+              <div className="w-14 h-14 rounded-lg bg-[#f2ece1] dark:bg-[#1c192b] text-[#7c7894] dark:text-[#6b6880] grid place-items-center text-2xl flex-shrink-0">
                 📷
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-[#1c1816] dark:text-[#f7f3ec] truncate">
+              <p className="text-xs font-semibold text-[#13111c] dark:text-[#f4f4f8] truncate">
                 {uploadedImageName || "Kliknij lub upuść plik ze zdjęciem"}
               </p>
-              <p className="text-[10px] text-[#877b72] dark:text-[#8e8379]">
+              <p className="text-[10px] text-[#7c7894] dark:text-[#6b6880]">
                 Automatycznie rozpozna: okulary, kurtki, buty, płaszcze, sezon
               </p>
             </div>
@@ -406,14 +406,14 @@ export default function SinsayPhraseAssistant({
 
       {/* Results View: Left Top 20 list, Right Details Preview */}
       {results.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-2 border-t border-[#dfd5c6] dark:border-[#38302b]">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-2 border-t border-[#dcd9ec] dark:border-[#262338]">
           {/* Top 20 List (6 columns) */}
           <div className="lg:col-span-6 space-y-2">
             <div className="flex items-center justify-between pb-1">
-              <span className="text-xs font-semibold uppercase tracking-wider text-[#877b72] dark:text-[#8e8379]">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#7c7894] dark:text-[#6b6880]">
                 Top 20 rekomendacji dopasowanych do produktu:
               </span>
-              <span className="text-xs text-[#655a53] dark:text-[#b8aea4]">
+              <span className="text-xs text-[#5c5870] dark:text-[#9e9bb3]">
                 Kliknij, aby podglądnąć
               </span>
             </div>
@@ -427,20 +427,20 @@ export default function SinsayPhraseAssistant({
                     onClick={() => setSelectedItem(item)}
                     className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between gap-3 ${
                       isSelected
-                        ? "border-[#c84b31] dark:border-[#e56b4e] bg-[#fceee9]/50 dark:bg-[#38211c]/40 shadow-sm"
-                        : "border-[#dfd5c6] dark:border-[#38302b] bg-[#faf7f2]/40 dark:bg-[#1a1714]/30 hover:bg-[#faf7f2] dark:hover:bg-[#1a1714]"
+                        ? "border-[#7c5cff] dark:border-[#9d85ff] bg-[#efecff]/50 dark:bg-[#221b3d]/40 shadow-sm"
+                        : "border-[#dcd9ec] dark:border-[#262338] bg-[#f4f4fa]/40 dark:bg-[#0d0c14]/30 hover:bg-[#f4f4fa] dark:hover:bg-[#0d0c14]"
                     }`}
                   >
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                      <span className="w-6 h-6 rounded-full bg-[#f2ece1] dark:bg-[#292420] text-[#655a53] dark:text-[#b8aea4] text-[11px] font-mono font-bold grid place-items-center flex-shrink-0">
+                      <span className="w-6 h-6 rounded-full bg-[#f2ece1] dark:bg-[#1c192b] text-[#5c5870] dark:text-[#9e9bb3] text-[11px] font-mono font-bold grid place-items-center flex-shrink-0">
                         {index + 1}
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs font-semibold text-[#1c1816] dark:text-[#f7f3ec] line-clamp-2 leading-snug">
+                        <p className="text-xs font-semibold text-[#13111c] dark:text-[#f4f4f8] line-clamp-2 leading-snug">
                           {item.pl}
                         </p>
                         {item.en && (
-                          <p className="text-[11px] text-[#877b72] dark:text-[#8e8379] line-clamp-1 mt-0.5">
+                          <p className="text-[11px] text-[#7c7894] dark:text-[#6b6880] line-clamp-1 mt-0.5">
                             ENG: {item.en}
                           </p>
                         )}
@@ -451,13 +451,13 @@ export default function SinsayPhraseAssistant({
                       <div className="flex items-center gap-1">
                         {item.season && (
                           <span
-                            className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-[#faf7f2] dark:bg-[#211d1a] border border-[#dfd5c6] dark:border-[#38302b] text-[#655a53] dark:text-[#b8aea4]"
+                            className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-[#f4f4fa] dark:bg-[#151320] border border-[#dcd9ec] dark:border-[#262338] text-[#5c5870] dark:text-[#9e9bb3]"
                             title={item.season}
                           >
                             {item.seasonIcon}
                           </span>
                         )}
-                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#e6f4ed] dark:bg-[#193328] text-[#1d6346] dark:text-[#75d9ae]">
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#e6f4ed] dark:bg-[#193328] text-[#10b981] dark:text-[#75d9ae]">
                           {item.score}%
                         </span>
                       </div>
@@ -467,7 +467,7 @@ export default function SinsayPhraseAssistant({
                           <span
                             className={`text-[9px] font-medium px-1.5 py-0.5 rounded ${
                               count >= 20
-                                ? "bg-[#1d6346]/10 text-[#1d6346] dark:text-[#75d9ae]"
+                                ? "bg-[#10b981]/10 text-[#10b981] dark:text-[#75d9ae]"
                                 : "bg-[#8f4f0e]/10 text-[#8f4f0e] dark:text-[#f5bc7a]"
                             }`}
                             title={`Dostępne na ${count} z 28 rynków`}
@@ -484,24 +484,24 @@ export default function SinsayPhraseAssistant({
           </div>
 
           {/* Details & Clean Market Selector (6 columns) */}
-          <div className="lg:col-span-6 p-5 rounded-xl border border-[#dfd5c6] dark:border-[#38302b] bg-[#faf7f2] dark:bg-[#1a1714] space-y-4 flex flex-col justify-between">
+          <div className="lg:col-span-6 p-5 rounded-xl border border-[#dcd9ec] dark:border-[#262338] bg-[#f4f4fa] dark:bg-[#0d0c14] space-y-4 flex flex-col justify-between">
             {selectedItem ? (
               <div className="space-y-4">
                 {/* Header of selected item */}
-                <div className="border-b border-[#dfd5c6] dark:border-[#38302b] pb-3">
+                <div className="border-b border-[#dcd9ec] dark:border-[#262338] pb-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-[#c84b31] dark:text-[#e56b4e]">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-[#7c5cff] dark:text-[#9d85ff]">
                       Oficjalne hasło Sinsay z matrycy LPP
                     </span>
-                    <span className="text-xs font-bold text-[#1d6346] dark:text-[#75d9ae]">
+                    <span className="text-xs font-bold text-[#10b981] dark:text-[#75d9ae]">
                       {selectedItem.score}% Dopasowania
                     </span>
                   </div>
-                  <h4 className="font-serif text-lg text-[#1c1816] dark:text-[#f7f3ec] mt-1 font-semibold leading-snug">
+                  <h4 className="font-serif text-lg text-[#13111c] dark:text-[#f4f4f8] mt-1 font-semibold leading-snug">
                     „{selectedItem.pl}”
                   </h4>
                   {selectedItem.en && (
-                    <p className="text-xs text-[#877b72] dark:text-[#8e8379] italic mt-0.5">
+                    <p className="text-xs text-[#7c7894] dark:text-[#6b6880] italic mt-0.5">
                       ENG: {selectedItem.en}
                     </p>
                   )}
@@ -510,13 +510,13 @@ export default function SinsayPhraseAssistant({
                 {/* Sane Market Selection Area */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-[#1c1816] dark:text-[#f7f3ec]">
+                    <label className="text-xs font-semibold text-[#13111c] dark:text-[#f4f4f8]">
                       Wybierz rynek docelowy (28 dostępnych):
                     </label>
                     <button
                       type="button"
                       onClick={() => setIsFullMatrixOpen((prev) => !prev)}
-                      className="text-[11px] font-semibold text-[#c84b31] dark:text-[#e56b4e] hover:underline flex items-center gap-1"
+                      className="text-[11px] font-semibold text-[#7c5cff] dark:text-[#9d85ff] hover:underline flex items-center gap-1"
                     >
                       <span>{isFullMatrixOpen ? "Zwiń matrycę ▲" : "Pokaż wszystkie 28 rynków ⊞"}</span>
                     </button>
@@ -527,7 +527,7 @@ export default function SinsayPhraseAssistant({
                     <select
                       value={selectedMarketCode}
                       onChange={(e) => setSelectedMarketCode(e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-xl border border-[#dfd5c6] dark:border-[#38302b] bg-white dark:bg-[#211d1a] text-xs font-medium text-[#1c1816] dark:text-[#f7f3ec] focus:outline-none focus:border-[#c84b31] shadow-sm cursor-pointer"
+                      className="w-full px-3 py-2.5 rounded-xl border border-[#dcd9ec] dark:border-[#262338] bg-white dark:bg-[#151320] text-xs font-medium text-[#13111c] dark:text-[#f4f4f8] focus:outline-none focus:border-[#7c5cff] shadow-sm cursor-pointer"
                     >
                       {["CEE", "SEE / Bałkany", "Zachód & Południe", "Kraje Bałtyckie", "Wschód & Azja"].map(
                         (region) => (
@@ -548,7 +548,7 @@ export default function SinsayPhraseAssistant({
 
                   {/* Quick Shortcut Pills for Top Sinsay Markets */}
                   <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                    <span className="text-[10px] text-[#877b72] dark:text-[#8e8379] mr-1">
+                    <span className="text-[10px] text-[#7c7894] dark:text-[#6b6880] mr-1">
                       Szybki skrót:
                     </span>
                     {["RO", "DE", "CZ", "SK", "HU", "IT", "HR", "GR"].map((code) => {
@@ -562,15 +562,15 @@ export default function SinsayPhraseAssistant({
                           onClick={() => setSelectedMarketCode(code)}
                           className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition-all flex items-center gap-1.5 ${
                             isActive
-                              ? "bg-[#c84b31] text-white shadow-sm"
-                              : "bg-white dark:bg-[#211d1a] border border-[#dfd5c6] dark:border-[#38302b] text-[#655a53] dark:text-[#b8aea4] hover:border-[#c84b31]"
+                              ? "bg-[#7c5cff] text-white shadow-sm"
+                              : "bg-white dark:bg-[#151320] border border-[#dcd9ec] dark:border-[#262338] text-[#5c5870] dark:text-[#9e9bb3] hover:border-[#7c5cff]"
                           }`}
                         >
                           <span>{m?.flag}</span>
                           <span>{code}</span>
                           <span
                             className={`w-1.5 h-1.5 rounded-full ${
-                              isAvailable ? "bg-[#1d6346] dark:bg-[#75d9ae]" : "bg-[#8f4f0e] dark:bg-[#f5bc7a]"
+                              isAvailable ? "bg-[#10b981] dark:bg-[#75d9ae]" : "bg-[#8f4f0e] dark:bg-[#f5bc7a]"
                             }`}
                             title={isAvailable ? "Tłumaczenie zatwierdzone" : "Brak oficjalnego tłumaczenia"}
                           />
@@ -580,23 +580,23 @@ export default function SinsayPhraseAssistant({
                   </div>
 
                   {/* Translation Card for the Selected Market */}
-                  <div className="p-4 rounded-xl border border-[#dfd5c6] dark:border-[#38302b] bg-white dark:bg-[#211d1a] space-y-2.5 shadow-sm">
-                    <div className="flex items-center justify-between border-b border-[#dfd5c6]/60 dark:border-[#38302b]/60 pb-1.5">
-                      <div className="flex items-center gap-1.5 text-xs font-semibold text-[#1c1816] dark:text-[#f7f3ec]">
+                  <div className="p-4 rounded-xl border border-[#dcd9ec] dark:border-[#262338] bg-white dark:bg-[#151320] space-y-2.5 shadow-sm">
+                    <div className="flex items-center justify-between border-b border-[#dcd9ec]/60 dark:border-[#262338]/60 pb-1.5">
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-[#13111c] dark:text-[#f4f4f8]">
                         <span className="text-base">{activeMarket.flag}</span>
                         <span>{activeMarket.name}</span>
-                        <span className="font-mono text-[11px] text-[#877b72] dark:text-[#8e8379]">
+                        <span className="font-mono text-[11px] text-[#7c7894] dark:text-[#6b6880]">
                           ({activeMarket.code})
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-[#877b72] dark:text-[#8e8379]">
+                        <span className="text-[10px] text-[#7c7894] dark:text-[#6b6880]">
                           Długość: <strong>{activeTranslation.length}</strong> znaków
                         </span>
                         <button
                           type="button"
                           onClick={() => copyToClipboard(activeTranslation, "single")}
-                          className="text-[10px] text-[#c84b31] dark:text-[#e56b4e] hover:underline font-medium"
+                          className="text-[10px] text-[#7c5cff] dark:text-[#9d85ff] hover:underline font-medium"
                         >
                           {copiedKey === "single" ? "✓ Skopiowano" : "Kopiuj"}
                         </button>
@@ -605,7 +605,7 @@ export default function SinsayPhraseAssistant({
 
                     {/* Official vs Fallback Status Alert */}
                     {hasOfficialTranslation ? (
-                      <div className="flex items-center gap-1.5 text-[10px] text-[#1d6346] dark:text-[#75d9ae] bg-[#e6f4ed] dark:bg-[#193328] px-2 py-0.5 rounded-md font-medium w-fit">
+                      <div className="flex items-center gap-1.5 text-[10px] text-[#10b981] dark:text-[#75d9ae] bg-[#e6f4ed] dark:bg-[#193328] px-2 py-0.5 rounded-md font-medium w-fit">
                         <span>✓</span>
                         <span>Oficjalne tłumaczenie z matrycy SharePoint Sinsay</span>
                       </div>
@@ -619,7 +619,7 @@ export default function SinsayPhraseAssistant({
                       </div>
                     )}
 
-                    <p className="font-serif text-sm text-[#1c1816] dark:text-[#f7f3ec] leading-relaxed pt-0.5">
+                    <p className="font-serif text-sm text-[#13111c] dark:text-[#f4f4f8] leading-relaxed pt-0.5">
                       {activeTranslation}
                     </p>
                   </div>
@@ -633,13 +633,13 @@ export default function SinsayPhraseAssistant({
                       onSelectPhrase(selectedItem);
                     }
                   }}
-                  className="w-full py-2.5 rounded-xl text-xs font-semibold bg-[#1d6346] hover:bg-[#164e37] text-white shadow-sm transition-colors flex items-center justify-center gap-2 mt-4 cursor-pointer"
+                  className="w-full py-2.5 rounded-xl text-xs font-semibold bg-[#10b981] hover:bg-[#059669] text-white shadow-sm transition-colors flex items-center justify-center gap-2 mt-4 cursor-pointer"
                 >
                   <span>✓ Zastosuj to hasło we wszystkich językach kreacji</span>
                 </button>
               </div>
             ) : (
-              <div className="h-full flex items-center justify-center text-xs text-[#877b72] dark:text-[#8e8379] italic py-12">
+              <div className="h-full flex items-center justify-center text-xs text-[#7c7894] dark:text-[#6b6880] italic py-12">
                 Wybierz hasło z listy po lewej stronie
               </div>
             )}
@@ -649,19 +649,19 @@ export default function SinsayPhraseAssistant({
 
       {/* Full 28 Markets Grid Modal / Accordion */}
       {selectedItem && isFullMatrixOpen && (
-        <div className="mt-4 p-5 rounded-xl border border-[#c84b31]/40 dark:border-[#e56b4e]/40 bg-[#faf7f2] dark:bg-[#1a1714] space-y-4">
-          <div className="flex items-center justify-between border-b border-[#dfd5c6] dark:border-[#38302b] pb-2">
+        <div className="mt-4 p-5 rounded-xl border border-[#7c5cff]/40 dark:border-[#9d85ff]/40 bg-[#f4f4fa] dark:bg-[#0d0c14] space-y-4">
+          <div className="flex items-center justify-between border-b border-[#dcd9ec] dark:border-[#262338] pb-2">
             <div>
-              <h4 className="font-serif text-base font-semibold text-[#1c1816] dark:text-[#f7f3ec]">
+              <h4 className="font-serif text-base font-semibold text-[#13111c] dark:text-[#f4f4f8]">
                 Pełna matryca 28 rynków Sinsay dla hasła: „{selectedItem.pl}”
               </h4>
-              <p className="text-xs text-[#655a53] dark:text-[#b8aea4]">
+              <p className="text-xs text-[#5c5870] dark:text-[#9e9bb3]">
                 Zatwierdzone oficjalne tłumaczenia LPP SA na wszystkie rynki eksportowe
               </p>
             </div>
             <button
               onClick={() => setIsFullMatrixOpen(false)}
-              className="text-xs font-semibold text-[#877b72] hover:text-[#1c1816] dark:hover:text-[#f7f3ec] cursor-pointer"
+              className="text-xs font-semibold text-[#7c7894] hover:text-[#13111c] dark:hover:text-[#f4f4f8] cursor-pointer"
             >
               Zamknij widok matrycy ✕
             </button>
@@ -678,24 +678,24 @@ export default function SinsayPhraseAssistant({
               return (
                 <div
                   key={m.code}
-                  className="p-3 rounded-xl border border-[#dfd5c6] dark:border-[#38302b] bg-white dark:bg-[#211d1a] space-y-1.5 shadow-xs"
+                  className="p-3 rounded-xl border border-[#dcd9ec] dark:border-[#262338] bg-white dark:bg-[#151320] space-y-1.5 shadow-xs"
                 >
                   <div className="flex items-center justify-between text-[11px]">
-                    <span className="font-semibold text-[#1c1816] dark:text-[#f7f3ec] flex items-center gap-1">
+                    <span className="font-semibold text-[#13111c] dark:text-[#f4f4f8] flex items-center gap-1">
                       <span>{m.flag}</span>
                       <span>{m.code} · {m.name}</span>
                     </span>
                     <button
                       onClick={() => copyToClipboard(text, m.code)}
-                      className="text-[10px] text-[#c84b31] dark:text-[#e56b4e] hover:underline cursor-pointer"
+                      className="text-[10px] text-[#7c5cff] dark:text-[#9d85ff] hover:underline cursor-pointer"
                     >
                       {isCopied ? "✓" : "Kopiuj"}
                     </button>
                   </div>
-                  <p className="text-xs text-[#1c1816] dark:text-[#f7f3ec] line-clamp-2 font-medium">
+                  <p className="text-xs text-[#13111c] dark:text-[#f4f4f8] line-clamp-2 font-medium">
                     {text}
                   </p>
-                  <span className="text-[10px] text-[#877b72] dark:text-[#8e8379] block">
+                  <span className="text-[10px] text-[#7c7894] dark:text-[#6b6880] block">
                     {text.length} zn.
                   </span>
                 </div>

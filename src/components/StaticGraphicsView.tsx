@@ -179,13 +179,13 @@ export const StaticGraphicsView: React.FC<StaticGraphicsViewProps> = ({
         grad.addColorStop(1, "#541826");
       } else if (selectedBgStyle === "silk") {
         grad.addColorStop(0, "#f7eee3");
-        grad.addColorStop(0.6, "#c84b31");
+        grad.addColorStop(0.6, "#7c5cff");
         grad.addColorStop(1, "#2b1016");
       } else if (selectedBgStyle === "black") {
         grad.addColorStop(0, "#111111");
         grad.addColorStop(1, "#000000");
       } else {
-        grad.addColorStop(0, "#211d1a");
+        grad.addColorStop(0, "#151320");
         grad.addColorStop(0.7, "#14110f");
         grad.addColorStop(1, "#0a0807");
       }
@@ -271,7 +271,7 @@ export const StaticGraphicsView: React.FC<StaticGraphicsViewProps> = ({
     let currentCursorY = targetY;
 
     if (showBrandTag && brandTagText) {
-      ctx.fillStyle = isLightBox ? "#877b72" : "#e8c9b9";
+      ctx.fillStyle = isLightBox ? "#7c7894" : "#e8c9b9";
       ctx.font = `700 ${tagSize}px "Euclid Circular B", sans-serif`;
       ctx.fillText(brandTagText.toUpperCase(), alignX, currentCursorY - hSize * 0.9);
     }
@@ -430,7 +430,7 @@ export const StaticGraphicsView: React.FC<StaticGraphicsViewProps> = ({
             type="button"
             onClick={handleExportZipAllMarkets}
             disabled={isExportingZip}
-            className="px-4 py-2 rounded-xl text-xs font-bold border border-[#c84b31] bg-[#fceee9] dark:bg-[#38211c] text-[#c84b31] dark:text-[#e56b4e] hover:bg-[#c84b31] hover:text-white transition-all flex items-center gap-1.5 shadow-sm"
+            className="px-4 py-2 rounded-xl text-xs font-bold border border-[#7c5cff] bg-[#efecff] dark:bg-[#221b3d] text-[#7c5cff] dark:text-[#9d85ff] hover:bg-[#7c5cff] hover:text-white transition-all flex items-center gap-1.5 shadow-sm"
           >
             <span>{isExportingZip ? "Pakowanie ZIP..." : `💾 Pobierz paczkę ZIP (${selectedMarkets.length} języków)`}</span>
           </button>
@@ -520,7 +520,7 @@ export const StaticGraphicsView: React.FC<StaticGraphicsViewProps> = ({
               <button
                 type="button"
                 onClick={() => setShowPhraseAssistant((prev) => !prev)}
-                className="text-xs font-bold text-[#c84b31] dark:text-[#e56b4e] hover:underline flex items-center gap-1"
+                className="text-xs font-bold text-[#7c5cff] dark:text-[#9d85ff] hover:underline flex items-center gap-1"
               >
                 <span>✦ Hasła Sinsay (4524)</span>
                 <span>{showPhraseAssistant ? "▲" : "▼"}</span>
@@ -660,12 +660,12 @@ export const StaticGraphicsView: React.FC<StaticGraphicsViewProps> = ({
                 : "aspect-[3/4]"
             } ${
               selectedBgStyle === "atelier"
-                ? "bg-gradient-to-br from-[#c84b31] via-[#6e1d2f] to-[#1a1714]"
+                ? "bg-gradient-to-br from-[#7c5cff] via-[#4f35c2] to-[#0d0c14]"
                 : selectedBgStyle === "silk"
-                ? "bg-gradient-to-br from-[#f5eadc] via-[#c84b31] to-[#2c131a]"
+                ? "bg-gradient-to-br from-[#f5eadc] via-[#7c5cff] to-[#2c131a]"
                 : selectedBgStyle === "black"
                 ? "bg-black"
-                : "bg-gradient-to-br from-[#211d1a] via-[#14110f] to-[#0a0807]"
+                : "bg-gradient-to-br from-[#151320] via-[#14110f] to-[#0a0807]"
             }`}
           >
             {/* Uploaded Photo */}
@@ -763,7 +763,7 @@ export const StaticGraphicsView: React.FC<StaticGraphicsViewProps> = ({
             <button
               onClick={handleExportZipAllMarkets}
               disabled={isExportingZip}
-              className="px-3.5 py-2 rounded-xl text-xs font-bold border border-[#c84b31] bg-[#fceee9] dark:bg-[#38211c] text-[#c84b31] dark:text-[#e56b4e] hover:bg-[#c84b31] hover:text-white transition-all shadow-sm cursor-pointer"
+              className="px-3.5 py-2 rounded-xl text-xs font-bold border border-[#7c5cff] bg-[#efecff] dark:bg-[#221b3d] text-[#7c5cff] dark:text-[#9d85ff] hover:bg-[#7c5cff] hover:text-white transition-all shadow-sm cursor-pointer"
             >
               <span>{isExportingZip ? "Pakowanie..." : `💾 Pobierz ZIP (${selectedMarkets.length} jęz.)`}</span>
             </button>
@@ -895,7 +895,7 @@ export const StaticGraphicsView: React.FC<StaticGraphicsViewProps> = ({
                 type="checkbox"
                 checked={showBrandTag}
                 onChange={(e) => setShowBrandTag(e.target.checked)}
-                className="w-4 h-4 accent-[#c84b31] cursor-pointer"
+                className="w-4 h-4 accent-[#7c5cff] cursor-pointer"
               />
             </div>
             {showBrandTag && (

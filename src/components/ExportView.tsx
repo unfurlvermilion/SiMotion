@@ -363,9 +363,9 @@ export default function ExportView({
             : 1080;
           const ctx = canvas.getContext("2d");
           if (ctx) {
-            ctx.fillStyle = "#1a1714";
+            ctx.fillStyle = "#0d0c14";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.strokeStyle = "#c84b31";
+            ctx.strokeStyle = "#7c5cff";
             ctx.lineWidth = 12;
             ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
             ctx.fillStyle = "#ffffff";
@@ -373,10 +373,10 @@ export default function ExportView({
             ctx.textAlign = "center";
             ctx.fillText("SINSAY ATELIER 2026", canvas.width / 2, canvas.height / 2 - 40);
             ctx.font = "28px 'Euclid Circular B', sans-serif";
-            ctx.fillStyle = "#e56b4e";
+            ctx.fillStyle = "#9d85ff";
             ctx.fillText(`MDK: ${mdkCode} · ${file.format} (${file.language})`, canvas.width / 2, canvas.height / 2 + 20);
             ctx.font = "22px 'Euclid Circular B', sans-serif";
-            ctx.fillStyle = "#f7f3ec";
+            ctx.fillStyle = "#f4f4f8";
 
             const langHeadline =
               staticTexts[file.language]?.headline ||
@@ -514,7 +514,7 @@ export default function ExportView({
             type="button"
             onClick={handleStartExportPackage}
             disabled={isExporting || selectedFiles.length === 0}
-            className="px-5 py-2 rounded-xl text-xs font-extrabold text-white bg-[#c84b31] hover:bg-[#b03e26] transition-all shadow-[var(--shadow-pop)] flex items-center gap-2 disabled:opacity-50"
+            className="px-5 py-2 rounded-xl text-xs font-extrabold text-white bg-[#7c5cff] hover:bg-[#b03e26] transition-all shadow-[var(--shadow-pop)] flex items-center gap-2 disabled:opacity-50"
           >
             {isExporting ? (
               <>

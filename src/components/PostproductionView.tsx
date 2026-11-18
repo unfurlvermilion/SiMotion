@@ -187,7 +187,7 @@ export const PostproductionView: React.FC<PostproductionViewProps> = ({
         <div className="flex flex-wrap gap-2">
           <button
             onClick={handleExportDaVinciFCPXML}
-            className="px-3.5 py-2 rounded-xl text-xs font-bold border border-[#c84b31] bg-[#fceee9] dark:bg-[#38211c] text-[#c84b31] dark:text-[#e56b4e] hover:bg-[#c84b31] hover:text-white transition-all shadow-sm flex items-center gap-1.5"
+            className="px-3.5 py-2 rounded-xl text-xs font-bold border border-[#7c5cff] bg-[#efecff] dark:bg-[#221b3d] text-[#7c5cff] dark:text-[#9d85ff] hover:bg-[#7c5cff] hover:text-white transition-all shadow-sm flex items-center gap-1.5"
             title="Eksportuj oś czasu do DaVinci Resolve Studio"
           >
             <span>🎬 DaVinci FCPXML</span>
@@ -498,7 +498,7 @@ export const PostproductionView: React.FC<PostproductionViewProps> = ({
                   showToast("Zsynchronizowano znaczniki czasowe karaoke.");
                 }
               }}
-              className="w-full py-2 px-3 rounded-xl text-xs font-bold border border-[#c84b31]/40 bg-[#fceee9] dark:bg-[#38211c] text-[#c84b31] dark:text-[#e56b4e] hover:bg-[#c84b31] hover:text-white transition-all flex items-center justify-center gap-1.5 shadow-xs"
+              className="w-full py-2 px-3 rounded-xl text-xs font-bold border border-[#7c5cff]/40 bg-[#efecff] dark:bg-[#221b3d] text-[#7c5cff] dark:text-[#9d85ff] hover:bg-[#7c5cff] hover:text-white transition-all flex items-center justify-center gap-1.5 shadow-xs"
             >
               <span>🎙 Wygeneruj lektora ElevenLabs i zsynchronizuj karaoke</span>
             </button>
@@ -538,7 +538,7 @@ export const PostproductionView: React.FC<PostproductionViewProps> = ({
               />
             ) : (
               <div
-                className="absolute inset-0 bg-gradient-to-tr from-[#3a151e] via-[#6e1d2f] to-[#c84b31] transition-transform duration-100"
+                className="absolute inset-0 bg-gradient-to-tr from-[#1a1535] via-[#4f35c2] to-[#7c5cff] transition-transform duration-100"
                 style={{ transform: `scale(${1 + Math.sin(playbackTime) * 0.04})` }}
               >
                 <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_50%_40%,#ffeedd_0%,transparent_60%)]" />

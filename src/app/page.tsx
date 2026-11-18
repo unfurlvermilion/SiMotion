@@ -245,10 +245,10 @@ export default function SiMotionApp() {
                 <button
                   key={key}
                   onClick={() => setActiveTab(key)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                     activeTab === key
-                      ? "bg-[var(--bg-card)] text-[var(--ink-primary)] shadow-sm font-bold border border-[var(--border-strong)]"
-                      : "text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] hover:bg-[var(--bg-card)]"
+                      ? "bg-[var(--accent)]/15 text-[var(--ink-primary)] shadow-sm font-bold border border-[var(--accent)]/40"
+                      : "text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] hover:bg-[var(--bg-card)]/60"
                   }`}
                 >
                   {label}
