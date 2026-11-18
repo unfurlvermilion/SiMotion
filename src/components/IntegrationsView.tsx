@@ -2,11 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 
-interface IntegrationConfig {
+export interface IntegrationConfig {
   mode: "sandbox" | "live";
-  seedanceApiKey: string;
   seedanceModel: string;
-  seedanceEndpoint: string;
   elevenLabsApiKey: string;
   elevenLabsVoiceId: string;
   elevenLabsTimestamps: boolean;
@@ -18,11 +16,28 @@ interface IntegrationConfig {
   excelSheetName: string;
 }
 
+export const INTEGRATIONS_STORAGE_KEY = "simotion_integrations_config";
+
+/** Modele wideo dostępne w interfejsie (klucze rozpoznawane przez /api/video). */
+export const VIDEO_ENGINE_OPTIONS = [
+  { value: "seedance-2.5", label: "Seedance 2.5" },
+  { value: "seedance-2.0", label: "Seedance 2.0" },
+  { value: "higgsfield-cinema-2.0", label: "Higgsfield Cinema 2.0" },
+] as const;
+
+export type VideoEngine = (typeof VIDEO_ENGINE_OPTIONS)[number]["value"];
+
+/** Zamienia zapisane wcześniej nazwy (seedance-2.5-pro/turbo/omni) na aktualne. */
+export function normalizeVideoEngine(value: string | undefined | null): VideoEngine {
+  const v = (value || "").toLowerCase();
+  if (v.includes("higgsfield")) return "higgsfield-cinema-2.0";
+  if (v === "seedance-2.0") return "seedance-2.0";
+  return "seedance-2.5";
+}
+
 const DEFAULT_CONFIG: IntegrationConfig = {
   mode: "sandbox",
-  seedanceApiKey: "",
-  seedanceModel: "seedance-2.5-pro",
-  seedanceEndpoint: "https://ark.cn-beijing.volces.com/api/v3/contents/generations/tasks",
+  seedanceModel: "seedance-2.5",
   elevenLabsApiKey: "",
   elevenLabsVoiceId: "21m00Tcm4TlvDq8ikWAM",
   elevenLabsTimestamps: true,
@@ -34,8 +49,62 @@ const DEFAULT_CONFIG: IntegrationConfig = {
   excelSheetName: "Kolekcja_FW26_Statusy",
 };
 
+/**
+ * Odczyt zapisanych ustawień integracji. Usuwa pola klucza i adresu Seedance
+ * zapisane przez starsze wersje aplikacji — klucz jest wyłącznie na serwerze.
+ */
+export function readIntegrationsConfig(): IntegrationConfig {
+  if (typeof window === "undefined") return DEFAULT_CONFIG;
+  try {
+    const raw = localStorage.getItem(INTEGRATIONS_STORAGE_KEY);
+    if (!raw) return DEFAULT_CONFIG;
+    const parsed = JSON.parse(raw) || {};
+    const { seedanceApiKey: _legacyKey, seedanceEndpoint: _legacyEndpoint, ...rest } = parsed;
+    return {
+      ...DEFAULT_CONFIG,
+      ...rest,
+      mode: rest.mode === "live" ? "live" : "sandbox",
+      seedanceModel: normalizeVideoEngine(rest.seedanceModel),
+    };
+  } catch {
+    return DEFAULT_CONFIG;
+  }
+}
+
+export interface VideoServerConfig {
+  seedance: {
+    keyConfigured: boolean;
+    endpointHost: string;
+    resolution: string;
+    generateAudio: boolean;
+    storageConfigured: boolean;
+    models: {
+      key: string;
+      label: string;
+      arkModelId: string;
+      minDuration: number;
+      maxDuration: number;
+      usdPerMillionTokens: number | null;
+    }[];
+  };
+  higgsfield: { keyConfigured: boolean };
+}
+
+/** Konfiguracja silnika wideo po stronie serwera (bez sekretów). */
+export async function fetchVideoServerConfig(): Promise<VideoServerConfig | null> {
+  try {
+    const res = await fetch("/api/video?config=1", { cache: "no-store" });
+    if (!res.ok) return null;
+    return (await res.json()) as VideoServerConfig;
+  } catch {
+    return null;
+  }
+}
+
 export default function IntegrationsView() {
   const [config, setConfig] = useState<IntegrationConfig>(DEFAULT_CONFIG);
+  const [videoServerConfig, setVideoServerConfig] = useState<VideoServerConfig | null>(null);
+  const [videoTestMessage, setVideoTestMessage] = useState<string>("");
   const [activeTab, setActiveTab] = useState<"video" | "audio" | "pcm" | "excel">("video");
   const [testStatus, setTestStatus] = useState<{ [key: string]: "idle" | "testing" | "success" | "error" }>({
     video: "idle",
@@ -46,18 +115,12 @@ export default function IntegrationsView() {
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem("simotion_integrations_config");
-    if (saved) {
-      try {
-        setConfig(JSON.parse(saved));
-      } catch {
-        // use default
-      }
-    }
+    setConfig(readIntegrationsConfig());
+    fetchVideoServerConfig().then(setVideoServerConfig);
   }, []);
 
   const handleSave = () => {
-    localStorage.setItem("simotion_integrations_config", JSON.stringify(config));
+    localStorage.setItem(INTEGRATIONS_STORAGE_KEY, JSON.stringify(config));
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 3000);
   };
@@ -66,17 +129,12 @@ export default function IntegrationsView() {
     setTestStatus((prev) => ({ ...prev, [key]: "testing" }));
     try {
       if (key === "video") {
-        await fetch("/api/video", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            prompt: "Fashion dress test",
-            model: config.seedanceModel,
-            duration: 10,
-            aspectRatio: "9:16",
-            apiKey: config.seedanceApiKey,
-          }),
-        });
+        // Test bez generowania (lista zadań BytePlus) — nie generuje kosztów
+        setVideoTestMessage("");
+        const res = await fetch("/api/video?check=1", { cache: "no-store" });
+        const data = await res.json().catch(() => ({}));
+        setVideoTestMessage(data.message || (res.ok ? "Połączono." : `HTTP ${res.status}`));
+        if (!res.ok) throw new Error(data.message || `HTTP ${res.status}`);
       } else if (key === "audio") {
         await fetch("/api/tts", {
           method: "POST",
@@ -178,7 +236,7 @@ export default function IntegrationsView() {
         <div className="p-4 rounded-xl border border-[#c84b31] dark:border-[#e56b4e] bg-[#fceee9]/40 dark:bg-[#38211c]/30 text-xs text-[#c84b31] dark:text-[#e56b4e] flex items-center gap-2">
           <span>⚡</span>
           <span>
-            <strong>Aktywny Tryb Live:</strong> Aplikacja będzie kierować żądania bezpośrednio do Twoich produkcyjnych kluczy API. Upewnij się, że wprowadzone dane są prawidłowe.
+            <strong>Aktywny Tryb Live:</strong> Generowanie wideo trafia do płatnego API BytePlus ModelArk (Seedance) z kluczem skonfigurowanym na serwerze. Prompt i packshot są wysyłane poza infrastrukturę LPP. Ustawienie obowiązuje po kliknięciu „Zapisz”.
           </span>
         </div>
       )}
@@ -188,7 +246,7 @@ export default function IntegrationsView() {
         {/* Navigation Tabs */}
         <div className="space-y-2">
           {[
-            { id: "video", label: "Silnik Wideo AI", desc: "Seedance 2.5 / Higgsfield" },
+            { id: "video", label: "Silnik Wideo AI", desc: "Seedance 2.5 / 2.0 / Higgsfield" },
             { id: "audio", label: "Audio & TTS", desc: "ElevenLabs z word timestamps" },
             { id: "pcm", label: "Katalog PCM", desc: "Zdjęcia packshotowe & SKU" },
             { id: "excel", label: "Excel Online", desc: "Microsoft Graph API dwukierunkowo" },
@@ -229,7 +287,7 @@ export default function IntegrationsView() {
                     Konfiguracja Silnika Generacji Wideo AI
                   </h3>
                   <p className="text-xs text-[#655a53] dark:text-[#b8aea4]">
-                    Adapter Seedance 2.5 oraz Higgsfield z automatycznym Smart Cropem 9:16 do 4:5 i 1:1.
+                    Seedance 2.5 / 2.0 (BytePlus ModelArk) oraz Higgsfield z automatycznym Smart Cropem 9:16 do 4:5 i 1:1.
                   </p>
                 </div>
                 <button
@@ -239,10 +297,24 @@ export default function IntegrationsView() {
                   {testStatus.video === "testing"
                     ? "Testowanie..."
                     : testStatus.video === "success"
-                    ? "✓ Połączono (200 OK)"
-                    : "Testuj połączenie (Ping)"}
+                    ? "✓ Połączono z BytePlus"
+                    : testStatus.video === "error"
+                    ? "✕ Błąd — testuj ponownie"
+                    : "Testuj połączenie (bez generowania)"}
                 </button>
               </div>
+
+              {videoTestMessage && (
+                <div
+                  className={`p-2.5 rounded-lg border text-[11px] ${
+                    testStatus.video === "error"
+                      ? "border-[#c84b31] text-[#c84b31] dark:border-[#e56b4e] dark:text-[#e56b4e]"
+                      : "border-[#1d6346] text-[#1d6346] dark:border-[#75d9ae] dark:text-[#75d9ae]"
+                  }`}
+                >
+                  {videoTestMessage}
+                </div>
+              )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                 <div className="space-y-1.5">
@@ -256,50 +328,64 @@ export default function IntegrationsView() {
                     }
                     className="w-full px-3 py-2 rounded-lg border border-[#dfd5c6] dark:border-[#38302b] bg-[#faf7f2] dark:bg-[#1a1714] text-[#1c1816] dark:text-[#f7f3ec]"
                   >
-                    <option value="seedance-2.5-pro">
-                      ⚡ Seedance 2.5 Pro (Fashion & Fabric Dynamics - Flagowy)
-                    </option>
-                    <option value="seedance-2.5-turbo">
-                      🚀 Seedance 2.5 Turbo (Szybkie wersje robocze)
-                    </option>
-                    <option value="seedance-2.5-omni">
-                      👁️ Seedance 2.5 Omni Multimodal (Video-to-Video & Camera)
-                    </option>
-                    <option value="higgsfield-cinema-2.0">
-                      🌪️ Higgsfield Cinema 2.0 (High Motion Studio)
-                    </option>
+                    {VIDEO_ENGINE_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                        {opt.value.startsWith("higgsfield") && !videoServerConfig?.higgsfield.keyConfigured
+                          ? " (symulacja — brak klucza)"
+                          : ""}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
                 <div className="space-y-1.5">
                   <label className="text-[#655a53] dark:text-[#b8aea4]">
-                    Klucz API (Seedance / Higgsfield):
+                    Klucz API Seedance:
                   </label>
-                  <input
-                    type="password"
-                    value={config.seedanceApiKey}
-                    onChange={(e) =>
-                      setConfig((prev) => ({ ...prev, seedanceApiKey: e.target.value }))
-                    }
-                    className="w-full px-3 py-2 rounded-lg border border-[#dfd5c6] dark:border-[#38302b] bg-[#faf7f2] dark:bg-[#1a1714] text-[#1c1816] dark:text-[#f7f3ec] font-mono text-[11px]"
-                    placeholder="sk_..."
-                  />
+                  <div className="w-full px-3 py-2 rounded-lg border border-[#dfd5c6] dark:border-[#38302b] bg-[#faf7f2] dark:bg-[#1a1714] text-[#1c1816] dark:text-[#f7f3ec] flex items-center gap-2">
+                    {videoServerConfig === null ? (
+                      <span className="text-[#877b72] dark:text-[#8e8379]">Sprawdzanie...</span>
+                    ) : videoServerConfig.seedance.keyConfigured ? (
+                      <>
+                        <span className="w-2 h-2 rounded-full bg-[#1d6346] dark:bg-[#75d9ae]" />
+                        <span>skonfigurowany (Secret Manager)</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="w-2 h-2 rounded-full bg-[#c84b31] dark:bg-[#e56b4e]" />
+                        <span>brak — tylko tryb testowy</span>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              <div className="space-y-1.5 text-xs">
-                <label className="text-[#655a53] dark:text-[#b8aea4]">
-                  Endpoint API:
-                </label>
-                <input
-                  type="text"
-                  value={config.seedanceEndpoint}
-                  onChange={(e) =>
-                    setConfig((prev) => ({ ...prev, seedanceEndpoint: e.target.value }))
-                  }
-                  className="w-full px-3 py-2 rounded-lg border border-[#dfd5c6] dark:border-[#38302b] bg-[#faf7f2] dark:bg-[#1a1714] text-[#1c1816] dark:text-[#f7f3ec] font-mono text-[11px]"
-                />
-              </div>
+              {videoServerConfig && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                  <div className="space-y-1">
+                    <p className="text-[#655a53] dark:text-[#b8aea4]">Rozdzielczość:</p>
+                    <p className="font-mono text-[11px] text-[#1c1816] dark:text-[#f7f3ec]">
+                      {videoServerConfig.seedance.resolution}
+                      {videoServerConfig.seedance.generateAudio ? " · z dźwiękiem" : " · bez dźwięku"}
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[#655a53] dark:text-[#b8aea4]">API:</p>
+                    <p className="font-mono text-[11px] text-[#1c1816] dark:text-[#f7f3ec] break-all">
+                      {videoServerConfig.seedance.endpointHost}
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[#655a53] dark:text-[#b8aea4]">Archiwum wideo:</p>
+                    <p className="font-mono text-[11px] text-[#1c1816] dark:text-[#f7f3ec]">
+                      {videoServerConfig.seedance.storageConfigured
+                        ? "Cloud Storage"
+                        : "brak — link ważny 24 h"}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import JSZip from "jszip";
 import { burnSubtitlesToVideo, getVideoExtension } from "@/lib/videoSubtitleBurner";
+import { readIntegrationsConfig } from "./IntegrationsView";
 
 interface BatchItem {
   id: string;
@@ -124,11 +125,10 @@ export default function BatchProductionView() {
     setIsProcessing(true);
     addLog("Rozpoczęto hurtowe generowanie wariantów wideo w pipeline produkcyjnym...");
 
-    let apiKey = "";
-    try {
-      const cfgRaw = localStorage.getItem("simotion_integrations_config");
-      if (cfgRaw) apiKey = JSON.parse(cfgRaw).seedanceApiKey || "";
-    } catch {}
+    const { mode } = readIntegrationsConfig();
+    if (mode === "live") {
+      addLog("Tryb Live: zlecenia trafiają do BytePlus Seedance 2.5 (płatne, kilka minut na pozycję).");
+    }
 
     const pending = items.filter((i) => i.status !== "completed");
     if (!pending.length) {
@@ -149,23 +149,31 @@ export default function BatchProductionView() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             prompt: `Kolekcja Sinsay: ${item.name} (${item.category}). Dynamiczny try-on, naturalny ruch tkaniny, oświetlenie atelier.`,
-            model: "seedance-2.5-pro",
+            model: "seedance-2.5",
             duration: 10,
             aspectRatio: "9:16",
-            apiKey,
+            mode,
           }),
         });
 
         const data = await res.json();
-        const jobId = data.jobId;
+        if (!res.ok || data.status === "error" || !data.jobId) {
+          throw new Error(data.message || `HTTP ${res.status}`);
+        }
+        const jobId: string = data.jobId;
+        const pollIntervalMs: number = data.pollIntervalMs || 700;
+        // Limit odpytywania: czas ważności zadania BytePlus (48 h) lub ~15 s w symulacji
+        const deadline =
+          data.source === "seedance_live" ? Date.now() + 48 * 3600 * 1000 : Date.now() + 15 * 700;
 
         // Poll status
         let done = false;
-        let attempts = 0;
-        while (!done && attempts < 15) {
-          await new Promise((r) => setTimeout(r, 700));
-          attempts++;
-          const statusRes = await fetch(`/api/video?jobId=${encodeURIComponent(jobId)}`);
+        while (!done) {
+          if (Date.now() > deadline) {
+            throw new Error("przekroczono czas oczekiwania na wynik");
+          }
+          await new Promise((r) => setTimeout(r, pollIntervalMs));
+          const statusRes = await fetch(`/api/video?jobId=${encodeURIComponent(jobId)}`, { cache: "no-store" });
           if (statusRes.ok) {
             const statusData = await statusRes.json();
             setItems((prev) =>
@@ -187,11 +195,18 @@ export default function BatchProductionView() {
                     : it
                 )
               );
-              addLog(`[${item.mdk}] ✓ Wyrenderowano master wideo 9:16 oraz warianty dla rynków: ${item.markets.join(", ")}`);
+              const costInfo =
+                typeof statusData.costUsd === "number" ? ` · koszt $${statusData.costUsd.toFixed(2)}` : "";
+              addLog(`[${item.mdk}] ✓ Wyrenderowano master wideo 9:16 oraz warianty dla rynków: ${item.markets.join(", ")}${costInfo}`);
+            } else if (statusData.status === "failed") {
+              throw new Error(statusData.error || "generacja nieudana");
             }
           }
         }
       } catch (err: any) {
+        setItems((prev) =>
+          prev.map((it) => (it.id === item.id ? { ...it, status: "failed", progress: 0 } : it))
+        );
         addLog(`[${item.mdk}] Błąd generacji: ${err.message}`);
       }
     }
@@ -544,7 +559,7 @@ export default function BatchProductionView() {
             {isProcessing ? "Przetwarzanie..." : "Gotowa do startu"}
           </p>
           <p className="text-xs text-[#655a53] dark:text-[#b8aea4] mt-1">
-            Silnik: Seedance 2.5 Pro + ElevenLabs
+            Silnik: Seedance 2.5 + ElevenLabs
           </p>
         </div>
       </div>

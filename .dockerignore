@@ -1,0 +1,33 @@
+# Zależności i artefakty budowania (odtwarzane w obrazie)
+node_modules
+.next
+out
+build
+coverage
+*.tsbuildinfo
+next-env.d.ts
+
+# Repozytorium i narzędzia
+.git
+.gitignore
+.vercel
+.claude
+
+# Sekrety — nigdy do obrazu
+.env*
+*.pem
+
+# Materiały niepotrzebne do działania aplikacji
+prototype
+docs
+README.md
+AGENTS.md
+Dockerfile
+.dockerignore
+
+# Logi
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.DS_Store

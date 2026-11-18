@@ -6,6 +6,64 @@ import SinsayPhraseAssistant, { SINSAY_MARKETS, SinsayMatchItem } from "./Sinsay
 import AnimatedLogoModal, { SelectedLogoConfig, LOGO_VARIANTS } from "./AnimatedLogoModal";
 import { SocialSafeAreaOverlay } from "./SocialSafeAreaOverlay";
 import { burnSubtitlesToVideo, getVideoExtension } from "@/lib/videoSubtitleBurner";
+import {
+  VIDEO_ENGINE_OPTIONS,
+  VideoEngine,
+  VideoServerConfig,
+  fetchVideoServerConfig,
+  normalizeVideoEngine,
+  readIntegrationsConfig,
+} from "./IntegrationsView";
+
+/** Limity obrazu referencyjnego BytePlus: boki 300–6000 px, proporcje 0,4–2,5. */
+const PACKSHOT_MAX_SIDE = 2048;
+const PACKSHOT_MIN_SIDE = 300;
+
+/**
+ * Zamienia packshot (proxy PCM lub plik z dysku) na JPEG w base64,
+ * bo BytePlus nie ma dostępu do adresów w sieci LPP ani do plików przeglądarki.
+ */
+async function packshotToDataUri(url: string): Promise<string> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`nie udało się wczytać packshotu (HTTP ${res.status})`);
+  const blob = await res.blob();
+  const bitmap = await createImageBitmap(blob);
+  try {
+    const ratio = bitmap.width / bitmap.height;
+    if (ratio < 0.4 || ratio > 2.5) {
+      throw new Error("proporcje packshotu poza zakresem 0,4–2,5 wymaganym przez Seedance");
+    }
+    const scale = Math.min(1, PACKSHOT_MAX_SIDE / Math.max(bitmap.width, bitmap.height));
+    const width = Math.round(bitmap.width * scale);
+    const height = Math.round(bitmap.height * scale);
+    if (Math.min(width, height) < PACKSHOT_MIN_SIDE) {
+      throw new Error(`packshot jest za mały (minimum ${PACKSHOT_MIN_SIDE} px na boku)`);
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("brak obsługi canvas w przeglądarce");
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, width, height);
+    ctx.drawImage(bitmap, 0, 0, width, height);
+    return canvas.toDataURL("image/jpeg", 0.92);
+  } finally {
+    bitmap.close();
+  }
+}
+
+/** Rozmiar pliku wideo z nagłówka Content-Range (bez pobierania całości). */
+async function probeVideoSize(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url, { headers: { Range: "bytes=0-0" } });
+    const total = Number((res.headers.get("content-range") || "").split("/")[1]);
+    await res.body?.cancel();
+    return Number.isFinite(total) && total > 0 ? `${(total / (1024 * 1024)).toFixed(1)} MB` : null;
+  } catch {
+    return null;
+  }
+}
 
 export interface StoryboardScene {
   id: string;
@@ -118,9 +176,16 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Model & AI Generation Settings
-  const [aiEngine, setAiEngine] = useState<
-    "seedance-2.5-pro" | "seedance-2.5-turbo" | "seedance-2.5-omni" | "higgsfield-cinema-2.0"
-  >("seedance-2.5-pro");
+  const [aiEngine, setAiEngine] = useState<VideoEngine>("seedance-2.5");
+  const [videoServerConfig, setVideoServerConfig] = useState<VideoServerConfig | null>(null);
+  const [integrationMode, setIntegrationMode] = useState<"sandbox" | "live">("sandbox");
+
+  useEffect(() => {
+    const cfg = readIntegrationsConfig();
+    setAiEngine(normalizeVideoEngine(cfg.seedanceModel));
+    setIntegrationMode(cfg.mode);
+    fetchVideoServerConfig().then(setVideoServerConfig);
+  }, []);
   const [genMode, setGenMode] = useState<"storyboard" | "single">("storyboard");
   const [template, setTemplate] = useState("TikTok try-on · 6 scen");
   const [prompt, setPrompt] = useState(
@@ -1116,17 +1181,24 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
     setGenerationProgress(10);
     setGenerationStage("Przygotowywanie zlecenia dla silnika " + aiEngine.toUpperCase());
 
-    let apiKey = "";
-    try {
-      const cfgRaw = localStorage.getItem("simotion_integrations_config");
-      if (cfgRaw) {
-        const cfg = JSON.parse(cfgRaw);
-        apiKey = cfg.seedanceApiKey || "";
-      }
-    } catch {}
+    const integrations = readIntegrationsConfig();
+    const mode = integrations.mode;
+    setIntegrationMode(mode);
+    const isLiveSeedance = mode === "live" && aiEngine.startsWith("seedance");
 
     try {
+      // Packshot jako obraz referencyjny — w trybie live przesyłany w base64
       const primaryPackshot = pcmAssets[0]?.url || pcmAssets[0]?.rawPcmUrl;
+      let referenceImages: string[] = [];
+      if (isLiveSeedance && primaryPackshot) {
+        setGenerationStage("Przygotowanie packshotu jako obrazu referencyjnego...");
+        try {
+          referenceImages = [await packshotToDataUri(primaryPackshot)];
+        } catch (imgErr: any) {
+          throw new Error(`Packshot: ${imgErr?.message || imgErr}`);
+        }
+      }
+
       const res = await fetch("/api/video", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1135,8 +1207,8 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
           model: aiEngine,
           duration,
           aspectRatio: "9:16",
-          packshotUrl: primaryPackshot,
-          apiKey,
+          mode,
+          ...(isLiveSeedance ? { referenceImages } : { packshotUrl: primaryPackshot }),
         }),
       });
 
@@ -1146,47 +1218,75 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
       }
 
       const jobId = data.jobId;
+      const pollIntervalMs: number = data.pollIntervalMs || 750;
       setGenerationProgress(25);
-      setGenerationStage("Zlecenie przyjęte. Przetwarzanie w pipeline...");
+      setGenerationStage(
+        data.source === "seedance_live"
+          ? `Zlecenie przyjęte przez BytePlus (${data.duration} s, ${data.resolution}). Generowanie trwa zwykle kilka minut...`
+          : "Zlecenie przyjęte. Przetwarzanie w pipeline..."
+      );
+      if (data.durationAdjusted) {
+        showToast(`Długość dopasowana do zakresu modelu: ${data.duration} s.`);
+      }
+      if (isLiveSeedance && !primaryPackshot) {
+        showToast("Brak packshotu — wideo zostanie wygenerowane tylko z promptu.");
+      }
 
-      // Poll status every 750ms
-      const pollTimer = setInterval(async () => {
+      // Odpytywanie sekwencyjne (bez nakładania się zapytań)
+      const poll = async () => {
         try {
-          const pollRes = await fetch(`/api/video?jobId=${encodeURIComponent(jobId)}`);
-          if (!pollRes.ok) return;
-          const pollData = await pollRes.json();
+          const pollRes = await fetch(`/api/video?jobId=${encodeURIComponent(jobId)}`, { cache: "no-store" });
+          if (pollRes.ok) {
+            const pollData = await pollRes.json();
 
-          setGenerationProgress(pollData.progress || 50);
-          if (pollData.stage) setGenerationStage(pollData.stage);
+            setGenerationProgress(pollData.progress || 50);
+            if (pollData.stage) setGenerationStage(pollData.stage);
 
-          if (pollData.status === "completed") {
-            clearInterval(pollTimer);
-            setIsGeneratingAiVideo(false);
-            const targetUrl = pollData.videoUrl || "/preview/sample_atelier_9x16.mp4";
-            setVideoFile(targetUrl);
-            setUploadedFileName(`${productId || "001KR-83X"}_${aiEngine}_9x16.mp4`);
-            setUploadedFileSize("14.2 MB");
-            showToast(`✓ Wygenerowano wideo AI w silniku ${aiEngine.toUpperCase()}!`);
-            
-            setTimeout(() => {
-              if (videoRef.current) {
-                videoRef.current.play().then(() => {
-                  setIsPlaying(true);
-                  if (selectedBgm !== "none" && bgmAudioRef.current) {
-                    bgmAudioRef.current.play().catch(() => {});
-                  }
-                }).catch(() => {});
+            if (pollData.status === "completed") {
+              setIsGeneratingAiVideo(false);
+              const targetUrl = pollData.videoUrl || "/preview/sample_atelier_9x16.mp4";
+              setVideoFile(targetUrl);
+              setUploadedFileName(`${productId || "001KR-83X"}_${aiEngine}_9x16.mp4`);
+              if (pollData.source === "seedance_live") {
+                setUploadedFileSize(await probeVideoSize(targetUrl));
+                const costInfo =
+                  typeof pollData.costUsd === "number"
+                    ? ` Koszt: $${pollData.costUsd.toFixed(2)}`
+                    : "";
+                const tokenInfo =
+                  typeof pollData.totalTokens === "number"
+                    ? ` (${pollData.totalTokens.toLocaleString("pl-PL")} tokenów)`
+                    : "";
+                showToast(`✓ Wygenerowano wideo AI w silniku ${aiEngine.toUpperCase()}!${costInfo}${tokenInfo}`);
+              } else {
+                setUploadedFileSize("14.2 MB");
+                showToast(`✓ Wygenerowano wideo AI w silniku ${aiEngine.toUpperCase()}!`);
               }
-            }, 300);
-          } else if (pollData.status === "failed") {
-            clearInterval(pollTimer);
-            setIsGeneratingAiVideo(false);
-            showToast("Błąd klastra renderującego: " + (pollData.error || "Niepowodzenie"));
+
+              setTimeout(() => {
+                if (videoRef.current) {
+                  videoRef.current.play().then(() => {
+                    setIsPlaying(true);
+                    if (selectedBgm !== "none" && bgmAudioRef.current) {
+                      bgmAudioRef.current.play().catch(() => {});
+                    }
+                  }).catch(() => {});
+                }
+              }, 300);
+              return;
+            }
+            if (pollData.status === "failed") {
+              setIsGeneratingAiVideo(false);
+              showToast("Błąd klastra renderującego: " + (pollData.error || "Niepowodzenie"));
+              return;
+            }
           }
         } catch (pollErr) {
           console.warn("Poll check error:", pollErr);
         }
-      }, 750);
+        setTimeout(poll, pollIntervalMs);
+      };
+      setTimeout(poll, pollIntervalMs);
     } catch (err: any) {
       setIsGeneratingAiVideo(false);
       showToast("Błąd: " + err.message);
@@ -1221,23 +1321,26 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
   };
 
   // Cost calculation for AI generate mode
-  const getRatePerSec = (engine: string) => {
+  // Seedance rozlicza się tokenami BytePlus — stawki za sekundę nie są znane przed
+  // generacją, więc szacunek nie jest pokazywany (koszt rzeczywisty po zakończeniu).
+  const getRatePerSec = (engine: string): number | null => {
     switch (engine) {
-      case "seedance-2.5-turbo":
-        return 0.14;
-      case "seedance-2.5-omni":
-        return 0.28;
       case "higgsfield-cinema-2.0":
         return 0.26;
       default:
-        return 0.22; // seedance-2.5-pro default
+        return null;
     }
   };
   const ratePerSec = getRatePerSec(aiEngine);
   const renderMultiplier = separateRender ? Math.max(1, selectedRatios.length) : 1;
-  const videoCost = duration * ratePerSec * renderMultiplier;
+  const videoCost = ratePerSec === null ? null : duration * ratePerSec * renderMultiplier;
   const ttsCost = (isDubEnabled ? selectedDubLangs.length : 0) * 0.3;
-  const totalCost = (videoCost + ttsCost).toFixed(2);
+  const totalCost = videoCost === null ? null : (videoCost + ttsCost).toFixed(2);
+  const generateCostLabel = totalCost === null ? "koszt: —" : `$${totalCost}`;
+  const engineResolutionLabel =
+    aiEngine.startsWith("seedance") && integrationMode === "live" && videoServerConfig
+      ? videoServerConfig.seedance.resolution
+      : "1080×1920";
 
   const toggleRatio = (ratio: string) => {
     setSelectedRatios((prev) =>
@@ -1845,7 +1948,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                   <span>{generationProgress}% · Renderowanie...</span>
                 </>
               ) : (
-                <span>⚡ Generuj wideo AI (${totalCost})</span>
+                <span>⚡ Generuj wideo AI ({generateCostLabel})</span>
               )}
             </button>
           )}
@@ -1870,7 +1973,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
           </div>
           <div className="flex justify-between text-[10px] text-[var(--ink-muted)]">
             <span>Model: {aiEngine.toUpperCase()}</span>
-            <span>Kadr: 9:16 (1080×1920) · Długość: {duration}s</span>
+            <span>Kadr: 9:16 ({engineResolutionLabel}) · Długość: {duration}s</span>
           </div>
         </div>
       )}
@@ -1990,14 +2093,27 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
                     </label>
                     <select
                       value={aiEngine}
-                      onChange={(e) => setAiEngine(e.target.value as any)}
+                      onChange={(e) => setAiEngine(normalizeVideoEngine(e.target.value))}
                       className="w-full px-3 py-2 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)] font-medium cursor-pointer"
                     >
-                      <option value="seedance-2.5-pro">⚡ Seedance 2.5 Pro ($0.22/s)</option>
-                      <option value="seedance-2.5-turbo">🚀 Seedance 2.5 Turbo ($0.14/s)</option>
-                      <option value="seedance-2.5-omni">👁️ Seedance 2.5 Omni ($0.28/s)</option>
-                      <option value="higgsfield-cinema-2.0">🌪️ Higgsfield Cinema 2.0 ($0.26/s)</option>
+                      {VIDEO_ENGINE_OPTIONS.map((opt) => {
+                        const rate = getRatePerSec(opt.value);
+                        const icon = opt.value === "seedance-2.5" ? "⚡" : opt.value === "seedance-2.0" ? "🚀" : "🌪️";
+                        return (
+                          <option key={opt.value} value={opt.value}>
+                            {icon} {opt.label}
+                            {rate !== null ? ` ($${rate.toFixed(2)}/s)` : ""}
+                          </option>
+                        );
+                      })}
                     </select>
+                    <p className="text-[10px] text-[var(--ink-muted)] mt-1">
+                      {integrationMode === "live"
+                        ? videoServerConfig?.seedance.keyConfigured
+                          ? `Tryb Live · BytePlus · ${videoServerConfig.seedance.resolution}`
+                          : "Tryb Live · brak klucza Seedance na serwerze"
+                        : "Tryb testowy (symulacja) — zmiana w Ustawieniach API"}
+                    </p>
                   </div>
                   <div>
                     <label className="text-xs font-bold text-[var(--ink-primary)] block mb-1">
