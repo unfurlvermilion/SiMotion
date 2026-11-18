@@ -19,6 +19,7 @@ export async function GET(req: Request) {
       const targetUrl = `${PCM_BASE}${imagePath}`;
       const response = await fetch(targetUrl, {
         headers: { "User-Agent": USER_AGENT },
+        signal: AbortSignal.timeout(10_000),
       });
       if (!response.ok) {
         return new NextResponse(`PCM image fetch failed (${response.status})`, { status: response.status });
@@ -60,6 +61,7 @@ export async function GET(req: Request) {
     const pcmRes = await fetch(pcmUrl, {
       headers: { "User-Agent": USER_AGENT },
       cache: "no-store",
+      signal: AbortSignal.timeout(4000),
     });
 
     if (pcmRes.status === 404) {

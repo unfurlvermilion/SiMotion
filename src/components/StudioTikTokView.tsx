@@ -158,6 +158,8 @@ interface StudioTikTokViewProps {
   setProductId: (val: string) => void;
   showToast: (msg: string) => void;
   onProceedToPost: () => void;
+  initialVideoUrl?: string | null;
+  onVideoReady?: (url: string | null) => void;
 }
 
 export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
@@ -165,12 +167,17 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
   setProductId,
   showToast,
   onProceedToPost,
+  initialVideoUrl = null,
+  onVideoReady,
 }) => {
   // Primary Workspace Mode: Generator is DEFAULT, Montage is second
   const [workspaceMode, setWorkspaceMode] = useState<"generate" | "edit">("generate");
 
   // Video File & Upload State (for edit mode)
-  const [videoFile, setVideoFile] = useState<string | null>(null);
+  const [videoFile, setVideoFile] = useState<string | null>(initialVideoUrl);
+  useEffect(() => {
+    onVideoReady?.(videoFile);
+  }, [videoFile, onVideoReady]);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [uploadedFileSize, setUploadedFileSize] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -438,6 +445,13 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
     try {
       const mappedCues = buildCuesForLang(previewLang);
 
+      const activeBgmSrc =
+        selectedBgm === "none"
+          ? undefined
+          : selectedBgm === "lofi"
+          ? "/audio/atelier_lofi.m4a"
+          : "/audio/runway_house.m4a";
+
       const blob = await burnSubtitlesToVideo({
         videoSrc: videoFile,
         targetRatio: ratio,
@@ -451,6 +465,8 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
           size: captionSize,
         },
         durationSec: duration,
+        playbackSpeed: 1.0,
+        bgmAudioSrc: activeBgmSrc,
         logoOutro: isLogoOutroEnabled
           ? {
               imageSrc: selectedLogo.gifPath,
@@ -917,6 +933,13 @@ ${titleNodes}
           setIsBurningVideo(true);
           setBurnProgress(0);
 
+          const activeBgmSrc =
+            selectedBgm === "none"
+              ? undefined
+              : selectedBgm === "lofi"
+              ? "/audio/atelier_lofi.m4a"
+              : "/audio/runway_house.m4a";
+
           const totalSteps =
             specsToRender.length +
             (isSubtitlesEnabled && selectedTextLangs.length > 0
@@ -927,7 +950,7 @@ ${titleNodes}
           // 00: Czyste formaty bez napisów — renderujemy każdy wybrany format w jego docelowych proporcjach
           const cleanBlobs: Record<string, Blob> = {};
           for (const spec of specsToRender) {
-            setBurnStatus(`Kadrowanie czystego mastera ${spec.targetRatio} (${spec.cleanBase})...`);
+            setBurnStatus(`Kadrowanie ${spec.targetRatio} (${spec.cleanBase}) — nie przełączaj karty...`);
             try {
               const croppedBlob = await burnSubtitlesToVideo({
                 videoSrc: videoFile,
@@ -943,6 +966,7 @@ ${titleNodes}
                 },
                 durationSec: duration,
                 playbackSpeed: 1.0,
+                bgmAudioSrc: activeBgmSrc,
                 logoOutro: isLogoOutroEnabled
                   ? {
                       imageSrc: selectedLogo.gifPath,
@@ -975,7 +999,7 @@ ${titleNodes}
 
               for (const spec of specsToRender) {
                 setBurnStatus(
-                  `[${i + 1}/${selectedTextLangs.length}] Wypalanie ${lang} (${spec.targetRatio})...`
+                  `[${i + 1}/${selectedTextLangs.length}] Wypalanie ${lang} (${spec.targetRatio}) — nie przełączaj karty...`
                 );
                 try {
                   const burnedBlob = await burnSubtitlesToVideo({
@@ -992,6 +1016,7 @@ ${titleNodes}
                     },
                     durationSec: duration,
                     playbackSpeed: 1.0,
+                    bgmAudioSrc: activeBgmSrc,
                     logoOutro: isLogoOutroEnabled
                       ? {
                           imageSrc: selectedLogo.gifPath,
@@ -1255,23 +1280,33 @@ ${titleNodes}
     const isLiveSeedance = mode === "live" && aiEngine.startsWith("seedance");
 
     try {
-      // Packshot jako obraz referencyjny — w trybie live przesyłany w base64
+      // Packshoty jako obrazy referencyjne (do 4 głównych ujęć) — w trybie live przesyłane w base64
       const primaryPackshot = pcmAssets[0]?.url || pcmAssets[0]?.rawPcmUrl;
       let referenceImages: string[] = [];
-      if (isLiveSeedance && primaryPackshot) {
-        setGenerationStage("Przygotowanie packshotu jako obrazu referencyjnego...");
+      if (isLiveSeedance && pcmAssets.length > 0) {
+        const assetsToSend = pcmAssets.slice(0, 4);
+        setGenerationStage(`Przygotowanie ${assetsToSend.length} packshotów jako obrazów referencyjnych...`);
         try {
-          referenceImages = [await packshotToDataUri(primaryPackshot)];
+          referenceImages = await Promise.all(
+            assetsToSend.map((a) => packshotToDataUri(a.url || a.rawPcmUrl || ""))
+          );
         } catch (imgErr: any) {
           throw new Error(`Packshot: ${imgErr?.message || imgErr}`);
         }
       }
 
+      const effectivePrompt =
+        genMode === "storyboard" && computedScenes.length > 0
+          ? `${prompt} | Scenes: ${computedScenes
+              .map((s) => `[${s.timeRange}] ${s.prompt}`)
+              .join(" -> ")}`
+          : prompt;
+
       const res = await fetch("/api/video", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt,
+          prompt: effectivePrompt,
           model: aiEngine,
           duration,
           aspectRatio: "9:16",

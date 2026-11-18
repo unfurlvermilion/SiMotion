@@ -46,6 +46,7 @@ export default function SiMotionApp() {
 
   // Studio TikTok state
   const [productId, setProductId] = useState("001KR-83X");
+  const [studioVideoUrl, setStudioVideoUrl] = useState<string | null>(null);
   const [aiEngine, setAiEngine] = useState<"seedance" | "higgsfield">("seedance");
   const [genMode, setGenMode] = useState<"storyboard" | "single">("storyboard");
   const [template, setTemplate] = useState("TikTok try-on · 6 scen");
@@ -278,6 +279,8 @@ export default function SiMotionApp() {
             setProductId={setProductId}
             showToast={showToast}
             onProceedToPost={() => setActiveTab("export")}
+            initialVideoUrl={studioVideoUrl}
+            onVideoReady={setStudioVideoUrl}
           />
         )}
 
@@ -336,7 +339,14 @@ export default function SiMotionApp() {
         )}
 
         {/* VIEW 8: EKSPORT I PACZKI */}
-        {activeTab === "export" && <ExportView productId={productId} staticTexts={staticTexts} showToast={showToast} />}
+        {activeTab === "export" && (
+          <ExportView
+            productId={productId}
+            staticTexts={staticTexts}
+            showToast={showToast}
+            activeVideoUrl={studioVideoUrl}
+          />
+        )}
 
         {/* VIEW 9: INTEGRACJE & API */}
         {activeTab === "integrations" && <IntegrationsView />}

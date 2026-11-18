@@ -19,7 +19,9 @@ export interface BurnSubtitlesOptions {
     size: "sm" | "base" | "lg";
   };
   durationSec?: number;
-  playbackSpeed?: number; // Acceleration factor (e.g. 2.0x for fast rendering)
+  playbackSpeed?: number; // 1.0 = normal 1:1 output duration
+  bgmAudioSrc?: string;
+  bgmVolume?: number;
   logoOutro?: {
     imageSrc?: string;
     durationSec: number;
@@ -46,6 +48,8 @@ export async function burnSubtitlesToVideo(options: BurnSubtitlesOptions): Promi
     cropOffsetPercent = 0,
     cues = [],
     captionConfig,
+    bgmAudioSrc,
+    bgmVolume = 0.35,
     logoOutro,
     onProgress = () => {},
   } = options;
@@ -68,10 +72,60 @@ export async function burnSubtitlesToVideo(options: BurnSubtitlesOptions): Promi
       }
     }
 
+    // Decode animated GIF frames via ImageDecoder (Chrome/Edge) for true animated outro
+    const outroFrames: Array<{ bitmap: ImageBitmap; durationSec: number }> = [];
+    if (logoOutro?.imageSrc && logoOutro.imageSrc.toLowerCase().endsWith(".gif") && typeof (window as any).ImageDecoder !== "undefined") {
+      try {
+        const gifRes = await fetch(logoOutro.imageSrc);
+        if (gifRes.ok) {
+          const gifBuf = await gifRes.arrayBuffer();
+          const DecoderCtor = (window as any).ImageDecoder;
+          const decoder = new DecoderCtor({ data: gifBuf, type: "image/gif" });
+          await decoder.tracks.ready;
+          const frameCount = decoder.tracks.selectedTrack?.frameCount || 0;
+          for (let fIdx = 0; fIdx < frameCount; fIdx++) {
+            const { image } = await decoder.decode({ frameIndex: fIdx });
+            const bitmap = await createImageBitmap(image);
+            const durSec = (image.duration || 40000) / 1_000_000;
+            image.close();
+            outroFrames.push({ bitmap, durationSec: durSec > 0 ? durSec : 0.04 });
+          }
+          decoder.close();
+        }
+      } catch (gifErr) {
+        console.warn("GIF ImageDecoder fallback to static image:", gifErr);
+      }
+    }
+
+    // Pre-fetch & decode optional BGM audio track
+    let audioCtx: AudioContext | null = null;
+    let bgmAudioBuffer: AudioBuffer | null = null;
+    if (bgmAudioSrc && typeof AudioContext !== "undefined") {
+      try {
+        const audioRes = await fetch(bgmAudioSrc);
+        if (audioRes.ok) {
+          const audioBytes = await audioRes.arrayBuffer();
+          audioCtx = new AudioContext();
+          bgmAudioBuffer = await audioCtx.decodeAudioData(audioBytes);
+        }
+      } catch (audioErr) {
+        console.warn("BGM decode fallback (pomijam ścieżkę audio):", audioErr);
+        if (audioCtx) {
+          audioCtx.close().catch(() => {});
+          audioCtx = null;
+        }
+      }
+    }
+
     const cleanupLocalUrl = () => {
       if (localObjectUrl) {
         URL.revokeObjectURL(localObjectUrl);
         localObjectUrl = null;
+      }
+      outroFrames.forEach((f) => f.bitmap.close());
+      outroFrames.length = 0;
+      if (audioCtx && audioCtx.state !== "closed") {
+        audioCtx.close().catch(() => {});
       }
     };
 
@@ -125,19 +179,46 @@ export async function burnSubtitlesToVideo(options: BurnSubtitlesOptions): Promi
 
       const stream = canvas.captureStream(30);
 
-      // Attempt to attach audio track if present in source video
-      try {
-        // @ts-ignore
-        const captureFn = video.captureStream || video.mozCaptureStream;
-        if (captureFn) {
-          const vStream = captureFn.call(video);
-          const audioTracks = vStream.getAudioTracks();
-          if (audioTracks && audioTracks.length > 0) {
-            stream.addTrack(audioTracks[0]);
+      // Mix optional BGM audio track or source video audio track
+      let bgmSourceNode: AudioBufferSourceNode | null = null;
+      if (audioCtx && bgmAudioBuffer) {
+        try {
+          if (audioCtx.state === "suspended") {
+            audioCtx.resume().catch(() => {});
           }
+          const dest = audioCtx.createMediaStreamDestination();
+          bgmSourceNode = audioCtx.createBufferSource();
+          bgmSourceNode.buffer = bgmAudioBuffer;
+          bgmSourceNode.loop = true;
+
+          const gainNode = audioCtx.createGain();
+          gainNode.gain.value = bgmVolume;
+
+          bgmSourceNode.connect(gainNode);
+          gainNode.connect(dest);
+          bgmSourceNode.start(0);
+
+          const bgmTracks = dest.stream.getAudioTracks();
+          if (bgmTracks.length > 0) {
+            stream.addTrack(bgmTracks[0]);
+          }
+        } catch (audioMixErr) {
+          console.warn("BGM mix fallback:", audioMixErr);
         }
-      } catch (e) {
-        console.warn("Audio track capture fallback:", e);
+      } else {
+        try {
+          // @ts-ignore
+          const captureFn = video.captureStream || video.mozCaptureStream;
+          if (captureFn) {
+            const vStream = captureFn.call(video);
+            const audioTracks = vStream.getAudioTracks();
+            if (audioTracks && audioTracks.length > 0) {
+              stream.addTrack(audioTracks[0]);
+            }
+          }
+        } catch (e) {
+          console.warn("Audio track capture fallback:", e);
+        }
       }
 
       let mediaRecorder: MediaRecorder;
@@ -301,27 +382,61 @@ export async function burnSubtitlesToVideo(options: BurnSubtitlesOptions): Promi
           ctx.restore();
         }
 
-        // 3. Draw Logo Outro if enabled and within last seconds
+        // 3. Draw Logo Outro if enabled and within last seconds (animated GIF frames + smooth fade)
         const effectiveOutroDur = logoOutro ? Math.min(logoOutro.durationSec, totalDur * 0.45) : 0;
-        if (outroImg && outroImg.complete && logoOutro && t >= Math.max(0, totalDur - effectiveOutroDur)) {
+        const outroStart = Math.max(0, totalDur - effectiveOutroDur);
+        if (logoOutro && t >= outroStart && (outroFrames.length > 0 || (outroImg && outroImg.complete))) {
+          const outroElapsed = Math.max(0, t - outroStart);
+          const fadeAlpha = Math.min(1, outroElapsed / 0.35);
+
           ctx.save();
-          ctx.fillStyle = "rgba(0, 0, 0, 0.90)";
+          ctx.fillStyle = `rgba(0, 0, 0, ${0.9 * fadeAlpha})`;
           ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-          const maxW = canvas.width * 0.65;
-          const maxH = canvas.height * 0.35;
-          const imgAspect = (outroImg.naturalWidth || 1) / (outroImg.naturalHeight || 1);
+          let frameSource: CanvasImageSource | null = null;
+          let srcW = 1;
+          let srcH = 1;
 
-          let dw = maxW;
-          let dh = dw / imgAspect;
-          if (dh > maxH) {
-            dh = maxH;
-            dw = dh * imgAspect;
+          if (outroFrames.length > 0) {
+            const totalGifDur = outroFrames.reduce((acc, f) => acc + f.durationSec, 0) || 1;
+            let gifCursor = outroElapsed % totalGifDur;
+            let chosen = outroFrames[outroFrames.length - 1];
+            for (const fr of outroFrames) {
+              if (gifCursor <= fr.durationSec) {
+                chosen = fr;
+                break;
+              }
+              gifCursor -= fr.durationSec;
+            }
+            frameSource = chosen.bitmap;
+            srcW = chosen.bitmap.width || 1;
+            srcH = chosen.bitmap.height || 1;
+          } else if (outroImg && outroImg.complete) {
+            frameSource = outroImg;
+            srcW = outroImg.naturalWidth || 1;
+            srcH = outroImg.naturalHeight || 1;
           }
 
-          const dx = (canvas.width - dw) / 2;
-          const dy = (canvas.height - dh) / 2;
-          ctx.drawImage(outroImg, dx, dy, dw, dh);
+          if (frameSource) {
+            const maxW = canvas.width * 0.65;
+            const maxH = canvas.height * 0.35;
+            const imgAspect = srcW / srcH;
+
+            let dw = maxW;
+            let dh = dw / imgAspect;
+            if (dh > maxH) {
+              dh = maxH;
+              dw = dh * imgAspect;
+            }
+
+            const zoom = 0.94 + 0.06 * fadeAlpha;
+            dw *= zoom;
+            dh *= zoom;
+            const dx = (canvas.width - dw) / 2;
+            const dy = (canvas.height - dh) / 2;
+            ctx.globalAlpha = fadeAlpha;
+            ctx.drawImage(frameSource, dx, dy, dw, dh);
+          }
           ctx.restore();
         }
 
@@ -329,6 +444,9 @@ export async function burnSubtitlesToVideo(options: BurnSubtitlesOptions): Promi
         if (t >= totalDur || video.ended) {
           cancelAnimationFrame(animId);
           video.pause();
+          if (bgmSourceNode) {
+            try { bgmSourceNode.stop(); } catch {}
+          }
           setTimeout(() => {
             if (mediaRecorder.state !== "inactive") {
               mediaRecorder.stop();

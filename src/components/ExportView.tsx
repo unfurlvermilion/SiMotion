@@ -21,6 +21,7 @@ interface ExportViewProps {
   productId?: string;
   staticTexts?: Record<string, { headline: string; subline: string }>;
   showToast?: (msg: string) => void;
+  activeVideoUrl?: string | null;
 }
 
 export default function ExportView({
@@ -33,6 +34,7 @@ export default function ExportView({
     CZ: { headline: "Nová kolekce", subline: "Objev svůj styl" },
   },
   showToast,
+  activeVideoUrl,
 }: ExportViewProps) {
   const [mdkCode, setMdkCode] = useState<string>(productId);
   const [campaignName, setCampaignName] = useState<string>("Kolekcja Kapsułowa FW26");
@@ -306,10 +308,11 @@ export default function ExportView({
         console.warn("Logo fetch failed:", e);
       }
 
-      // 3. Fetch master video asset if any video needs packing
+      // 3. Fetch master video asset (wygenerowane w Studio lub domyślny sampel)
+      const sourceVideoUrl = activeVideoUrl || "/preview/sample_atelier_9x16.mp4";
       let defaultVideoBlob: Blob | null = null;
       try {
-        const vRes = await fetch("/preview/sample_atelier_9x16.mp4");
+        const vRes = await fetch(sourceVideoUrl);
         if (vRes.ok) defaultVideoBlob = await vRes.blob();
       } catch (e) {}
 
@@ -405,7 +408,7 @@ export default function ExportView({
           let targetFilename = file.filename;
           try {
             const cropped = await burnSubtitlesToVideo({
-              videoSrc: "/preview/sample_atelier_9x16.mp4",
+              videoSrc: sourceVideoUrl,
               targetRatio,
               cropOffsetPercent: 0,
               cues: langHeadline

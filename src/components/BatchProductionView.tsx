@@ -16,6 +16,30 @@ interface BatchItem {
   qaStatus: "passed" | "warning" | "error";
   progress: number;
   status: "idle" | "queued" | "rendering" | "completed" | "failed";
+  videoUrl?: string;
+  jobId?: string;
+}
+
+async function batchPackshotToDataUri(url: string): Promise<string> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const blob = await res.blob();
+  const bitmap = await createImageBitmap(blob);
+  try {
+    const maxSide = 1600;
+    const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+    const w = Math.max(1, Math.round(bitmap.width * scale));
+    const h = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("brak kontekstu 2D");
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    return canvas.toDataURL("image/jpeg", 0.9);
+  } finally {
+    bitmap.close();
+  }
 }
 
 const INITIAL_BATCH: BatchItem[] = [
@@ -115,11 +139,32 @@ export default function BatchProductionView() {
     }
   };
 
-  // Initial sync with SharePoint on mount only once to avoid destroying user changes
+  // Load persisted batch items first (so F5 does not wipe finished videoUrl / jobId) or sync SharePoint
+  const [hasLoadedStorage, setHasLoadedStorage] = React.useState(false);
   React.useEffect(() => {
+    try {
+      const saved = localStorage.getItem("simotion_batch_items");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setItems(parsed);
+          setHasLoadedStorage(true);
+          addLog(`Przywrócono ${parsed.length} pozycji kolejki z pamięci lokalnej.`);
+          return;
+        }
+      }
+    } catch {}
+    setHasLoadedStorage(true);
     fetchSharepointRows();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  React.useEffect(() => {
+    if (!hasLoadedStorage) return;
+    try {
+      localStorage.setItem("simotion_batch_items", JSON.stringify(items));
+    } catch {}
+  }, [items, hasLoadedStorage]);
 
   const handleStartBatch = async () => {
     setIsProcessing(true);
@@ -139,8 +184,32 @@ export default function BatchProductionView() {
 
     for (const item of pending) {
       setItems((prev) =>
-        prev.map((it) => (it.id === item.id ? { ...it, status: "rendering", progress: 20 } : it))
+        prev.map((it) => (it.id === item.id ? { ...it, status: "rendering", progress: 15 } : it))
       );
+
+      // Pobierz packshoty z PCM przed wysłaniem do BytePlus (szczególnie ważne w trybie Live)
+      let referenceImages: string[] = [];
+      if (mode === "live") {
+        addLog(`[${item.mdk}] Pobieranie packshotów referencyjnych z PCM...`);
+        try {
+          const pcmRes = await fetch(`/api/pcm?mdk=${encodeURIComponent(item.mdk)}`);
+          if (pcmRes.ok) {
+            const pcmData = await pcmRes.json();
+            if (pcmData.pcmFound && Array.isArray(pcmData.assets) && pcmData.assets.length > 0) {
+              const chosen = pcmData.assets.slice(0, 4);
+              referenceImages = await Promise.all(
+                chosen.map((a: any) => batchPackshotToDataUri(a.url || a.rawPcmUrl))
+              );
+              addLog(`[${item.mdk}] ✓ Załączono ${referenceImages.length} packshotów z PCM.`);
+            } else {
+              addLog(`[${item.mdk}] ⚠ Brak zdjęć w PCM — generacja z samego promptu.`);
+            }
+          }
+        } catch (pcmErr: any) {
+          addLog(`[${item.mdk}] ⚠ Błąd PCM (${pcmErr?.message || "brak sieci"}) — generacja z promptu.`);
+        }
+      }
+
       addLog(`[${item.mdk}] Zlecanie wideo Seedance 2.5: ${item.name}...`);
 
       try {
@@ -153,6 +222,7 @@ export default function BatchProductionView() {
             duration: 10,
             aspectRatio: "9:16",
             mode,
+            ...(referenceImages.length > 0 ? { referenceImages } : {}),
           }),
         });
 
@@ -161,6 +231,9 @@ export default function BatchProductionView() {
           throw new Error(data.message || `HTTP ${res.status}`);
         }
         const jobId: string = data.jobId;
+        setItems((prev) =>
+          prev.map((it) => (it.id === item.id ? { ...it, jobId, progress: 25 } : it))
+        );
         const pollIntervalMs: number = data.pollIntervalMs || 700;
         // Limit odpytywania: czas ważności zadania BytePlus (48 h) lub ~15 s w symulacji
         const deadline =
@@ -340,6 +413,7 @@ export default function BatchProductionView() {
         itemFolder.file("item_manifest.json", JSON.stringify(info, null, 2));
 
         // Render real cropped video files for every format in item.formats
+        const itemVideoSrc = it.videoUrl || "/preview/sample_atelier_9x16.mp4";
         const formatsToRender = it.formats.length > 0 ? it.formats : ["9:16"];
         for (const fmt of formatsToRender) {
           const ratio: "9:16" | "3:4" | "4:5" | "1:1" = fmt.includes("3:4")
@@ -352,7 +426,7 @@ export default function BatchProductionView() {
           const ratioTag = ratio.replace(":", "x");
           try {
             const croppedBlob = await burnSubtitlesToVideo({
-              videoSrc: "/preview/sample_atelier_9x16.mp4",
+              videoSrc: itemVideoSrc,
               targetRatio: ratio,
               cropOffsetPercent: 0,
               cues: [

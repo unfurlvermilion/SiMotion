@@ -566,10 +566,56 @@ export async function GET(req: Request) {
 
   const hfJob = higgsfieldJobs.get(jobId);
   if (hfJob) {
+    const hfKey = (process.env.HIGGSFIELD_API_KEY || "").trim();
+    if (hfKey) {
+      try {
+        const statusBase = (process.env.HIGGSFIELD_STATUS_ENDPOINT || "https://api.higgsfield.ai/v1/video/status").replace(/\/+$/, "");
+        const hfStatusRes = await fetch(`${statusBase}/${encodeURIComponent(hfJob.externalTaskId)}`, {
+          headers: {
+            Authorization: `Bearer ${hfKey}`,
+            "X-Higgsfield-Key": hfKey,
+          },
+          cache: "no-store",
+          signal: AbortSignal.timeout(15_000),
+        });
+        if (hfStatusRes.ok) {
+          const hfData = await hfStatusRes.json();
+          const st = String(hfData.status || "").toLowerCase();
+          if (st === "completed" || st === "succeeded" || st === "done") {
+            const outUrl = hfData.video_url || hfData.url || hfData.output?.video_url;
+            higgsfieldJobs.delete(jobId);
+            return NextResponse.json({
+              status: "completed",
+              jobId: hfJob.id,
+              progress: 100,
+              stage: "Wideo Higgsfield gotowe!",
+              model: hfJob.model,
+              videoUrl: outUrl || SIMULATION_VIDEO_URL,
+              costUsd: null,
+              source: "higgsfield_live",
+            });
+          }
+          if (st === "failed" || st === "error") {
+            higgsfieldJobs.delete(jobId);
+            return NextResponse.json({
+              status: "failed",
+              jobId: hfJob.id,
+              progress: 0,
+              error: hfData.error || "Higgsfield zwrócił błąd generowania.",
+              source: "higgsfield_live",
+            });
+          }
+        }
+      } catch (e) {
+        console.warn("Higgsfield status poll fallback:", e);
+      }
+    }
+
+    const elapsedPct = Math.min(90, 15 + Math.round(((Date.now() - hfJob.createdAt) / 1000) * 1.5));
     return NextResponse.json({
       status: hfJob.status,
       jobId: hfJob.id,
-      progress: hfJob.progress,
+      progress: elapsedPct,
       stage: hfJob.stage,
       model: hfJob.model,
       costUsd: null,
