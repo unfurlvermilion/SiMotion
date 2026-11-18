@@ -188,7 +188,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
   const [aiEngine, setAiEngine] = useState<VideoEngine>("seedance-2.5");
   const [videoResolution, setVideoResolution] = useState<"480p" | "720p" | "1080p">("720p");
   const [videoServerConfig, setVideoServerConfig] = useState<VideoServerConfig | null>(null);
-  const [integrationMode, setIntegrationMode] = useState<"sandbox" | "live">("sandbox");
+  const [integrationMode, setIntegrationMode] = useState<"sandbox" | "live">("live");
 
   useEffect(() => {
     const cfg = readIntegrationsConfig();
@@ -2225,11 +2225,9 @@ ${titleNodes}
                       })}
                     </select>
                     <p className="text-[10px] text-[var(--ink-muted)] mt-1">
-                      {integrationMode === "live"
-                        ? videoServerConfig?.seedance.keyConfigured
-                          ? `Tryb Live · BytePlus · ${videoResolution}`
-                          : "Tryb Live · brak klucza Seedance na serwerze"
-                        : "Tryb testowy (symulacja) — zmiana w Ustawieniach API"}
+                      {videoServerConfig?.seedance.keyConfigured
+                        ? `BytePlus ModelArk · ${videoResolution} · Secret Manager`
+                        : `BytePlus ModelArk · ${videoResolution}`}
                     </p>
                   </div>
                   <div>

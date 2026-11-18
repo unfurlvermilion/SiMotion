@@ -273,14 +273,14 @@ export default function SiMotionApp() {
               <span>{theme === "dark" ? "Jasny" : "Ciemny"}</span>
             </button>
 
-            {/* Settings & API Integrations Button */}
+            {/* System Status Button */}
             <button
               onClick={() => setIsSettingsOpen(true)}
               className="px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 bg-[var(--bg-card)] border-[var(--border-subtle)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-all text-[var(--ink-primary)] cursor-pointer shadow-xs"
-              title="Ustawienia aplikacji i klucze API"
+              title="Status połączeń i silników AI"
             >
-              <span className="text-xs">⚙</span>
-              <span className="hidden sm:inline">Ustawienia</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              <span className="hidden sm:inline">Status</span>
             </button>
           </div>
         </div>
