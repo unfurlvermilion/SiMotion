@@ -65,8 +65,6 @@ W górnym pasku masz 6 głównych modułów + ustawienia po prawej:
      - `01_Wersje_Rynkowe_Z_Napisami/<RYNEK>/`
      - `02_Napisy_SRT_VTT/`
 
-> **Wskazówka:** Jeśli na komputerze używasz **DaVinci Resolve**, w widoku postprodukcji możesz pobrać gotową oś czasu klikając **`🎬 DaVinci FCPXML`**.
-
 ---
 
 ## 4. Scenariusz C: Produkcja masowa wielu produktów (Batch)
