@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SiMotion — Szkolenie z aplikacji (Sinsay Motion Studio)</title>
+  <style>
+    :root {
+      --bg: #14110f;
+      --card: #1f1a17;
+      --card-2: #28211d;
+      --border: #3a302a;
+      --ink: #f7f3ec;
+      --muted: #b8aea4;
+      --accent: #c84b31;
+      --accent-soft: rgba(200, 75, 49, 0.16);
+      --emerald: #34d399;
+      --amber: #fbbf24;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Bar */
+    .topbar {
+      height: 54px;
+      padding: 0 28px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(20, 17, 15, 0.9);
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-badge {
+      background: linear-gradient(135deg, #c84b31, #6e1d2f);
+      color: #fff;
+      padding: 5px 9px;
+      border-radius: 8px;
+      font-size: 11px;
+    }
+
+    .progress-wrap {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .progress-bar {
+      width: 180px;
+      height: 6px;
+      background: var(--card-2);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      transition: width 0.25s ease;
+    }
+
+    /* Slides Stage */
+    .stage {
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 28px 48px;
+    }
+
+    .slide {
+      display: none;
+      width: 100%;
+      max-width: 1120px;
+      animation: fadeIn 0.22s ease;
+    }
+
+    .slide.active { display: block; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .kicker {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #e56b4e;
+      background: var(--accent-soft);
+      border: 1px solid rgba(200, 75, 49, 0.4);
+      padding: 5px 12px;
+      border-radius: 99px;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-size: clamp(32px, 4.2vw, 52px);
+      line-height: 1.1;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 18px;
+    }
+
+    h2 {
+      font-size: clamp(26px, 3vw, 38px);
+      line-height: 1.15;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 14px;
+    }
+
+    .lead {
+      font-size: 18px;
+      line-height: 1.55;
+      color: var(--muted);
+      max-width: 820px;
+      margin-bottom: 28px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+    }
+
+    .card-accent {
+      border-color: rgba(200, 75, 49, 0.6);
+      background: linear-gradient(180deg, rgba(200, 75, 49, 0.09), var(--card));
+    }
+
+    .card h3 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card p, .card li {
+      font-size: 14px;
+      line-height: 1.55;
+      color: var(--muted);
+    }
+
+    ul.clean {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    ul.clean li::before {
+      content: "→ ";
+      color: #e56b4e;
+      font-weight: 700;
+    }
+
+    .step-num {
+      display: inline-flex;
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 800;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      background: var(--card-2);
+      border: 1px solid var(--border);
+      color: var(--ink);
+    }
+
+    .pill-green { color: var(--emerald); border-color: rgba(52, 211, 153, 0.4); background: rgba(52, 211, 153, 0.08); }
+    .pill-amber { color: var(--amber); border-color: rgba(251, 191, 36, 0.4); background: rgba(251, 191, 36, 0.08); }
+    .pill-red { color: #f87171; border-color: rgba(248, 113, 113, 0.4); background: rgba(248, 113, 113, 0.08); }
+
+    .callout {
+      margin-top: 18px;
+      padding: 14px 18px;
+      border-radius: 12px;
+      border-left: 4px solid var(--accent);
+      background: var(--card-2);
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--ink);
+    }
+
+    .tree {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 13px;
+      line-height: 1.65;
+      background: #0e0c0a;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      color: #e5d8c5;
+      white-space: pre;
+    }
+
+    /* Footer Controls */
+    .footer {
+      height: 58px;
+      padding: 0 28px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+
+    .nav-btns { display: flex; gap: 10px; }
+
+    button {
+      background: var(--card-2);
+      color: var(--ink);
+      border: 1px solid var(--border);
+      padding: 8px 16px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    button:hover:not(:disabled) { border-color: var(--accent); background: #332924; }
+    button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    button:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    /* Print / PDF Export */
+    @media print {
+      body { overflow: visible; height: auto; background: #14110f; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .topbar, .footer { display: none; }
+      .stage { display: block; padding: 0; }
+      .slide { display: block !important; page-break-after: always; padding: 36px; max-width: 100%; min-height: 95vh; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-badge">SiMo</span>
+      <span>SiMotion · Szkolenie Zespołu Sinsay</span>
+    </div>
+    <div class="progress-wrap">
+      <span id="slideCounter">Slajd 1 / 10</span>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width: 10%"></div></div>
+    </div>
+  </header>
+
+  <main class="stage">
+
+    <!-- SLAJD 1 -->
+    <section class="slide active">
+      <span class="kicker">Wdrożenie & Szkolenie · 2026</span>
+      <h1>SiMotion<br />Sinsay Motion Studio</h1>
+      <p class="lead">
+        Jedno narzędzie do generowania rolek wideo AI z packshotów (PCM),
+        automatycznego kadrowania pod 4 formaty social media oraz lokalizacji na 28 rynków Sinsay.
+      </p>
+      <div class="grid-3">
+        <div class="card">
+          <h3>🎬 Wideo AI z MDK</h3>
+          <p>Pobierasz kod produktu z PCM, generujesz ruch w Seedance 2.5 i dopasowujesz kadr pod TikTok/IG.</p>
+        </div>
+        <div class="card">
+          <h3>🌍 28 Rynków w 1 klik</h3>
+          <p>Wypalanie napisów z oficjalnej bazy 4524 haseł Sinsay z fontem Euclid Circular B i eksport paczek ZIP.</p>
+        </div>
+        <div class="card">
+          <h3>📦 Produkcja Batch</h3>
+          <p>Hurtowe generowanie wideo z listy CSV oraz grafiki statyczne z maskowaniem starych tekstów.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLAJD 2 -->
+    <section class="slide">
+      <span class="kicker">Zasady Pracy</span>
+      <h2>„Produkt jest święty”</h2>
+      <p class="lead">
+        AI ma pomagać w produkcji tła, ruchu i światła — nigdy kosztem wyglądu samego ubrania z packshotu.
+      </p>
+      <div class="grid-2">
+        <div class="card card-accent">
+          <h3>✅ Co generuje / robi SiMotion</h3>
+          <ul class="clean">
+            <li>Naturalny ruch modelki, powiew tkaniny, dynamikę ujęcia (try-on).</li>
+            <li>Oświetlenie i klimat (np. naturalne światło atelier, styl skandynawski).</li>
+            <li>Kadrowanie z jednego mastera na 3:4, 9:16, 4:5 i 1:1.</li>
+            <li>Lokalne napisy, maskowanie obcych tekstów i animowane outro Sinsay.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>⛔ Czego bezwzględnie pilnujemy</h3>
+          <ul class="clean">
+            <li><strong>Krój, kolor, print i faktura</strong> muszą być w 100% wierne zdjęciu PSH.</li>
+            <li>Nie zmieniamy detali (guzików, przeszyć, nadruków) w promptach.</li>
+            <li>Prompty do modeli generatywnych piszemy <strong>zawsze po angielsku</strong>.</li>
+            <li>Przed puszczeniem na produkcję sprawdzamy strefy ochronne TikTok/Reels.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLAJD 3 -->
+    <section class="slide">
+      <span class="kicker">Bezpieczeństwo & Budżet</span>
+      <h2>Tryb Testowy (Sandbox) vs Produkcyjny (Live)</h2>
+      <p class="lead">
+        Aplikacja stoi na Google Cloud Run. Klucz do Seedance 2.5 siedzi bezpiecznie na serwerze, a Ty decydujesz w zakładce ⚙️ <strong>Ustawienia API</strong>, czy generujesz na sucho, czy na żywo.
+      </p>
+      <div class="grid-2">
+        <div class="card">
+          <h3>🧪 Tryb Testowy (Sandbox)</h3>
+          <p style="margin-bottom: 12px;"><span class="pill pill-amber">BEZ OPŁAT · DO NAUKI</span></p>
+          <ul class="clean">
+            <li>Nie wysyła płatnych zleceń do BytePlus.</li>
+            <li>Korzysta z wideo próbnego i symulacji kolejki.</li>
+            <li>Możesz bezpiecznie testować napisy, Smart Crop, grafiki i eksport ZIP.</li>
+          </ul>
+        </div>
+        <div class="card card-accent">
+          <h3>⚡ Tryb Produkcyjny (Live)</h3>
+          <p style="margin-bottom: 12px;"><span class="pill pill-green">BYTEPLUS SEEDANCE 2.5 + GCS</span></p>
+          <ul class="clean">
+            <li>Wysyła realne zlecenie renderu (koszt naliczany wg sekund/rozdzielczości).</li>
+            <li>Wygenerowane klipy zapisują się automatycznie w firmowym Google Cloud Storage.</li>
+            <li>Render jednego klipu trwa zwykle od kilkudziesięciu sekund do kilku minut.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="callout">
+        💡 <strong>Zasada na start:</strong> Na szkoleniu i przy układaniu napisów na gotowym wideo pracuj w trybie <strong>Testowym</strong>. Na <strong>Live</strong> przełączaj się dopiero wtedy, gdy masz gotowy prompt i packshoty do wygenerowania nowego klipu.
+      </div>
+    </section>
+
+    <!-- SLAJD 4 -->
+    <section class="slide">
+      <span class="kicker">Nawigacja</span>
+      <h2>6 modułów w górnym pasku</h2>
+      <p class="lead">Cały proces produkcji od kodu MDK do gotowej paczki na rynki jest podzielony na czytelne zakładki.</p>
+      <div class="grid-3">
+        <div class="card">
+          <h3>1. Studio Wideo</h3>
+          <p>Pojedynczy produkt: pobieranie z PCM, generacja AI z promptu, montaż własnego MP4, napisy i eksport ZIP 4 formatów.</p>
+        </div>
+        <div class="card">
+          <h3>2. Batch</h3>
+          <p>Produkcja hurtowa: wgrywasz CSV z wieloma kodami MDK, puszczasz kolejkę i pobierasz jedną paczkę ZIP dla wszystkich.</p>
+        </div>
+        <div class="card">
+          <h3>3. Grafiki</h3>
+          <p>Kwadraty, feedy i relacje: wgrywasz zdjęcie, maskujesz stary tekst, wklejasz hasło Sinsay i pobierasz PNG dla 28 krajów.</p>
+        </div>
+        <div class="card">
+          <h3>4. Materiały</h3>
+          <p>Brand Kit Sinsay: własne badge (np. NEW AW26), CTA, ramki i animowane logo outro (białe/czarne).</p>
+        </div>
+        <div class="card">
+          <h3>5. Tłumaczenia</h3>
+          <p>Matryca copy dla wielu krajów, kontrola limitu znaków na ekranie i eksport/import tabeli do Excela (.xlsx).</p>
+        </div>
+        <div class="card">
+          <h3>6. Eksport</h3>
+          <p>Standaryzacja paczki kampanii: wybór struktury folderów (MDK/Format/Język) i generowanie manifestu CSV/JSON.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLAJD 5 -->
+    <section class="slide">
+      <span class="kicker">Workflow 1 · Studio Wideo</span>
+      <h2>Generowanie wideo AI krok po kroku</h2>
+      <div class="grid-2" style="margin-top: 20px;">
+        <div class="card">
+          <ul class="clean" style="gap: 14px;">
+            <li><span class="step-num">1</span> <strong>Kod MDK i Packshoty:</strong> Wpisz kod (np. <span class="pill">001KR-83X</span>) i kliknij <span class="pill">Pobierz z PCM ↻</span>. Poza siecią LPP użyj <span class="pill">📁 Z dysku</span>.</li>
+            <li><span class="step-num">2</span> <strong>Storyboard:</strong> Zdjęcia (050, 051, 052) automatycznie przypną się do scen. Wybierz silnik <span class="pill">Seedance 2.5</span> i długość.</li>
+            <li><span class="step-num">3</span> <strong>Prompt (EN):</strong> Wybierz preset kategorii ubrania lub dopisz szczegóły ruchu i światła po angielsku.</li>
+            <li><span class="step-num">4</span> <strong>Generacja:</strong> Kliknij <span class="pill">⚡ Generuj wideo AI</span>. Gotowy klip wpadnie prosto do odtwarzacza po prawej.</li>
+          </ul>
+        </div>
+        <div class="card card-accent">
+          <h3>🎥 A jeśli masz już gotowe wideo?</h3>
+          <p style="margin-bottom: 14px;">
+            Nie musisz nic generować! Przełącz u góry tryb na <strong>„Montaż własnego wideo”</strong> i wrzuć swój plik MP4/MOV z dysku.
+          </p>
+          <p>
+            Apka od razu potnie go na 4 formaty social media, pozwoli dodać napisy w 28 językach, dołoży animowane logo outro i wyeksportuje gotowe pliki.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLAJD 6 -->
+    <section class="slide">
+      <span class="kicker">Kadrowanie & Napisy</span>
+      <h2>4 formaty naraz, Safe Zones i 4524 hasła Sinsay</h2>
+      <div class="grid-2" style="margin-top: 16px;">
+        <div class="card">
+          <h3>📐 Smart Crop & Strefy Ochronne</h3>
+          <ul class="clean">
+            <li>Na jednym ekranie widzisz równocześnie: <strong>3:4 Master</strong> (1440×1920), <strong>9:16 TikTok</strong> (1080×1920), <strong>4:5 Feed</strong> (1080×1350) i <strong>1:1 Kwadrat</strong> (1080×1080).</li>
+            <li>Suwak <strong>Fokus kadru</strong> przesuwa wycinek w poziomie, żeby modelka nie uciekła z wąskiego 9:16.</li>
+            <li><strong>Strefy ochronne</strong> pokazują przyciski TikToka/IG, żeby napisy nigdy na nie nie weszły.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>💬 Napisy i Baza Haseł</h3>
+          <ul class="clean">
+            <li><strong>Oś czasu (Timeline):</strong> różne napisy w kolejnych sekundach klipu (Hook → Detal → CTA).</li>
+            <li><strong>Stały (Static):</strong> jedno hasło przez cały film.</li>
+            <li><strong>Asystent haseł Sinsay:</strong> szukasz po polsku — dostajesz gotowe, zatwierdzone tłumaczenia na 28 języków.</li>
+            <li>Czcionka firmowa <strong>Euclid Circular B</strong> + auto-dopasowanie szerokości (długie zdania DE/HU nie wyjdą poza kadr).</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLAJD 7 -->
+    <section class="slide">
+      <span class="kicker">Gotowe do Publikacji</span>
+      <h2>Co dostajesz w paczce ZIP (i w DaVinci)?</h2>
+      <div class="grid-2" style="margin-top: 16px;">
+        <div class="tree">Sinsay_001KR-83X_Paczka.zip
+├── 00_Czyste_Bez_Napisow/
+│   ├── 00_Master_3x4_Clean.mp4      (1440×1920)
+│   ├── 01_Vertical_9x16_TikTok...   (1080×1920)
+│   ├── 02_Feed_4x5_IG_Clean.mp4     (1080×1350)
+│   └── 03_Square_1x1_Catalog...     (1080×1080)
+├── 01_Wersje_Rynkowe_Z_Napisami/
+│   ├── PL/  (wypalone MP4 dla formatów + SRT/VTT)
+│   ├── DE/  (wypalone MP4 dla formatów + SRT/VTT)
+│   └── RO/  (...)
+└── 02_Napisy_SRT_VTT/               (wszystkie języki)</div>
+        <div class="card card-accent">
+          <h3>🎬 Pro-tip dla montażystów</h3>
+          <ul class="clean" style="gap: 12px;">
+            <li>Każdy zaznaczony format renderuje się w swoich prawdziwych proporcjach — brak już „rozciągniętych” czy 16:9 miniatur.</li>
+            <li>Jeśli chcesz szybkiego eksportu pod same rolki, odznacz formaty 3:4, 4:5 i 1:1 przed kliknięciem pobierania.</li>
+            <li>Potrzebujesz dopieścić montaż w <strong>DaVinci Resolve</strong>? Kliknij <span class="pill">🎬 DaVinci FCPXML</span>, żeby wyeksportować oś czasu prosto do programu.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLAJD 8 -->
+    <section class="slide">
+      <span class="kicker">Produkcja Masowa & Statyki</span>
+      <h2>Batch (CSV) oraz Grafiki Statyczne</h2>
+      <div class="grid-2" style="margin-top: 18px;">
+        <div class="card">
+          <h3>⚡ Batch — wiele produktów naraz</h3>
+          <ul class="clean">
+            <li>Wgraj plik <strong>CSV</strong> z listą kodów MDK (lub dodaj testowe wiersze).</li>
+            <li>Kliknij <strong>▶ Uruchom Batch</strong> — kolejka przerabia każdy produkt po kolei i loguje postęp oraz koszt.</li>
+            <li>Po zakończeniu kliknij <strong>💾 Pobierz Batch ZIP</strong> — każdy MDK dostaje własny folder z przyciętymi wideo, napisami SRT i raportem zbiorczym CSV.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>🖼 Grafiki — adaptacje na 28 krajów</h3>
+          <ul class="clean">
+            <li>Wgraj gotowy banner/zdjęcie z dysku i wybierz format (1:1, 4:5, 9:16, 3:4 lub Oryginał).</li>
+            <li>Jeśli na zdjęciu jest stary tekst, zakryj go narzędziem <strong>Maskowania</strong> (blur / gradient / belka).</li>
+            <li>Podepnij hasło z bazy Sinsay, zaznacz rynki i kliknij <strong>Pobierz paczkę ZIP</strong> — dostaniesz komplet PNG z Euclid Circular B.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLAJD 9 -->
+    <section class="slide">
+      <span class="kicker">Wsparcie Kampanii</span>
+      <h2>Materiały, Tłumaczenia i Eksport</h2>
+      <div class="grid-3" style="margin-top: 20px;">
+        <div class="card">
+          <h3>🎨 Materiały (Brand Kit)</h3>
+          <p>Dodajesz tu własne badge, naklejki CTA lub grafiki, które zapisują się w pamięci przeglądarki i są dostępne w Grafikach i Postprodukcji.</p>
+        </div>
+        <div class="card">
+          <h3>🌐 Tłumaczenia (.xlsx)</h3>
+          <p>Edytujesz tabelę haseł kampanii, pilnujesz limitu znaków na linię (żeby nie przelewało) i eksportujesz całość jednym kliknięciem do Excela.</p>
+        </div>
+        <div class="card">
+          <h3>📤 Eksport</h3>
+          <p>Kompletujesz finalną paczkę kampanii z wyborem drzewa folderów: <span class="pill">MDK → Format → Język</span> albo <span class="pill">Język → Format → MDK</span>.</p>
+        </div>
+      </div>
+      <div class="callout">
+        🔊 <strong>Status Audio / Lektora:</strong> Moduł podkładu muzycznego działa lokalnie na wgranych pętlach, a lektor ElevenLabs działa na ten moment w trybie symulacji (bez podpiętego klucza API).
+      </div>
+    </section>
+
+    <!-- SLAJD 10 -->
+    <section class="slide">
+      <span class="kicker">Warsztat Praktyczny · 10 minut</span>
+      <h2>Zadanie testowe dla uczestników</h2>
+      <p class="lead">Przeklikajmy wspólnie pełną ścieżkę na jednym produkcie (bezpiecznie, w trybie Testowym):</p>
+      <div class="grid-2">
+        <div class="card card-accent">
+          <h3>Kroki do wykonania:</h3>
+          <ul class="clean" style="gap: 10px;">
+            <li><span class="step-num">1</span> Sprawdź w ⚙️ <strong>Ustawieniach API</strong>, czy masz wybrany tryb <strong>Testowy (Sandbox)</strong>.</li>
+            <li><span class="step-num">2</span> W <strong>Studio Wideo</strong> pobierz zdjęcia dla <span class="pill">001KR-83X</span> (z PCM lub wrzuć z dysku).</li>
+            <li><span class="step-num">3</span> Kliknij <strong>⚡ Generuj wideo AI</strong> (w Sandboxie załaduje wideo próbne).</li>
+            <li><span class="step-num">4</span> Włącz napisy, wyszukaj hasło w <strong>Asystencie Sinsay</strong> i zaznacz 3 rynki: <span class="pill">PL</span> <span class="pill">DE</span> <span class="pill">RO</span>.</li>
+            <li><span class="step-num">5</span> Wybierz formaty <span class="pill">9:16</span> i <span class="pill">1:1</span>, kliknij <strong>Pobierz paczkę ZIP</strong> i rozpakuj na pulpicie.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Co sprawdzamy po rozpakowaniu?</h3>
+          <ul class="clean" style="gap: 12px;">
+            <li>Czy w folderze <span class="pill">00_Czyste_Bez_Napisow</span> są pliki o właściwych proporcjach (pion 9:16 i kwadrat 1:1)?</li>
+            <li>Czy w folderach <span class="pill">PL / DE / RO</span> napisy siedzą w strefie bezpiecznej i nie są ucięte?</li>
+            <li>Czy na końcu klipu pojawia się animowane logo outro Sinsay?</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <div>Nawigacja: klawisze <strong>←</strong> / <strong>→</strong> lub Spacja · Druk do PDF: <strong>Cmd+P</strong></div>
+    <div class="nav-btns">
+      <button id="prevBtn" onclick="changeSlide(-1)">← Poprzedni</button>
+      <button id="nextBtn" class="primary" onclick="changeSlide(1)">Następny →</button>
+    </div>
+  </footer>
+
+  <script>
+    const slides = document.querySelectorAll(".slide");
+    const counter = document.getElementById("slideCounter");
+    const fill = document.getElementById("progressFill");
+    const prevBtn = document.getElementById("prevBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    let current = 0;
+
+    function renderSlide() {
+      slides.forEach((s, i) => s.classList.toggle("active", i === current));
+      counter.textContent = `Slajd ${current + 1} / ${slides.length}`;
+      fill.style.width = `${((current + 1) / slides.length) * 100}%`;
+      prevBtn.disabled = current === 0;
+      nextBtn.disabled = current === slides.length - 1;
+    }
+
+    function changeSlide(delta) {
+      const next = current + delta;
+      if (next >= 0 && next < slides.length) {
+        current = next;
+        renderSlide();
+      }
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowRight" || e.key === " ") {
+        e.preventDefault();
+        changeSlide(1);
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        changeSlide(-1);
+      }
+    });
+
+    renderSlide();
+  </script>
+</body>
+</html>
