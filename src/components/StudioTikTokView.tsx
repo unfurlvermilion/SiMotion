@@ -3266,22 +3266,11 @@ ${titleNodes}
                 </div>
               </div>
 
-              {/* Status połączenia Storyboardu z Seedance */}
-              <div
-                className={`px-3.5 py-2 rounded-xl border text-xs flex items-center justify-between flex-wrap gap-2 ${
-                  genMode === "storyboard"
-                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
-                    : "border-amber-500/30 bg-amber-500/10 text-amber-300"
-                }`}
-              >
-                <span>
-                  {genMode === "storyboard"
-                    ? `✓ Tryb Storyboard aktywny — wszystkie ${computedScenes.length} scen oraz ${
-                        pcmAssets.length > 0 ? `${pcmAssets.length} wgranych packshotów PSH` : "prompt główny"
-                      } trafiają bezpośrednio do Seedance`
-                    : "⚠ Wybrano tryb „Pojedyncze ujęcie” — przełącz Tryb na „Storyboard” powyżej, aby wysłać poniższe sceny do Seedance"}
-                </span>
-              </div>
+              {genMode !== "storyboard" && (
+                <div className="px-3.5 py-2 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-300 text-xs">
+                  Wybrano tryb „Pojedyncze ujęcie” — przełącz Tryb na „Storyboard” powyżej, aby wysłać poniższe sceny do Seedance.
+                </div>
+              )}
 
               {/* Visual Storyboard Timeline Track */}
               <div className="space-y-1">
@@ -3390,12 +3379,7 @@ ${titleNodes}
                       )}
                     </div>
 
-                    <div className="pt-2.5 border-t border-[var(--border-subtle)] mt-2.5 flex items-center justify-between gap-1.5">
-                      <span className="text-[10px] text-emerald-400/90 font-medium truncate">
-                        {pcmAssets.length > 0
-                          ? `✓ Auto-PSH (${pcmAssets.length} zdjęć)`
-                          : "Brak zdjęć PSH"}
-                      </span>
+                    <div className="pt-2.5 border-t border-[var(--border-subtle)] mt-2.5 flex items-center justify-end gap-1.5">
                       <div className="flex gap-1 shrink-0">
                         <button
                           type="button"
