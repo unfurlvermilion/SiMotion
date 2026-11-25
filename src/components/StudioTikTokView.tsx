@@ -1542,7 +1542,6 @@ ${titleNodes}
 
   // Cost calculation for AI generate mode (depends on model, resolution & duration)
   const getRatePerSec = (engine: string, res: "480p" | "720p" | "1080p" = videoResolution): number => {
-    if (engine === "higgsfield-cinema-2.0") return 0.26;
     if (engine === "seedance-2.0") {
       return res === "480p" ? 0.08 : res === "1080p" ? 0.40 : 0.18;
     }
@@ -3322,7 +3321,7 @@ ${titleNodes}
                       >
                         {VIDEO_ENGINE_OPTIONS.map((opt) => {
                           const rate = getRatePerSec(opt.value, videoResolution);
-                          const icon = opt.value === "seedance-2.5" ? "⚡" : opt.value === "seedance-2.0" ? "🚀" : "🌪️";
+                          const icon = opt.value === "seedance-2.5" ? "⚡" : "🚀";
                           return (
                             <option key={opt.value} value={opt.value}>
                               {icon} {opt.label} (~${rate.toFixed(2)}/s)
