@@ -14,6 +14,7 @@ import { loadStoredAssets } from "@/lib/brandStorage";
 
 export type ViewTab =
   | "single"
+  | "montage"
   | "batch"
   | "post"
   | "assets"
@@ -234,7 +235,8 @@ export default function SiMotionApp() {
             <nav className="flex items-center gap-1 p-1 rounded-full bg-[var(--bg-elevated)] border border-[var(--border-subtle)] shadow-xs">
               {(
                 [
-                  ["single", "Studio Wideo"],
+                  ["single", "Generator AI"],
+                  ["montage", "Montaż wideo"],
                   ["batch", "Batch"],
                   ["static", "Grafiki"],
                   ["assets", "Materiały"],
@@ -288,7 +290,7 @@ export default function SiMotionApp() {
 
       {/* MAIN CONTAINER */}
       <main className="w-full max-w-[1600px] mx-auto p-6 md:p-8 flex-1">
-        {/* VIEW 1: STUDIO TIKTOK */}
+        {/* VIEW 1: GENERATOR AI (4-KROKOWY KREATOR) */}
         {activeTab === "single" && (
           <StudioTikTokView
             productId={productId}
@@ -298,6 +300,21 @@ export default function SiMotionApp() {
             initialVideoUrl={studioVideoUrl}
             onVideoReady={setStudioVideoUrl}
             externalCaptions={studioCaptionsOverride}
+            lockedMode="generate"
+          />
+        )}
+
+        {/* VIEW 2: MONTAŻ WIDEO (GOTOWY PLIK MP4/MOV) */}
+        {activeTab === "montage" && (
+          <StudioTikTokView
+            productId={productId}
+            setProductId={setProductId}
+            showToast={showToast}
+            onProceedToPost={() => setActiveTab("export")}
+            initialVideoUrl={studioVideoUrl}
+            onVideoReady={setStudioVideoUrl}
+            externalCaptions={studioCaptionsOverride}
+            lockedMode="edit"
           />
         )}
 
