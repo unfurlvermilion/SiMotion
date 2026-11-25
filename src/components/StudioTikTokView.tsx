@@ -1225,6 +1225,56 @@ ${titleNodes}
     });
   };
 
+  // Add a new storyboard scene dynamically
+  const handleAddScene = () => {
+    const newId = `sc-${Date.now()}`;
+    setScenes((prev) => {
+      const num = String(prev.length + 1).padStart(2, "0");
+      const next: StoryboardScene[] = [
+        ...prev,
+        {
+          id: newId,
+          name: `${num} Nowa scena`,
+          timeRange: "0.0–2.0 s",
+          prompt: "Płynne ujęcie prezentujące detal produktu i ruch tkaniny w miękkim świetle.",
+          pcmImage: "auto_all",
+          durationSec: 2.0,
+        },
+      ];
+      const newTotal = Number(next.reduce((sum, s) => sum + s.durationSec, 0).toFixed(1));
+      setDuration(newTotal);
+      return next;
+    });
+    setActiveEditingScene(newId);
+  };
+
+  // Delete a storyboard scene (keep at least 1)
+  const handleDeleteScene = (sceneId: string) => {
+    setScenes((prev) => {
+      if (prev.length <= 1) {
+        showToast("Storyboard musi zawierać przynajmniej 1 scenę.");
+        return prev;
+      }
+      const next = prev.filter((s) => s.id !== sceneId);
+      const newTotal = Number(next.reduce((sum, s) => sum + s.durationSec, 0).toFixed(1));
+      setDuration(newTotal);
+      return next;
+    });
+    if (activeEditingScene === sceneId) setActiveEditingScene(null);
+  };
+
+  // Exact prompt builder shared between UI preview and Seedance API call
+  const buildFinalSeedancePrompt = () => {
+    const base = prompt.trim();
+    if (genMode !== "storyboard" || computedScenes.length === 0) {
+      return base;
+    }
+    const shotList = computedScenes
+      .map((s, idx) => `Shot ${idx + 1} (${s.timeRange}): ${s.prompt.trim()}`)
+      .join(" | ");
+    return `${base}\n\nStoryboard (${computedScenes.length} shots, total ${duration}s):\n${shotList}`;
+  };
+
   // Video time tracking
   useEffect(() => {
     let interval: any;
@@ -1291,12 +1341,12 @@ ${titleNodes}
     const isLiveSeedance = mode === "live" && aiEngine.startsWith("seedance");
 
     try {
-      // Packshoty jako obrazy referencyjne (do 4 głównych ujęć) — w trybie live przesyłane w base64
+      // Z automatu bierzemy wszystkie załadowane packshoty (z PCM lub dysku, do 12 ujęć)
       const primaryPackshot = pcmAssets[0]?.url || pcmAssets[0]?.rawPcmUrl;
       let referenceImages: string[] = [];
       if (isLiveSeedance && pcmAssets.length > 0) {
-        const assetsToSend = pcmAssets.slice(0, 4);
-        setGenerationStage(`Przygotowanie ${assetsToSend.length} packshotów jako obrazów referencyjnych...`);
+        const assetsToSend = pcmAssets.slice(0, 12);
+        setGenerationStage(`Przygotowanie wszystkich ${assetsToSend.length} packshotów jako referencji...`);
         try {
           referenceImages = await Promise.all(
             assetsToSend.map((a) => packshotToDataUri(a.url || a.rawPcmUrl || ""))
@@ -1306,12 +1356,7 @@ ${titleNodes}
         }
       }
 
-      const effectivePrompt =
-        genMode === "storyboard" && computedScenes.length > 0
-          ? `${prompt} | Scenes: ${computedScenes
-              .map((s) => `[${s.timeRange}] ${s.prompt}`)
-              .join(" -> ")}`
-          : prompt;
+      const effectivePrompt = buildFinalSeedancePrompt();
 
       const res = await fetch("/api/video", {
         method: "POST",
@@ -3198,17 +3243,43 @@ ${titleNodes}
           {/* Modular Storyboard Grid (Tylko w trybie generatora AI) */}
           {workspaceMode === "generate" && (
             <div className="p-6 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-4 shadow-sm">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-3">
                 <div>
                   <h3 className="text-sm font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
-                    Storyboard modularny (6 scen)
+                    Storyboard modularny ({computedScenes.length} {computedScenes.length === 1 ? "scena" : computedScenes.length < 5 ? "sceny" : "scen"})
                   </h3>
                   <small className="text-xs text-[var(--ink-muted)]">
-                    Zmieniaj czasówki poszczególnych ujęć przyciskami „−” i „+”, a całkowity czas klipu dostosuje się automatycznie
+                    Dodawaj, usuwaj i edytuj sceny — wszystkie załadowane packshoty ({pcmAssets.length}) idą automatycznie jako referencja do Seedance
                   </small>
                 </div>
-                <span className="text-xs font-bold px-3 py-1 rounded-full bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-[#7c5cff] font-mono">
-                  {duration} s łącznie
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleAddScene}
+                    className="px-3 py-1.5 rounded-xl text-xs font-bold border border-[var(--accent)]/50 bg-[var(--accent)]/15 text-[var(--ink-primary)] hover:bg-[var(--accent)] hover:text-white transition-all cursor-pointer"
+                  >
+                    + Dodaj scenę
+                  </button>
+                  <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-[#7c5cff] font-mono">
+                    {duration} s łącznie
+                  </span>
+                </div>
+              </div>
+
+              {/* Status połączenia Storyboardu z Seedance */}
+              <div
+                className={`px-3.5 py-2 rounded-xl border text-xs flex items-center justify-between flex-wrap gap-2 ${
+                  genMode === "storyboard"
+                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                    : "border-amber-500/30 bg-amber-500/10 text-amber-300"
+                }`}
+              >
+                <span>
+                  {genMode === "storyboard"
+                    ? `✓ Tryb Storyboard aktywny — wszystkie ${computedScenes.length} scen oraz ${
+                        pcmAssets.length > 0 ? `${pcmAssets.length} wgranych packshotów PSH` : "prompt główny"
+                      } trafiają bezpośrednio do Seedance`
+                    : "⚠ Wybrano tryb „Pojedyncze ujęcie” — przełącz Tryb na „Storyboard” powyżej, aby wysłać poniższe sceny do Seedance"}
                 </span>
               </div>
 
@@ -3242,8 +3313,8 @@ ${titleNodes}
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {computedScenes.map((scene, idx) => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                {computedScenes.map((scene) => (
                   <div
                     key={scene.id}
                     className={`p-3.5 rounded-xl border flex flex-col justify-between transition-all ${
@@ -3253,8 +3324,22 @@ ${titleNodes}
                     }`}
                   >
                     <div>
-                      <div className="flex justify-between items-center text-[10px] font-bold text-[var(--accent)] mb-1">
-                        <span className="truncate pr-1">{scene.name}</span>
+                      <div className="flex justify-between items-center text-[10px] font-bold text-[var(--accent)] mb-1.5 gap-2">
+                        {activeEditingScene === scene.id ? (
+                          <input
+                            type="text"
+                            value={scene.name}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setScenes((prev) =>
+                                prev.map((s) => (s.id === scene.id ? { ...s, name: val } : s))
+                              );
+                            }}
+                            className="flex-1 min-w-0 px-1.5 py-0.5 rounded border border-[var(--border-strong)] bg-[var(--bg-card)] text-[var(--ink-primary)] text-[11px]"
+                          />
+                        ) : (
+                          <span className="truncate pr-1">{scene.name}</span>
+                        )}
                         <span className="font-mono text-[11px] text-[#7c5cff] font-extrabold whitespace-nowrap">
                           {scene.timeRange}
                         </span>
@@ -3288,7 +3373,7 @@ ${titleNodes}
 
                       {activeEditingScene === scene.id ? (
                         <textarea
-                          rows={2}
+                          rows={3}
                           value={scene.prompt}
                           onChange={(e) => {
                             const val = e.target.value;
@@ -3299,36 +3384,21 @@ ${titleNodes}
                           className="w-full text-xs p-1.5 rounded border border-[var(--border-strong)] bg-[var(--bg-card)] text-[var(--ink-primary)]"
                         />
                       ) : (
-                        <p className="text-xs text-[var(--ink-secondary)] line-clamp-2">
+                        <p className="text-xs text-[var(--ink-secondary)] line-clamp-3">
                           {scene.prompt}
                         </p>
                       )}
                     </div>
 
-                    <div className="pt-2.5 border-t border-[var(--border-subtle)] mt-2 flex items-center justify-between gap-1.5 flex-wrap">
-                      <div className="flex items-center gap-1">
-                        <span className="text-[9px] font-mono text-[var(--ink-muted)] truncate max-w-[120px]">
-                          PCM: {productId || "001KR"}_{scene.pcmImage.includes("05") ? scene.pcmImage : (idx === 0 ? "050" : idx === 1 ? "051" : idx === 2 ? "052" : idx === 3 ? "051" : "050")}.jpg
-                        </span>
-                        <select
-                          value={scene.pcmImage.includes("05") ? scene.pcmImage : (idx === 0 ? "050" : idx === 1 ? "051" : idx === 2 ? "052" : idx === 3 ? "051" : "050")}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setScenes((prev) =>
-                              prev.map((s) => (s.id === scene.id ? { ...s, pcmImage: val } : s))
-                            );
-                          }}
-                          className="text-[9px] px-1 py-0.5 rounded bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-[var(--ink-primary)] cursor-pointer"
-                          title="Wybierz ujęcie packshotu PCM"
-                        >
-                          <option value="050">050 Przód</option>
-                          <option value="051">051 Sylwetka</option>
-                          <option value="052">052 Detal tkaniny</option>
-                          <option value="053">053 Tył</option>
-                        </select>
-                      </div>
-                      <div className="flex gap-1">
+                    <div className="pt-2.5 border-t border-[var(--border-subtle)] mt-2.5 flex items-center justify-between gap-1.5">
+                      <span className="text-[10px] text-emerald-400/90 font-medium truncate">
+                        {pcmAssets.length > 0
+                          ? `✓ Auto-PSH (${pcmAssets.length} zdjęć)`
+                          : "Brak zdjęć PSH"}
+                      </span>
+                      <div className="flex gap-1 shrink-0">
                         <button
+                          type="button"
                           onClick={() =>
                             setActiveEditingScene(
                               activeEditingScene === scene.id ? null : scene.id
@@ -3336,24 +3406,32 @@ ${titleNodes}
                           }
                           className="px-2 py-0.5 rounded text-[10px] font-bold border bg-[var(--bg-card)] hover:border-[var(--accent)] text-[var(--ink-primary)] cursor-pointer"
                         >
-                          {activeEditingScene === scene.id ? "Zapisz" : "Edytuj"}
+                          {activeEditingScene === scene.id ? "Gotowe" : "Edytuj"}
                         </button>
                         <button
-                          onClick={() =>
-                            showToast(
-                              `Przelosowano Scenę ${scene.name.split(" ")[0]} w silniku Seedance 2.5 Pro.`
-                            )
-                          }
-                          className="px-2 py-0.5 rounded text-[10px] font-bold border bg-[var(--bg-card)] hover:border-[var(--accent)] text-[var(--accent)] cursor-pointer"
-                          title="Przelosuj ujęcie"
+                          type="button"
+                          onClick={() => handleDeleteScene(scene.id)}
+                          disabled={computedScenes.length <= 1}
+                          className="px-2 py-0.5 rounded text-[10px] font-bold border bg-[var(--bg-card)] border-[var(--border-subtle)] hover:border-red-500 hover:text-red-400 text-[var(--ink-muted)] cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed"
+                          title="Usuń scenę"
                         >
-                          ↻
+                          🗑
                         </button>
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
+
+              {/* Podgląd dokładnego promptu wysyłanego do Seedance */}
+              <details className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-3.5 py-2.5 text-xs">
+                <summary className="cursor-pointer font-bold text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] select-none">
+                  🔍 Podgląd dokładnego promptu wysyłanego do Seedance ({pcmAssets.length} referencji PSH)
+                </summary>
+                <pre className="mt-2.5 whitespace-pre-wrap font-mono text-[11px] leading-relaxed text-[var(--ink-primary)] bg-[var(--bg-card)] p-3 rounded-lg border border-[var(--border-subtle)]">
+                  {buildFinalSeedancePrompt()}
+                </pre>
+              </details>
             </div>
           )}
         </div>
