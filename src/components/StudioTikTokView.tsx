@@ -3340,7 +3340,7 @@ ${titleNodes}
                         onChange={(e) => setGenMode(e.target.value as any)}
                         className="w-full px-3 py-2 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)] cursor-pointer"
                       >
-                        <option value="storyboard">Storyboard ({computedScenes.length} scen)</option>
+                        <option value="storyboard">Storyboard</option>
                         <option value="single">Pojedyncze ujęcie</option>
                       </select>
                     </div>
