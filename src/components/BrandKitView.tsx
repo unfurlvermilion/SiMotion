@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState } from "react";
 import { BrandAsset } from "@/app/page";
+import { LOGO_VARIANTS } from "./AnimatedLogoModal";
 import {
   saveStoredAsset,
   deleteStoredAsset,
-  loadStoredAssets,
   fileToDataUrl,
 } from "@/lib/brandStorage";
 
@@ -35,6 +35,9 @@ export const BrandKitView: React.FC<BrandKitViewProps> = ({
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [editingAsset, setEditingAsset] = useState<BrandAsset | null>(null);
+  const [isDraggingFiles, setIsDraggingFiles] = useState(false);
+  const [logoPreviewColor, setLogoPreviewColor] = useState<"white" | "black">("white");
+  const [showTypographyPreview, setShowTypographyPreview] = useState(false);
 
   const handleDeleteAsset = async (id: string, name: string) => {
     setAssets((prev) => prev.filter((a) => a.id !== id));
@@ -87,13 +90,13 @@ export const BrandKitView: React.FC<BrandKitViewProps> = ({
     setEditingAsset(null);
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return;
+  const processUploadedFiles = async (files: File[]) => {
+    const imageFiles = files.filter((f) => f.type.startsWith("image/"));
+    if (!imageFiles.length) return;
 
     const newUploaded: BrandAsset[] = [];
-    for (let i = 0; i < files.length; i++) {
-      const f = files[i];
+    for (let i = 0; i < imageFiles.length; i++) {
+      const f = imageFiles[i];
       try {
         const dataUrl = await fileToDataUrl(f);
         const item: BrandAsset = {
@@ -112,9 +115,21 @@ export const BrandKitView: React.FC<BrandKitViewProps> = ({
 
     if (newUploaded.length > 0) {
       setAssets((prev) => [...prev, ...newUploaded]);
-      showToast(`Zapisano na stałe ${newUploaded.length} plików w Brand Kit.`);
+      showToast(`Zapisano na stałe ${newUploaded.length} plików w Materiałach.`);
     }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    await processUploadedFiles(files);
     e.target.value = "";
+  };
+
+  const handleDropFiles = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDraggingFiles(false);
+    const files = Array.from(e.dataTransfer.files || []);
+    await processUploadedFiles(files);
   };
 
   const handleAddCustomBadge = async (e: React.FormEvent) => {
@@ -211,13 +226,13 @@ export const BrandKitView: React.FC<BrandKitViewProps> = ({
                 placeholder="🔍 Szukaj materiału lub tekstu badge'a..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-3 pr-8 py-1.5 rounded-lg text-xs border bg-white dark:bg-[#151320] border-[var(--border-strong)] text-[var(--ink-primary)] focus:outline-none focus:border-[var(--accent)] shadow-xs"
+                className="w-full pl-3 pr-8 py-1.5 rounded-lg text-xs border bg-[var(--bg-card)] border-[var(--border-strong)] text-[var(--ink-primary)] focus:outline-none focus:border-[var(--accent)] shadow-xs"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-[var(--ink-muted)] hover:text-[var(--ink-primary)]"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-[var(--ink-muted)] hover:text-[var(--ink-primary)] cursor-pointer"
                 >
                   ✕
                 </button>
@@ -228,7 +243,7 @@ export const BrandKitView: React.FC<BrandKitViewProps> = ({
               <button
                 type="button"
                 onClick={() => toggleSelectAll(filteredAssets)}
-                className="px-2.5 py-1 rounded-lg border border-[var(--border-subtle)] bg-white dark:bg-[#151320] text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] font-medium text-[11px] transition-colors"
+                className="px-2.5 py-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)] text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] font-medium text-[11px] transition-colors cursor-pointer"
               >
                 {selectedIds.length === filteredAssets.length && filteredAssets.length > 0
                   ? "Odznacz wszystkie"
@@ -239,12 +254,29 @@ export const BrandKitView: React.FC<BrandKitViewProps> = ({
                 <button
                   type="button"
                   onClick={handleBulkDelete}
-                  className="px-3 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-[11px] shadow-sm flex items-center gap-1 transition-colors"
+                  className="px-3 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-[11px] shadow-sm flex items-center gap-1 transition-colors cursor-pointer"
                 >
                   <span>🗑 Usuń zaznaczone ({selectedIds.length})</span>
                 </button>
               )}
             </div>
+          </div>
+
+          {/* Drag & Drop Upload Zone */}
+          <div
+            onDragOver={(e) => {
+              e.preventDefault();
+              setIsDraggingFiles(true);
+            }}
+            onDragLeave={() => setIsDraggingFiles(false)}
+            onDrop={handleDropFiles}
+            className={`px-4 py-3 rounded-xl border border-dashed text-center text-xs transition-all ${
+              isDraggingFiles
+                ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--ink-primary)]"
+                : "border-[var(--border-strong)] bg-[var(--bg-subtle)]/60 text-[var(--ink-muted)]"
+            }`}
+          >
+            Przeciągnij i upuść pliki <b className="text-[var(--ink-secondary)]">PNG / SVG</b> tutaj, aby zapisać je w bibliotece marki.
           </div>
 
           {/* Grid of assets */}
@@ -323,35 +355,21 @@ export const BrandKitView: React.FC<BrandKitViewProps> = ({
                       </small>
                     </div>
 
-                    {/* Attachment buttons */}
-                    <div className="grid grid-cols-2 gap-1 pt-1.5 border-t border-[var(--border-subtle)]">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedVideoAssetId(isVideoSelected ? null : asset.id);
-                          showToast(isVideoSelected ? `Odpięto od wideo: ${asset.name}` : `Przypięto do wideo: ${asset.name}`);
-                        }}
-                        className={`px-2 py-1 rounded text-[10px] font-bold border transition-colors ${
-                          isVideoSelected
-                            ? "bg-[var(--accent)] text-white border-[var(--accent)] shadow-xs"
-                            : "bg-[var(--bg-card)] border-[var(--border-subtle)] text-[var(--ink-primary)] hover:border-[var(--accent)]"
-                        }`}
-                      >
-                        {isVideoSelected ? "✓ Wideo" : "+ Wideo"}
-                      </button>
+                    {/* Attachment button (Grafiki) */}
+                    <div className="pt-1.5 border-t border-[var(--border-subtle)]">
                       <button
                         type="button"
                         onClick={() => {
                           setSelectedStaticAssetId(isStaticSelected ? null : asset.id);
-                          showToast(isStaticSelected ? `Odpięto od grafiki: ${asset.name}` : `Przypięto do grafiki: ${asset.name}`);
+                          showToast(isStaticSelected ? `Odpięto od grafik: ${asset.name}` : `Przypięto do grafik: ${asset.name}`);
                         }}
-                        className={`px-2 py-1 rounded text-[10px] font-bold border transition-colors ${
+                        className={`w-full px-2 py-1.5 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer ${
                           isStaticSelected
-                            ? "bg-[var(--burgundy)] text-white border-[var(--burgundy)] shadow-xs"
-                            : "bg-[var(--bg-card)] border-[var(--border-subtle)] text-[var(--ink-primary)] hover:border-[var(--burgundy)]"
+                            ? "bg-[var(--accent)] text-white border-[var(--accent)] shadow-xs"
+                            : "bg-[var(--bg-card)] border-[var(--border-subtle)] text-[var(--ink-primary)] hover:border-[var(--accent)]"
                         }`}
                       >
-                        {isStaticSelected ? "✓ Grafika" : "+ Grafika"}
+                        {isStaticSelected ? "✓ Przypięte do Grafik" : "+ Przypnij do Grafik"}
                       </button>
                     </div>
                   </div>
@@ -422,16 +440,10 @@ export const BrandKitView: React.FC<BrandKitViewProps> = ({
           {/* Active selection summary */}
           <div className="p-5 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-2">
             <h3 className="text-xs font-extrabold uppercase tracking-wide text-[var(--ink-muted)]">
-              Aktywnie przypięte w projekcie
+              Aktywnie przypięte w zakładce Grafiki
             </h3>
             <div className="text-xs">
-              <span className="text-[var(--ink-muted)]">Wideo (#post): </span>
-              <strong className="text-[var(--ink-primary)]">
-                {assets.find((a) => a.id === selectedVideoAssetId)?.name || "Brak"}
-              </strong>
-            </div>
-            <div className="text-xs">
-              <span className="text-[var(--ink-muted)]">Grafika (#static): </span>
+              <span className="text-[var(--ink-muted)]">Wybrana nakładka / badge: </span>
               <strong className="text-[var(--ink-primary)]">
                 {assets.find((a) => a.id === selectedStaticAssetId)?.name || "Brak"}
               </strong>
@@ -440,40 +452,146 @@ export const BrandKitView: React.FC<BrandKitViewProps> = ({
         </div>
       </div>
 
-      {/* Sinsay Brand Typography Section */}
-      <div className="p-6 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-5 shadow-sm">
+      {/* Animated Sinsay Intro / Outro Brand Kit Section */}
+      <div className="p-6 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-4 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--border-subtle)] pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#7c5cff] to-[#6e1d2f] text-white font-serif font-bold text-lg grid place-items-center shadow-md">
-              Aa
+            <div className="w-10 h-10 rounded-xl bg-[var(--accent)]/15 border border-[var(--accent)]/40 text-[#9d85ff] grid place-items-center text-lg">
+              🎬
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-extrabold text-[var(--ink-primary)]">
-                  Oficjalna Typografia Marki: Euclid Circular B
+                <h3 className="text-sm font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
+                  Animowane Logotypy Sinsay (Intro / Outro)
                 </h3>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#193328] text-[#75d9ae]">
-                  Brand Kit LPP SA
+                  Brand Kit LPP
                 </span>
               </div>
-              <p className="text-xs text-[var(--ink-secondary)]">
-                Wdrożono 10 odmian fontu (Light, Regular, Medium, Semibold, Bold + kursywy) do napisów wideo, belek i plansz.
+              <p className="text-xs text-[var(--ink-secondary)] mt-0.5">
+                Oficjalne animacje używane w Generatorze AI i Montażu wideo. Możesz podejrzeć wariant lub pobrać plik .MOV z kanałem alfa.
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-xs font-mono text-[var(--ink-muted)]">
-            <span className="px-2.5 py-1 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-subtle)]">
-              format: OTF / TTF
-            </span>
-            <span className="px-2.5 py-1 rounded-lg bg-[#e6f4ed] dark:bg-[#193328] text-[#10b981] dark:text-[#75d9ae] font-bold">
-              ✓ Zainstalowany
-            </span>
+          <div className="inline-flex p-1 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-strong)] gap-1 self-start sm:self-auto">
+            <button
+              type="button"
+              onClick={() => setLogoPreviewColor("white")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                logoPreviewColor === "white"
+                  ? "bg-[var(--accent)] text-white shadow-xs"
+                  : "text-[var(--ink-secondary)] hover:text-[var(--ink-primary)]"
+              }`}
+            >
+              Białe (na ciemne)
+            </button>
+            <button
+              type="button"
+              onClick={() => setLogoPreviewColor("black")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                logoPreviewColor === "black"
+                  ? "bg-[var(--accent)] text-white shadow-xs"
+                  : "text-[var(--ink-secondary)] hover:text-[var(--ink-primary)]"
+              }`}
+            >
+              Czarne (na jasne)
+            </button>
           </div>
         </div>
 
-        {/* Specimen Weights Showcase */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 font-sinsay">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+          {LOGO_VARIANTS.map((variant) => {
+            const gifSrc = logoPreviewColor === "white" ? variant.gifWhite : variant.gifBlack;
+            const movSrc = logoPreviewColor === "white" ? variant.fileWhite : variant.fileBlack;
+            return (
+              <div
+                key={variant.id}
+                className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] flex flex-col justify-between gap-3"
+              >
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-extrabold text-[var(--ink-primary)] truncate">
+                      {variant.name}
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[var(--bg-card)] border border-[var(--border-subtle)] text-[#9d85ff] shrink-0">
+                      {variant.type.toUpperCase()} · {variant.durationSec}s
+                    </span>
+                  </div>
+
+                  <div
+                    className={`h-24 rounded-lg border border-[var(--border-subtle)] flex items-center justify-center p-3 overflow-hidden ${
+                      logoPreviewColor === "white" ? "bg-[#09080f]" : "bg-[#f4f4f8]"
+                    }`}
+                  >
+                    <img
+                      src={gifSrc}
+                      alt={variant.name}
+                      className="max-h-full max-w-full object-contain"
+                      loading="lazy"
+                    />
+                  </div>
+
+                  <p className="text-[11px] text-[var(--ink-muted)] leading-snug">
+                    {variant.desc}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 pt-2 border-t border-[var(--border-subtle)]">
+                  <a
+                    href={movSrc}
+                    download
+                    className="flex-1 text-center px-2.5 py-1.5 rounded-lg text-[11px] font-bold border border-[var(--border-strong)] bg-[var(--bg-card)] text-[var(--ink-primary)] hover:border-[var(--accent)] transition-colors"
+                  >
+                    ⬇ Pobierz .MOV
+                  </a>
+                  <a
+                    href={gifSrc}
+                    download
+                    className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold border border-[var(--border-subtle)] bg-[var(--bg-card)] text-[var(--ink-secondary)] hover:border-[var(--accent)] hover:text-[var(--ink-primary)] transition-colors"
+                  >
+                    .GIF
+                  </a>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Compact Sinsay Brand Typography Section */}
+      <div className="p-5 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-4 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#7c5cff] to-[#6e1d2f] text-white font-sinsay font-bold text-base grid place-items-center shadow-sm">
+              Aa
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-extrabold text-[var(--ink-primary)]">
+                  Oficjalna Typografia: Euclid Circular B
+                </h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#193328] text-[#75d9ae]">
+                  ✓ Zainstalowany (10 odmian)
+                </span>
+              </div>
+              <p className="text-[11px] text-[var(--ink-muted)]">
+                Używany automatycznie przy wypalaniu napisów wideo i na grafikach statycznych.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowTypographyPreview((prev) => !prev)}
+            className="px-3 py-1.5 rounded-xl text-xs font-bold border border-[var(--border-strong)] bg-[var(--bg-subtle)] text-[var(--ink-primary)] hover:border-[var(--accent)] transition-colors cursor-pointer self-start sm:self-auto"
+          >
+            {showTypographyPreview ? "Zwiń podgląd krojów ▲" : "Pokaż podgląd krojów ▼"}
+          </button>
+        </div>
+
+        {showTypographyPreview && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 font-sinsay pt-3 border-t border-[var(--border-subtle)]">
           <div className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] space-y-1.5">
             <div className="flex justify-between items-center text-[11px] text-[var(--ink-muted)] font-mono">
               <span>Euclid Circular B Light</span>
@@ -552,13 +670,14 @@ export const BrandKitView: React.FC<BrandKitViewProps> = ({
             </span>
           </div>
         </div>
+        )}
       </div>
       {/* Edit Asset Modal */}
       {editingAsset && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-3">
-              <h3 className="font-serif text-base font-bold text-[var(--ink-primary)]">
+              <h3 className="font-sinsay text-base font-bold text-[var(--ink-primary)]">
                 Edycja materiału marki
               </h3>
               <button
