@@ -9,7 +9,6 @@ import { LocalizationView } from "@/components/LocalizationView";
 import BatchProductionView from "@/components/BatchProductionView";
 import ExportView from "@/components/ExportView";
 import IntegrationsView from "@/components/IntegrationsView";
-import SharePointSyncBar from "@/components/SharePointSyncBar";
 import { loadStoredAssets } from "@/lib/brandStorage";
 
 export type ViewTab =
@@ -46,7 +45,7 @@ export default function SiMotionApp() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Studio TikTok state
-  const [productId, setProductId] = useState("001KR-83X");
+  const [productId, setProductId] = useState("");
   const [studioVideoUrl, setStudioVideoUrl] = useState<string | null>(null);
   const [aiEngine, setAiEngine] = useState<"seedance" | "higgsfield">("seedance");
   const [genMode, setGenMode] = useState<"storyboard" | "single">("storyboard");
@@ -240,8 +239,6 @@ export default function SiMotionApp() {
                   ["batch", "Batch"],
                   ["static", "Grafiki"],
                   ["assets", "Materiały"],
-                  ["local", "Tłumaczenia"],
-                  ["export", "Eksport"],
                 ] as const
               ).map(([key, label]) => (
                 <button
@@ -261,11 +258,6 @@ export default function SiMotionApp() {
 
           {/* Actions & Theme toggle */}
           <div className="flex items-center gap-2 shrink-0">
-            <SharePointSyncBar
-              onSyncComplete={(data) => {
-                // optional live notification
-              }}
-            />
             <button
               onClick={toggleTheme}
               className="px-2.5 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 bg-[var(--bg-card)] border-[var(--border-subtle)] hover:border-[var(--accent)] transition-colors text-[var(--ink-primary)]"
@@ -296,7 +288,6 @@ export default function SiMotionApp() {
             productId={productId}
             setProductId={setProductId}
             showToast={showToast}
-            onProceedToPost={() => setActiveTab("export")}
             initialVideoUrl={studioVideoUrl}
             onVideoReady={setStudioVideoUrl}
             externalCaptions={studioCaptionsOverride}
@@ -310,7 +301,6 @@ export default function SiMotionApp() {
             productId={productId}
             setProductId={setProductId}
             showToast={showToast}
-            onProceedToPost={() => setActiveTab("export")}
             initialVideoUrl={studioVideoUrl}
             onVideoReady={setStudioVideoUrl}
             externalCaptions={studioCaptionsOverride}

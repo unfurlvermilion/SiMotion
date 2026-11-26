@@ -159,7 +159,7 @@ interface StudioTikTokViewProps {
   productId: string;
   setProductId: (val: string) => void;
   showToast: (msg: string) => void;
-  onProceedToPost: () => void;
+  onProceedToPost?: () => void;
   initialVideoUrl?: string | null;
   onVideoReady?: (url: string | null) => void;
   externalCaptions?: Record<string, { line1: string; line2: string }> | null;
@@ -2465,7 +2465,7 @@ ${titleNodes}
   };
 
   const renderPreviewColumn = (showBottomQuickExport: boolean) => (
-    <div className="lg:col-span-7 space-y-5">
+    <div className="lg:col-span-7 space-y-5 lg:sticky lg:top-20 self-start">
       <div className="p-5 sm:p-6 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] shadow-sm space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
@@ -2842,8 +2842,28 @@ ${titleNodes}
             />
           </div>
 
-          <div className="text-xs font-bold text-[var(--ink-secondary)]">
-            Fokus kadru: <span className="text-[#7c5cff]">{cropOffset}%</span>
+          <div className="flex items-center gap-2 shrink-0">
+            <label className="text-[11px] font-bold text-[var(--ink-secondary)] whitespace-nowrap">
+              Fokus kadru:
+            </label>
+            <input
+              type="range"
+              min={-50}
+              max={50}
+              step={1}
+              value={cropOffset}
+              onChange={(e) => setCropOffset(Number(e.target.value))}
+              className="w-24 accent-[#7c5cff] cursor-pointer"
+              title="Przesuń kadr 9:16 w lewo lub w prawo"
+            />
+            <button
+              type="button"
+              onClick={() => setCropOffset(0)}
+              className="text-xs font-mono font-bold text-[#7c5cff] hover:underline cursor-pointer min-w-[36px] text-right"
+              title="Kliknij, aby wyśrodkować (0%)"
+            >
+              {cropOffset}%
+            </button>
           </div>
         </div>
       </div>
@@ -2997,13 +3017,22 @@ ${titleNodes}
                 <span className="text-[var(--ink-muted)] mr-1.5">Szacunek:</span>
                 <span className="font-extrabold text-[#9d85ff]">~${totalCost} USD</span>
               </div>
-              {activeStep !== 4 && (
+              {activeStep > 1 && (
                 <button
                   type="button"
-                  onClick={() => setActiveStep(4)}
-                  className="px-3.5 py-2 rounded-xl text-xs font-bold border border-[var(--accent)]/40 bg-[var(--accent)]/15 text-[var(--ink-primary)] hover:bg-[var(--accent)] hover:text-white transition-all cursor-pointer"
+                  onClick={() => setActiveStep((activeStep - 1) as 1 | 2 | 3 | 4)}
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold border border-[var(--border-strong)] bg-[var(--bg-card)] text-[var(--ink-primary)] hover:border-[var(--accent)] transition-all cursor-pointer"
                 >
-                  Przejdź do generowania →
+                  ← Wstecz
+                </button>
+              )}
+              {activeStep < 4 && (
+                <button
+                  type="button"
+                  onClick={() => setActiveStep((activeStep + 1) as 1 | 2 | 3 | 4)}
+                  className="px-3.5 py-2 rounded-xl text-xs font-extrabold text-white bg-[var(--accent)] shadow-[var(--shadow-pop)] hover:opacity-95 transition-all cursor-pointer"
+                >
+                  Dalej →
                 </button>
               )}
             </div>
@@ -3150,11 +3179,24 @@ ${titleNodes}
                     <h2 className="text-sm font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
                       2. Referencje produktowe (MDK / PCM &amp; Dysk)
                     </h2>
-                    {pcmFetchSource && (
-                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400">
-                        Źródło: {pcmFetchSource.toUpperCase()}
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
+                          selectedReferenceAssets.length > 0
+                            ? "bg-[#7c5cff]/15 border-[#7c5cff]/40 text-[#9d85ff]"
+                            : "bg-[var(--bg-subtle)] border-[var(--border-subtle)] text-[var(--ink-muted)]"
+                        }`}
+                      >
+                        {selectedReferenceAssets.length > 0
+                          ? `Tryb: Produkt z referencjami (${selectedReferenceAssets.length})`
+                          : "Tryb: Tekst-do-wideo (0 ref.)"}
                       </span>
-                    )}
+                      {pcmFetchSource && (
+                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400">
+                          Źródło: {pcmFetchSource.toUpperCase()}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div className="flex gap-2 flex-wrap">
@@ -3165,7 +3207,13 @@ ${titleNodes}
                         const clean = e.target.value.replace(/[‐-―−]/g, "-").toUpperCase();
                         setProductId(clean);
                       }}
-                      placeholder="Wpisz kod MDK np. 001KR-83X"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleFetchPcm();
+                        }
+                      }}
+                      placeholder="Wpisz kod MDK np. 001KR-83X (Enter pobiera)"
                       className="flex-1 min-w-[160px] px-3 py-2 rounded-xl text-xs border font-mono bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)] focus:outline-none focus:border-[var(--accent)]"
                     />
                     <button
@@ -3400,66 +3448,25 @@ ${titleNodes}
                     </div>
                   </div>
 
-                  {/* Długość klipu */}
+                  {/* Długość klipu (sam suwak) */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-xs font-bold">
                       <span>Długość klipu wideo</span>
                       <span className="text-[var(--accent)] font-mono font-extrabold">{duration} s</span>
                     </div>
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      {[4, 5, 8, 10, 15].map((sec) => (
-                        <button
-                          key={sec}
-                          type="button"
-                          onClick={() => handleDurationChange(sec)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
-                            duration === sec
-                              ? "bg-[var(--accent)] text-white border-[var(--accent)] shadow-xs"
-                              : "bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-secondary)] hover:border-[var(--accent)]"
-                          }`}
-                        >
-                          {sec}s
-                        </button>
-                      ))}
-                      <input
-                        type="range"
-                        min={5}
-                        max={30}
-                        value={duration}
-                        onChange={(e) => handleDurationChange(Number(e.target.value))}
-                        className="flex-1 min-w-[120px] ml-2 accent-[var(--accent)] cursor-pointer"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Formaty docelowe ZIP + Koszt */}
-                  <div className="pt-3 border-t border-[var(--border-subtle)] space-y-3">
-                    <div className="flex items-center justify-between flex-wrap gap-2">
-                      <span className="text-xs font-bold text-[var(--ink-primary)]">Formaty docelowe paczki (ZIP):</span>
-                      <span className="text-xs font-mono font-extrabold text-[#9d85ff]">
-                        Szacowany koszt: ~${totalCost} USD
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {[
-                        ["3x4", "3:4 · Baza modowa"],
-                        ["9x16", "9:16 · TikTok / Reels"],
-                        ["4x5", "4:5 · Feed IG"],
-                        ["1x1", "1:1 · Kwadrat"],
-                      ].map(([key, label]) => (
-                        <button
-                          key={key}
-                          type="button"
-                          onClick={() => toggleRatio(key)}
-                          className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all cursor-pointer ${
-                            selectedRatios.includes(key)
-                              ? "bg-[var(--accent-soft)] border-[var(--accent)] text-[var(--accent)]"
-                              : "bg-[var(--bg-subtle)] border-[var(--border-subtle)] text-[var(--ink-secondary)]"
-                          }`}
-                        >
-                          {label}
-                        </button>
-                      ))}
+                    <input
+                      type="range"
+                      min={4}
+                      max={15}
+                      step={1}
+                      value={Math.min(15, Math.max(4, duration))}
+                      onChange={(e) => handleDurationChange(Number(e.target.value))}
+                      className="w-full accent-[var(--accent)] cursor-pointer"
+                    />
+                    <div className="flex items-center justify-between text-[10px] font-mono text-[var(--ink-muted)]">
+                      <span>4s (krótki hook)</span>
+                      <span>Szacowany koszt: <b className="text-[#9d85ff]">~${totalCost} USD</b></span>
+                      <span>15s (pełny lookbook)</span>
                     </div>
                   </div>
                 </div>
@@ -3470,8 +3477,23 @@ ${titleNodes}
                 </div>
               </div>
 
-              {/* Full-width Modular Storyboard */}
-              {renderStoryboardCard()}
+              {/* Full-width Modular Storyboard (ukryty w trybie Pojedyncze ujęcie) */}
+              {genMode === "storyboard" ? (
+                renderStoryboardCard()
+              ) : (
+                <div className="px-4 py-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] text-xs text-[var(--ink-secondary)] flex items-center justify-between gap-3">
+                  <span>
+                    Tryb <b className="text-[var(--ink-primary)]">Pojedyncze ujęcie</b> — storyboard scen jest pominięty, do Seedance idzie główny prompt z Kroku 1.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setGenMode("storyboard")}
+                    className="text-xs font-bold text-[#9d85ff] hover:underline shrink-0 cursor-pointer"
+                  >
+                    Przełącz na Storyboard →
+                  </button>
+                </div>
+              )}
 
               <div className="flex items-center justify-between gap-3">
                 <button
@@ -3623,15 +3645,55 @@ ${titleNodes}
                 </div>
 
                 {/* Export Card */}
-                <div className="p-6 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-3 shadow-sm">
-                  <h3 className="text-xs font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
-                    Eksport &amp; Paczka Produkcyjna
-                  </h3>
-                  <p className="text-[11px] text-[var(--ink-muted)]">
-                    Pobierz wygenerowane wideo z wypalonymi napisami, intro/outro lub wyeksportuj projekt do DaVinci Resolve.
-                  </p>
+                <div className="p-6 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-4 shadow-sm">
+                  <div>
+                    <h3 className="text-xs font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
+                      Eksport &amp; Paczka Produkcyjna
+                    </h3>
+                    <p className="text-[11px] text-[var(--ink-muted)] mt-0.5">
+                      Wybierz formaty docelowe do paczki ZIP, pobierz czyste MP4 lub wyeksportuj projekt do DaVinci Resolve.
+                    </p>
+                  </div>
+
+                  {/* Formaty docelowe paczki ZIP */}
+                  <div className="space-y-2 pt-1">
+                    <span className="text-[11px] font-bold text-[var(--ink-secondary)] block">
+                      Formaty w paczce ZIP:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {[
+                        ["3x4", "3:4 · Baza"],
+                        ["9x16", "9:16 · TikTok"],
+                        ["4x5", "4:5 · Feed"],
+                        ["1x1", "1:1 · Kwadrat"],
+                      ].map(([key, label]) => (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => toggleRatio(key)}
+                          className={`px-2.5 py-1 rounded-full text-[11px] font-bold border transition-all cursor-pointer ${
+                            selectedRatios.includes(key)
+                              ? "bg-[var(--accent-soft)] border-[var(--accent)] text-[var(--accent)]"
+                              : "bg-[var(--bg-subtle)] border-[var(--border-subtle)] text-[var(--ink-secondary)]"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
                   <div className="flex flex-col gap-2 pt-1">
+                    {videoFile && (
+                      <a
+                        href={videoFile}
+                        download={`${(productId || "sinsay_ai").trim()}_raw.mp4`}
+                        className="w-full px-4 py-2.5 rounded-xl text-xs font-bold border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all text-center cursor-pointer"
+                      >
+                        ⬇ Pobierz surowe MP4 (1 klik)
+                      </a>
+                    )}
+
                     <button
                       type="button"
                       onClick={handleQuickExportZip}
@@ -3665,24 +3727,13 @@ ${titleNodes}
                       </div>
                     )}
 
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={handleExportDaVinciFCPXML}
-                        className="px-3 py-2 rounded-xl text-xs font-bold border bg-[var(--bg-subtle)] border-[var(--border-strong)] hover:border-[var(--accent)] text-[var(--ink-primary)] cursor-pointer"
-                      >
-                        🎬 DaVinci (.fcpxml)
-                      </button>
-                      {onProceedToPost && (
-                        <button
-                          type="button"
-                          onClick={onProceedToPost}
-                          className="px-3 py-2 rounded-xl text-xs font-bold border bg-[var(--bg-subtle)] border-[var(--border-strong)] hover:border-[var(--accent)] text-[var(--ink-primary)] cursor-pointer"
-                        >
-                          Eksport paczek →
-                        </button>
-                      )}
-                    </div>
+                    <button
+                      type="button"
+                      onClick={handleExportDaVinciFCPXML}
+                      className="w-full px-3 py-2 rounded-xl text-xs font-bold border bg-[var(--bg-subtle)] border-[var(--border-strong)] hover:border-[var(--accent)] text-[var(--ink-primary)] cursor-pointer"
+                    >
+                      🎬 Eksportuj oś czasu DaVinci (.fcpxml)
+                    </button>
                   </div>
                 </div>
 
