@@ -22,11 +22,103 @@ export interface BurnSubtitlesOptions {
   playbackSpeed?: number; // 1.0 = normal 1:1 output duration
   bgmAudioSrc?: string;
   bgmVolume?: number;
+  logoIntro?: {
+    imageSrc?: string;
+    durationSec: number;
+  };
   logoOutro?: {
     imageSrc?: string;
     durationSec: number;
   };
   onProgress?: (percent: number, status: string) => void;
+}
+
+type DecodedGifFrame = { bitmap: ImageBitmap; durationSec: number };
+
+async function decodeGifFrames(imageSrc?: string): Promise<DecodedGifFrame[]> {
+  const frames: DecodedGifFrame[] = [];
+  if (!imageSrc || !imageSrc.toLowerCase().endsWith(".gif") || typeof (window as any).ImageDecoder === "undefined") {
+    return frames;
+  }
+  try {
+    const gifRes = await fetch(imageSrc);
+    if (!gifRes.ok) return frames;
+    const gifBuf = await gifRes.arrayBuffer();
+    const DecoderCtor = (window as any).ImageDecoder;
+    const decoder = new DecoderCtor({ data: gifBuf, type: "image/gif" });
+    await decoder.tracks.ready;
+    const frameCount = decoder.tracks.selectedTrack?.frameCount || 0;
+    for (let fIdx = 0; fIdx < frameCount; fIdx++) {
+      const { image } = await decoder.decode({ frameIndex: fIdx });
+      const bitmap = await createImageBitmap(image);
+      const durSec = (image.duration || 40000) / 1_000_000;
+      image.close();
+      frames.push({ bitmap, durationSec: durSec > 0 ? durSec : 0.04 });
+    }
+    decoder.close();
+  } catch (gifErr) {
+    console.warn("GIF ImageDecoder fallback to static image:", gifErr);
+  }
+  return frames;
+}
+
+function drawLogoOverlay(
+  ctx: CanvasRenderingContext2D,
+  canvas: HTMLCanvasElement,
+  frames: DecodedGifFrame[],
+  fallbackImg: HTMLImageElement | null,
+  elapsed: number,
+  alpha: number
+) {
+  ctx.save();
+  ctx.fillStyle = `rgba(0, 0, 0, ${0.88 * alpha})`;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  let frameSource: CanvasImageSource | null = null;
+  let srcW = 1;
+  let srcH = 1;
+
+  if (frames.length > 0) {
+    const totalGifDur = frames.reduce((acc, f) => acc + f.durationSec, 0) || 1;
+    let gifCursor = elapsed % totalGifDur;
+    let chosen = frames[frames.length - 1];
+    for (const fr of frames) {
+      if (gifCursor <= fr.durationSec) {
+        chosen = fr;
+        break;
+      }
+      gifCursor -= fr.durationSec;
+    }
+    frameSource = chosen.bitmap;
+    srcW = chosen.bitmap.width || 1;
+    srcH = chosen.bitmap.height || 1;
+  } else if (fallbackImg && fallbackImg.complete) {
+    frameSource = fallbackImg;
+    srcW = fallbackImg.naturalWidth || 1;
+    srcH = fallbackImg.naturalHeight || 1;
+  }
+
+  if (frameSource) {
+    const maxW = canvas.width * 0.65;
+    const maxH = canvas.height * 0.35;
+    const imgAspect = srcW / srcH;
+
+    let dw = maxW;
+    let dh = dw / imgAspect;
+    if (dh > maxH) {
+      dh = maxH;
+      dw = dh * imgAspect;
+    }
+
+    const zoom = 0.94 + 0.06 * alpha;
+    dw *= zoom;
+    dh *= zoom;
+    const dx = (canvas.width - dw) / 2;
+    const dy = (canvas.height - dh) / 2;
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(frameSource, dx, dy, dw, dh);
+  }
+  ctx.restore();
 }
 
 const DEFAULT_RESOLUTIONS: Record<string, { width: number; height: number }> = {
@@ -50,6 +142,7 @@ export async function burnSubtitlesToVideo(options: BurnSubtitlesOptions): Promi
     captionConfig,
     bgmAudioSrc,
     bgmVolume = 0.35,
+    logoIntro,
     logoOutro,
     onProgress = () => {},
   } = options;
@@ -72,30 +165,10 @@ export async function burnSubtitlesToVideo(options: BurnSubtitlesOptions): Promi
       }
     }
 
-    // Decode animated GIF frames via ImageDecoder (Chrome/Edge) for true animated outro
-    const outroFrames: Array<{ bitmap: ImageBitmap; durationSec: number }> = [];
-    if (logoOutro?.imageSrc && logoOutro.imageSrc.toLowerCase().endsWith(".gif") && typeof (window as any).ImageDecoder !== "undefined") {
-      try {
-        const gifRes = await fetch(logoOutro.imageSrc);
-        if (gifRes.ok) {
-          const gifBuf = await gifRes.arrayBuffer();
-          const DecoderCtor = (window as any).ImageDecoder;
-          const decoder = new DecoderCtor({ data: gifBuf, type: "image/gif" });
-          await decoder.tracks.ready;
-          const frameCount = decoder.tracks.selectedTrack?.frameCount || 0;
-          for (let fIdx = 0; fIdx < frameCount; fIdx++) {
-            const { image } = await decoder.decode({ frameIndex: fIdx });
-            const bitmap = await createImageBitmap(image);
-            const durSec = (image.duration || 40000) / 1_000_000;
-            image.close();
-            outroFrames.push({ bitmap, durationSec: durSec > 0 ? durSec : 0.04 });
-          }
-          decoder.close();
-        }
-      } catch (gifErr) {
-        console.warn("GIF ImageDecoder fallback to static image:", gifErr);
-      }
-    }
+    const [introFrames, outroFrames] = await Promise.all([
+      decodeGifFrames(logoIntro?.imageSrc),
+      decodeGifFrames(logoOutro?.imageSrc),
+    ]);
 
     // Pre-fetch & decode optional BGM audio track
     let audioCtx: AudioContext | null = null;
@@ -122,6 +195,8 @@ export async function burnSubtitlesToVideo(options: BurnSubtitlesOptions): Promi
         URL.revokeObjectURL(localObjectUrl);
         localObjectUrl = null;
       }
+      introFrames.forEach((f) => f.bitmap.close());
+      introFrames.length = 0;
       outroFrames.forEach((f) => f.bitmap.close());
       outroFrames.length = 0;
       if (audioCtx && audioCtx.state !== "closed") {
@@ -137,7 +212,14 @@ export async function burnSubtitlesToVideo(options: BurnSubtitlesOptions): Promi
     video.playsInline = true;
     video.autoplay = false;
 
-    // Optional outro image element
+    // Optional intro & outro fallback image elements
+    let introImg: HTMLImageElement | null = null;
+    if (logoIntro?.imageSrc) {
+      introImg = new Image();
+      introImg.crossOrigin = "anonymous";
+      introImg.src = logoIntro.imageSrc;
+    }
+
     let outroImg: HTMLImageElement | null = null;
     if (logoOutro?.imageSrc) {
       outroImg = new Image();
@@ -382,62 +464,20 @@ export async function burnSubtitlesToVideo(options: BurnSubtitlesOptions): Promi
           ctx.restore();
         }
 
-        // 3. Draw Logo Outro if enabled and within last seconds (animated GIF frames + smooth fade)
+        // 3. Draw Logo Intro if enabled (at the start of clip)
+        const effectiveIntroDur = logoIntro ? Math.min(logoIntro.durationSec, totalDur * 0.35) : 0;
+        if (logoIntro && t < effectiveIntroDur && (introFrames.length > 0 || (introImg && introImg.complete))) {
+          const introFadeOut = Math.min(1, Math.max(0, (effectiveIntroDur - t) / 0.3));
+          drawLogoOverlay(ctx, canvas, introFrames, introImg, t, introFadeOut);
+        }
+
+        // 4. Draw Logo Outro if enabled and within last seconds (animated GIF frames + smooth fade)
         const effectiveOutroDur = logoOutro ? Math.min(logoOutro.durationSec, totalDur * 0.45) : 0;
         const outroStart = Math.max(0, totalDur - effectiveOutroDur);
         if (logoOutro && t >= outroStart && (outroFrames.length > 0 || (outroImg && outroImg.complete))) {
           const outroElapsed = Math.max(0, t - outroStart);
           const fadeAlpha = Math.min(1, outroElapsed / 0.35);
-
-          ctx.save();
-          ctx.fillStyle = `rgba(0, 0, 0, ${0.9 * fadeAlpha})`;
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-          let frameSource: CanvasImageSource | null = null;
-          let srcW = 1;
-          let srcH = 1;
-
-          if (outroFrames.length > 0) {
-            const totalGifDur = outroFrames.reduce((acc, f) => acc + f.durationSec, 0) || 1;
-            let gifCursor = outroElapsed % totalGifDur;
-            let chosen = outroFrames[outroFrames.length - 1];
-            for (const fr of outroFrames) {
-              if (gifCursor <= fr.durationSec) {
-                chosen = fr;
-                break;
-              }
-              gifCursor -= fr.durationSec;
-            }
-            frameSource = chosen.bitmap;
-            srcW = chosen.bitmap.width || 1;
-            srcH = chosen.bitmap.height || 1;
-          } else if (outroImg && outroImg.complete) {
-            frameSource = outroImg;
-            srcW = outroImg.naturalWidth || 1;
-            srcH = outroImg.naturalHeight || 1;
-          }
-
-          if (frameSource) {
-            const maxW = canvas.width * 0.65;
-            const maxH = canvas.height * 0.35;
-            const imgAspect = srcW / srcH;
-
-            let dw = maxW;
-            let dh = dw / imgAspect;
-            if (dh > maxH) {
-              dh = maxH;
-              dw = dh * imgAspect;
-            }
-
-            const zoom = 0.94 + 0.06 * fadeAlpha;
-            dw *= zoom;
-            dh *= zoom;
-            const dx = (canvas.width - dw) / 2;
-            const dy = (canvas.height - dh) / 2;
-            ctx.globalAlpha = fadeAlpha;
-            ctx.drawImage(frameSource, dx, dy, dw, dh);
-          }
-          ctx.restore();
+          drawLogoOverlay(ctx, canvas, outroFrames, outroImg, outroElapsed, fadeAlpha);
         }
 
         // Check if finished

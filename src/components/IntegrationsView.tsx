@@ -13,15 +13,13 @@ export const INTEGRATIONS_STORAGE_KEY = "simotion_integrations_config";
 export const VIDEO_ENGINE_OPTIONS = [
   { value: "seedance-2.5", label: "Seedance 2.5" },
   { value: "seedance-2.0", label: "Seedance 2.0" },
-  { value: "higgsfield-cinema-2.0", label: "Higgsfield Cinema 2.0" },
 ] as const;
 
 export type VideoEngine = (typeof VIDEO_ENGINE_OPTIONS)[number]["value"];
 
-/** Zamienia zapisane wcześniej nazwy (seedance-2.5-pro/turbo/omni) na aktualne. */
+/** Zamienia zapisane wcześniej nazwy (seedance-2.5-pro/turbo/omni, higgsfield) na aktualne. */
 export function normalizeVideoEngine(value: string | undefined | null): VideoEngine {
   const v = (value || "").toLowerCase();
-  if (v.includes("higgsfield")) return "higgsfield-cinema-2.0";
   if (v === "seedance-2.0") return "seedance-2.0";
   return "seedance-2.5";
 }

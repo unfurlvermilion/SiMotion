@@ -151,16 +151,19 @@ export interface PcmAsset {
   rawPcmUrl?: string;
   source: "pcm" | "pdm" | "fallback";
   type: string;
+  mdk?: string;
+  selected?: boolean;
 }
 
 interface StudioTikTokViewProps {
   productId: string;
   setProductId: (val: string) => void;
   showToast: (msg: string) => void;
-  onProceedToPost: () => void;
+  onProceedToPost?: () => void;
   initialVideoUrl?: string | null;
   onVideoReady?: (url: string | null) => void;
   externalCaptions?: Record<string, { line1: string; line2: string }> | null;
+  lockedMode?: "generate" | "edit";
 }
 
 export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
@@ -171,9 +174,15 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
   initialVideoUrl = null,
   onVideoReady,
   externalCaptions = null,
+  lockedMode,
 }) => {
-  // Primary Workspace Mode: Generator is DEFAULT, Montage is second
-  const [workspaceMode, setWorkspaceMode] = useState<"generate" | "edit">("generate");
+  // Primary Workspace Mode & 4-Step Wizard State
+  const [workspaceMode, setWorkspaceMode] = useState<"generate" | "edit">(lockedMode || "generate");
+  useEffect(() => {
+    if (lockedMode) setWorkspaceMode(lockedMode);
+  }, [lockedMode]);
+  const [activeStep, setActiveStep] = useState<1 | 2 | 3 | 4>(1);
+  const [genAspectRatio, setGenAspectRatio] = useState<"9:16" | "3:4" | "4:5" | "1:1" | "16:9">("9:16");
 
   // Video File & Upload State (for edit mode)
   const [videoFile, setVideoFile] = useState<string | null>(initialVideoUrl);
@@ -240,7 +249,19 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
   const [generationProgress, setGenerationProgress] = useState(0);
   const [generationStage, setGenerationStage] = useState("");
 
-  // Animated Sinsay Logo Outro
+  // Animated Sinsay Logo Intro & Outro (niezależne)
+  const [isLogoIntroEnabled, setIsLogoIntroEnabled] = useState(false);
+  const [isIntroModalOpen, setIsIntroModalOpen] = useState(false);
+  const [previewIntroForce, setPreviewIntroForce] = useState(false);
+  const [selectedIntroLogo, setSelectedIntroLogo] = useState<SelectedLogoConfig>({
+    variantId: "intro_all",
+    colorScheme: "white",
+    filePath: "/brand/logo_anim/biale/logo_intro_all_WH.mov",
+    gifPath: "/brand/logo_anim/biale/logo_intro_all_WH.gif",
+    durationSec: 1.8,
+    name: "Intro All (Białe)",
+  });
+
   const [isLogoOutroEnabled, setIsLogoOutroEnabled] = useState(true);
   const [isLogoModalOpen, setIsLogoModalOpen] = useState(false);
   const [previewOutroForce, setPreviewOutroForce] = useState(false);
@@ -253,44 +274,63 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
     name: "Outro All (Białe)",
   });
 
-  // Real LPP PCM & PDM packshot assets state
+  // Real LPP PCM packshot assets state (wielokrotne MDK + selekcja konkretnych zdjęć)
+  const [mdkCodes, setMdkCodes] = useState<string[]>([]);
   const [pcmAssets, setPcmAssets] = useState<PcmAsset[]>([]);
   const [isFetchingPcm, setIsFetchingPcm] = useState<boolean>(false);
   const [pcmFetchSource, setPcmFetchSource] = useState<"pcm" | "pdm" | "fallback" | null>(null);
 
+  const selectedReferenceAssets = React.useMemo(
+    () => pcmAssets.filter((a) => a.selected !== false),
+    [pcmAssets]
+  );
+
+  const toggleAssetSelection = (id: string) => {
+    setPcmAssets((prev) =>
+      prev.map((a) => (a.id === id ? { ...a, selected: a.selected === false } : a))
+    );
+  };
+
+  const selectAllAssets = (selected: boolean) => {
+    setPcmAssets((prev) => prev.map((a) => ({ ...a, selected })));
+  };
+
+  const removeMdkGroup = (mdkToRemove: string) => {
+    setMdkCodes((prev) => prev.filter((c) => c !== mdkToRemove));
+    setPcmAssets((prev) => prev.filter((a) => a.mdk !== mdkToRemove));
+  };
+
   const handleFetchPcm = async () => {
-    const code = (productId || "").trim();
-    if (!code) {
+    const raw = (productId || "").trim();
+    if (!raw) {
       showToast("Wpisz najpierw kod artykułu MDK (np. 001KR-83X).");
       return;
     }
+    const cleanCode = raw.replace(/[\u2010-\u2015\u2212]/g, "-").replace(/\s+/g, "").toUpperCase();
     setIsFetchingPcm(true);
     try {
-      const res = await fetch(`/api/pcm?mdk=${encodeURIComponent(code)}`);
+      const res = await fetch(`/api/pcm?mdk=${encodeURIComponent(cleanCode)}`);
       const data = await res.json();
       if (data.status === "success" && Array.isArray(data.assets) && data.assets.length > 0) {
-        setPcmAssets(data.assets);
+        const tagged: PcmAsset[] = data.assets.map((a: PcmAsset, idx: number) => ({
+          ...a,
+          id: `${cleanCode}-${a.id || idx}-${Date.now()}`,
+          mdk: cleanCode,
+          selected: true,
+        }));
+        setMdkCodes((prev) => (prev.includes(cleanCode) ? prev : [...prev, cleanCode]));
+        setPcmAssets((prev) => {
+          // Zastąp wcześniejsze zdjęcia tego samego MDK, ale zachowaj inne MDK i uploady z dysku
+          const others = prev.filter((item) => item.mdk !== cleanCode);
+          return [...others, ...tagged];
+        });
         setPcmFetchSource(data.source);
-        if (data.pcmFound) {
-          // Dynamically update storyboard scenes with the real PCM packshot angles!
-          setScenes((prev) =>
-            prev.map((s, idx) => {
-              const assigned = data.assets[idx % data.assets.length];
-              return {
-                ...s,
-                pcmImage: assigned.label,
-              };
-            })
-          );
-          showToast(`✓ Pobrano ${data.assets.length} unikalnych ujęć z bazy PCM PROD dla MDK: ${code}!`);
-        } else {
-          showToast(data.message || `PCM (10.255.9.131) odpowiada w sieci wewnętrznej LPP.`);
-        }
+        showToast(`✓ Dodano ${tagged.length} zdjęć z PCM dla MDK: ${cleanCode}!`);
       } else {
-        showToast(data.message || "Nie znaleziono zdjęć w PCM dla tego MDK.");
+        showToast(data.message || `Nie znaleziono zdjęć w PCM dla MDK: ${cleanCode}.`);
       }
     } catch (err: any) {
-      showToast("Błąd pobierania z PCM / PDM: " + err.message);
+      showToast("Błąd pobierania z PCM: " + err.message);
     } finally {
       setIsFetchingPcm(false);
     }
@@ -310,11 +350,13 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
         url,
         source: "pcm",
         type: "packshot",
+        mdk: "Z dysku",
+        selected: true,
       };
     });
-    setPcmAssets((prev) => [...newAssets, ...prev]);
+    setPcmAssets((prev) => [...prev, ...newAssets]);
     setPcmFetchSource("pcm");
-    showToast(`✓ Załadowano ${newAssets.length} packshotów z dysku!`);
+    showToast(`✓ Dodano ${newAssets.length} packshotów z dysku!`);
   };
 
   const [subtitleCues, setSubtitleCues] = useState<SubtitleCue[]>([
@@ -478,6 +520,12 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
         durationSec: duration,
         playbackSpeed: 1.0,
         bgmAudioSrc: activeBgmSrc,
+        logoIntro: isLogoIntroEnabled
+          ? {
+              imageSrc: selectedIntroLogo.gifPath,
+              durationSec: selectedIntroLogo.durationSec,
+            }
+          : undefined,
         logoOutro: isLogoOutroEnabled
           ? {
               imageSrc: selectedLogo.gifPath,
@@ -978,6 +1026,12 @@ ${titleNodes}
                 durationSec: duration,
                 playbackSpeed: 1.0,
                 bgmAudioSrc: activeBgmSrc,
+                logoIntro: isLogoIntroEnabled
+                  ? {
+                      imageSrc: selectedIntroLogo.gifPath,
+                      durationSec: selectedIntroLogo.durationSec,
+                    }
+                  : undefined,
                 logoOutro: isLogoOutroEnabled
                   ? {
                       imageSrc: selectedLogo.gifPath,
@@ -1028,6 +1082,12 @@ ${titleNodes}
                     durationSec: duration,
                     playbackSpeed: 1.0,
                     bgmAudioSrc: activeBgmSrc,
+                    logoIntro: isLogoIntroEnabled
+                      ? {
+                          imageSrc: selectedIntroLogo.gifPath,
+                          durationSec: selectedIntroLogo.durationSec,
+                        }
+                      : undefined,
                     logoOutro: isLogoOutroEnabled
                       ? {
                           imageSrc: selectedLogo.gifPath,
@@ -1225,6 +1285,56 @@ ${titleNodes}
     });
   };
 
+  // Add a new storyboard scene dynamically
+  const handleAddScene = () => {
+    const newId = `sc-${Date.now()}`;
+    setScenes((prev) => {
+      const num = String(prev.length + 1).padStart(2, "0");
+      const next: StoryboardScene[] = [
+        ...prev,
+        {
+          id: newId,
+          name: `${num} Nowa scena`,
+          timeRange: "0.0–2.0 s",
+          prompt: "Płynne ujęcie prezentujące detal produktu i ruch tkaniny w miękkim świetle.",
+          pcmImage: "auto_all",
+          durationSec: 2.0,
+        },
+      ];
+      const newTotal = Number(next.reduce((sum, s) => sum + s.durationSec, 0).toFixed(1));
+      setDuration(newTotal);
+      return next;
+    });
+    setActiveEditingScene(newId);
+  };
+
+  // Delete a storyboard scene (keep at least 1)
+  const handleDeleteScene = (sceneId: string) => {
+    setScenes((prev) => {
+      if (prev.length <= 1) {
+        showToast("Storyboard musi zawierać przynajmniej 1 scenę.");
+        return prev;
+      }
+      const next = prev.filter((s) => s.id !== sceneId);
+      const newTotal = Number(next.reduce((sum, s) => sum + s.durationSec, 0).toFixed(1));
+      setDuration(newTotal);
+      return next;
+    });
+    if (activeEditingScene === sceneId) setActiveEditingScene(null);
+  };
+
+  // Exact prompt builder shared between UI preview and Seedance API call
+  const buildFinalSeedancePrompt = () => {
+    const base = prompt.trim();
+    if (genMode !== "storyboard" || computedScenes.length === 0) {
+      return base;
+    }
+    const shotList = computedScenes
+      .map((s, idx) => `Shot ${idx + 1} (${s.timeRange}): ${s.prompt.trim()}`)
+      .join(" | ");
+    return `${base}\n\nStoryboard (${computedScenes.length} shots, total ${duration}s):\n${shotList}`;
+  };
+
   // Video time tracking
   useEffect(() => {
     let interval: any;
@@ -1291,12 +1401,12 @@ ${titleNodes}
     const isLiveSeedance = mode === "live" && aiEngine.startsWith("seedance");
 
     try {
-      // Packshoty jako obrazy referencyjne (do 4 głównych ujęć) — w trybie live przesyłane w base64
-      const primaryPackshot = pcmAssets[0]?.url || pcmAssets[0]?.rawPcmUrl;
+      // Z automatu bierzemy wszystkie zaznaczone packshoty (z PCM lub dysku, do 12 ujęć)
+      const primaryPackshot = selectedReferenceAssets[0]?.url || selectedReferenceAssets[0]?.rawPcmUrl;
       let referenceImages: string[] = [];
-      if (isLiveSeedance && pcmAssets.length > 0) {
-        const assetsToSend = pcmAssets.slice(0, 4);
-        setGenerationStage(`Przygotowanie ${assetsToSend.length} packshotów jako obrazów referencyjnych...`);
+      if (isLiveSeedance && selectedReferenceAssets.length > 0) {
+        const assetsToSend = selectedReferenceAssets.slice(0, 12);
+        setGenerationStage(`Przygotowanie ${assetsToSend.length} wybranych packshotów jako referencji...`);
         try {
           referenceImages = await Promise.all(
             assetsToSend.map((a) => packshotToDataUri(a.url || a.rawPcmUrl || ""))
@@ -1306,12 +1416,7 @@ ${titleNodes}
         }
       }
 
-      const effectivePrompt =
-        genMode === "storyboard" && computedScenes.length > 0
-          ? `${prompt} | Scenes: ${computedScenes
-              .map((s) => `[${s.timeRange}] ${s.prompt}`)
-              .join(" -> ")}`
-          : prompt;
+      const effectivePrompt = buildFinalSeedancePrompt();
 
       const res = await fetch("/api/video", {
         method: "POST",
@@ -1321,7 +1426,7 @@ ${titleNodes}
           model: aiEngine,
           duration,
           resolution: videoResolution,
-          aspectRatio: "9:16",
+          aspectRatio: genAspectRatio,
           mode,
           ...(isLiveSeedance ? { referenceImages } : { packshotUrl: primaryPackshot }),
         }),
@@ -1437,7 +1542,6 @@ ${titleNodes}
 
   // Cost calculation for AI generate mode (depends on model, resolution & duration)
   const getRatePerSec = (engine: string, res: "480p" | "720p" | "1080p" = videoResolution): number => {
-    if (engine === "higgsfield-cinema-2.0") return 0.26;
     if (engine === "seedance-2.0") {
       return res === "480p" ? 0.08 : res === "1080p" ? 0.40 : 0.18;
     }
@@ -1960,188 +2064,1157 @@ ${titleNodes}
     </div>
   );
 
-  return (
-    <div className="space-y-6">
-      {/* Top Header & Workspace Mode Switch */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 p-5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] shadow-sm">
-        <div className="space-y-2">
-          {/* Dual-Mode Selector: Generator is FIRST & DEFAULT, Montage is SECOND */}
-          <div className="inline-flex p-1 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-strong)] gap-1">
+  const renderFormatsCard = () => (
+    <div className="p-5 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-3 shadow-sm">
+      <h2 className="text-xs font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
+        Formaty docelowe paczki (ZIP)
+      </h2>
+      <div className="flex flex-wrap gap-2">
+        {[
+          ["3x4", "3:4 · Baza modowa"],
+          ["9x16", "9:16 · TikTok / Reels"],
+          ["4x5", "4:5 · Feed IG"],
+          ["1x1", "1:1 · Kwadrat"],
+        ].map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => toggleRatio(key)}
+            className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all cursor-pointer ${
+              selectedRatios.includes(key)
+                ? "bg-[var(--accent-soft)] border-[var(--accent)] text-[var(--accent)]"
+                : "bg-[var(--bg-subtle)] border-[var(--border-subtle)] text-[var(--ink-secondary)]"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderAudioVoiceoverCard = () => (
+    <div className="p-5 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-3 shadow-sm">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xs font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
+            Lektor &amp; Audio (ElevenLabs)
+          </h2>
+          <span className="text-[10px] text-[var(--ink-muted)] block">
+            Dubbing głosem lektora i muzyka w tle
+          </span>
+        </div>
+        <input
+          type="checkbox"
+          checked={isDubEnabled}
+          onChange={(e) => setIsDubEnabled(e.target.checked)}
+          className="w-4 h-4 accent-[#7c5cff] cursor-pointer"
+        />
+      </div>
+
+      {isDubEnabled && (
+        <div className="space-y-2.5 pt-2 border-t border-[var(--border-subtle)]">
+          <textarea
+            rows={2}
+            value={spokenVoiceoverScript}
+            onChange={(e) => setSpokenVoiceoverScript(e.target.value)}
+            className="w-full px-3 py-2 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)]"
+            placeholder="Skrypt audio dla lektora..."
+          />
+          <div className="grid grid-cols-2 gap-2">
+            <select
+              value={selectedVoice}
+              onChange={(e) => setSelectedVoice(e.target.value)}
+              className="px-2 py-1.5 rounded-lg text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)]"
+            >
+              <option value="maja">Maja · Sinsay Editorial (Ciepły)</option>
+              <option value="karolina">Karolina · Sinsay Youth (Dynamiczny TikTok)</option>
+              <option value="adam">Adam · Fashion Runway (Głęboki)</option>
+              <option value="claire">Claire · International English (Clean)</option>
+            </select>
+            <select
+              value={selectedBgm}
+              onChange={(e) => setSelectedBgm(e.target.value)}
+              className="px-2 py-1.5 rounded-lg text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)]"
+            >
+              <option value="runway">Warm Runway House (122 BPM)</option>
+              <option value="lofi">Atelier Lo-Fi Beats (98 BPM)</option>
+              <option value="groove">Deep Fashion Groove (126 BPM)</option>
+              <option value="ambient">Minimal Acoustic Ambient (92 BPM)</option>
+              <option value="none">Bez muzyki (Tylko lektor)</option>
+            </select>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderIntroOutroCards = () => (
+    <div className="space-y-4">
+      {/* Animowane Logo Intro */}
+      <div className="p-5 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-3 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <h2 className="text-xs font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
+              Animowane Logo Intro
+            </h2>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#193328] text-[#75d9ae]">
+              Brand Kit LPP
+            </span>
+          </div>
+          <input
+            type="checkbox"
+            checked={isLogoIntroEnabled}
+            onChange={(e) => setIsLogoIntroEnabled(e.target.checked)}
+            className="w-4 h-4 accent-[#7c5cff] cursor-pointer"
+          />
+        </div>
+
+        {isLogoIntroEnabled && (
+          <div className="flex items-center justify-between gap-3 p-3 rounded-xl border border-[#dcd9ec] dark:border-[#262338] bg-[var(--bg-subtle)]">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-12 h-10 rounded-lg bg-black/80 p-1 flex items-center justify-center shrink-0 border border-black/20">
+                <img
+                  src={selectedIntroLogo.gifPath}
+                  alt={selectedIntroLogo.name}
+                  className="max-h-full max-w-full object-contain"
+                />
+              </div>
+              <div className="min-w-0">
+                <span className="text-xs font-bold text-[var(--ink-primary)] block truncate">
+                  🎬 {selectedIntroLogo.name}
+                </span>
+                <span className="text-[10px] text-[var(--ink-muted)] block">
+                  Start klipu · Czas: {selectedIntroLogo.durationSec}s
+                </span>
+              </div>
+            </div>
+
             <button
               type="button"
-              onClick={() => setWorkspaceMode("generate")}
-              className={`px-4 py-2 rounded-lg text-xs font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
-                workspaceMode === "generate"
-                  ? "bg-[#7c5cff] text-white shadow-sm"
-                  : "text-[var(--ink-secondary)] hover:text-[var(--ink-primary)]"
-              }`}
+              onClick={() => setIsIntroModalOpen(true)}
+              className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-[var(--bg-card)] border border-[var(--border-strong)] hover:border-[#7c5cff] text-[var(--ink-primary)] cursor-pointer shrink-0"
             >
-              <span>✨ Generator Wideo AI (Seedance 2.5 / Higgsfield)</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setWorkspaceMode("edit")}
-              className={`px-4 py-2 rounded-lg text-xs font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
-                workspaceMode === "edit"
-                  ? "bg-[#7c5cff] text-white shadow-sm"
-                  : "text-[var(--ink-secondary)] hover:text-[var(--ink-primary)]"
-              }`}
-            >
-              <span>🎬 Montaż &amp; Napisy (Mam plik wideo)</span>
-              {uploadedFileName && (
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              )}
+              Zmień intro ⚙
             </button>
           </div>
+        )}
+      </div>
+
+      {/* Animowane Logo Outro */}
+      <div className="p-5 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-3 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <h2 className="text-xs font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
+              Animowane Logo Outro
+            </h2>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#193328] text-[#75d9ae]">
+              Brand Kit LPP
+            </span>
+          </div>
+          <input
+            type="checkbox"
+            checked={isLogoOutroEnabled}
+            onChange={(e) => setIsLogoOutroEnabled(e.target.checked)}
+            className="w-4 h-4 accent-[#7c5cff] cursor-pointer"
+          />
+        </div>
+
+        {isLogoOutroEnabled && (
+          <div className="flex items-center justify-between gap-3 p-3 rounded-xl border border-[#dcd9ec] dark:border-[#262338] bg-[var(--bg-subtle)]">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-12 h-10 rounded-lg bg-black/80 p-1 flex items-center justify-center shrink-0 border border-black/20">
+                <img
+                  src={selectedLogo.gifPath}
+                  alt={selectedLogo.name}
+                  className="max-h-full max-w-full object-contain"
+                />
+              </div>
+              <div className="min-w-0">
+                <span className="text-xs font-bold text-[var(--ink-primary)] block truncate">
+                  🎬 {selectedLogo.name}
+                </span>
+                <span className="text-[10px] text-[var(--ink-muted)] block">
+                  Koniec klipu · Czas: {selectedLogo.durationSec}s
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsLogoModalOpen(true)}
+              className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-[var(--bg-card)] border border-[var(--border-strong)] hover:border-[#7c5cff] text-[var(--ink-primary)] cursor-pointer shrink-0"
+            >
+              Zmień outro ⚙
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderStoryboardCard = () => (
+    <div className="p-6 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-4 shadow-sm">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h3 className="text-sm font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
+            Storyboard modularny ({computedScenes.length} {computedScenes.length === 1 ? "scena" : computedScenes.length < 5 ? "sceny" : "scen"})
+          </h3>
+          <small className="text-xs text-[var(--ink-muted)]">
+            Dodawaj, usuwaj i edytuj sceny — wszystkie zaznaczone packshoty ({selectedReferenceAssets.length}) idą automatycznie jako referencja do Seedance
+          </small>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleAddScene}
+            className="px-3 py-1.5 rounded-xl text-xs font-bold border border-[var(--accent)]/50 bg-[var(--accent)]/15 text-[var(--ink-primary)] hover:bg-[var(--accent)] hover:text-white transition-all cursor-pointer"
+          >
+            + Dodaj scenę
+          </button>
+          <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-[#7c5cff] font-mono">
+            {duration} s łącznie
+          </span>
+        </div>
+      </div>
+
+      {genMode !== "storyboard" && (
+        <div className="px-3.5 py-2 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-300 text-xs">
+          Wybrano tryb „Pojedyncze ujęcie” — przełącz Tryb na „Storyboard” powyżej, aby wysłać poniższe sceny do Seedance.
+        </div>
+      )}
+
+      {/* Visual Storyboard Timeline Track */}
+      <div className="space-y-1">
+        <div className="relative w-full h-3 bg-black/30 rounded-full overflow-hidden flex border border-white/10 select-none">
+          {computedScenes.map((sc, i) => {
+            const pct = Math.max(5, (sc.durationSec / duration) * 100);
+            const colors = [
+              "bg-[#6e1d2f]",
+              "bg-[#7c5cff]",
+              "bg-[#8f4f0e]",
+              "bg-[#10b981]",
+              "bg-[#1b4353]",
+              "bg-[#4a1c40]",
+            ];
+            return (
+              <div
+                key={sc.id}
+                style={{ width: `${pct}%` }}
+                className={`h-full ${colors[i % colors.length]} border-r border-black/40 hover:brightness-125 transition-all`}
+                title={`${sc.name}: ${sc.timeRange} (${sc.durationSec}s)`}
+              />
+            );
+          })}
+        </div>
+        <div className="flex justify-between text-[9px] font-mono text-[var(--ink-muted)] px-0.5">
+          <span>0.0s (Start)</span>
+          <span>Oś czasu scen wideo</span>
+          <span>{duration}s (Koniec)</span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {computedScenes.map((scene) => (
+          <div
+            key={scene.id}
+            className={`p-3.5 rounded-xl border flex flex-col justify-between transition-all ${
+              activeEditingScene === scene.id
+                ? "bg-[var(--accent-soft)] border-[var(--accent)] shadow-md"
+                : "bg-[var(--bg-subtle)] border-[var(--border-subtle)]"
+            }`}
+          >
+            <div>
+              <div className="flex justify-between items-center text-[10px] font-bold text-[var(--accent)] mb-1.5 gap-2">
+                {activeEditingScene === scene.id ? (
+                  <input
+                    type="text"
+                    value={scene.name}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setScenes((prev) =>
+                        prev.map((s) => (s.id === scene.id ? { ...s, name: val } : s))
+                      );
+                    }}
+                    className="flex-1 min-w-0 px-1.5 py-0.5 rounded border border-[var(--border-strong)] bg-[var(--bg-card)] text-[var(--ink-primary)] text-[11px]"
+                  />
+                ) : (
+                  <span className="truncate pr-1">{scene.name}</span>
+                )}
+                <span className="font-mono text-[11px] text-[#7c5cff] font-extrabold whitespace-nowrap">
+                  {scene.timeRange}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-[10px] py-1 px-1.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-subtle)] mb-2">
+                <span className="font-bold text-[var(--ink-secondary)] text-[9px]">Czas sceny:</span>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => handleSceneDurationChange(scene.id, scene.durationSec - 0.5)}
+                    className="w-4 h-4 rounded bg-black/10 dark:bg-white/10 text-[10px] font-bold grid place-items-center hover:bg-[#7c5cff] hover:text-white transition-all cursor-pointer"
+                    title="Skróć ujęcie o 0.5s"
+                  >
+                    −
+                  </button>
+                  <span className="font-mono font-extrabold text-[11px] text-[#7c5cff] px-0.5">
+                    {scene.durationSec.toFixed(1)}s
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleSceneDurationChange(scene.id, scene.durationSec + 0.5)}
+                    className="w-4 h-4 rounded bg-black/10 dark:bg-white/10 text-[10px] font-bold grid place-items-center hover:bg-[#7c5cff] hover:text-white transition-all cursor-pointer"
+                    title="Wydłuż ujęcie o 0.5s"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              {activeEditingScene === scene.id ? (
+                <textarea
+                  rows={3}
+                  value={scene.prompt}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setScenes((prev) =>
+                      prev.map((s) => (s.id === scene.id ? { ...s, prompt: val } : s))
+                    );
+                  }}
+                  className="w-full text-xs p-1.5 rounded border border-[var(--border-strong)] bg-[var(--bg-card)] text-[var(--ink-primary)]"
+                />
+              ) : (
+                <p className="text-xs text-[var(--ink-secondary)] line-clamp-3">
+                  {scene.prompt}
+                </p>
+              )}
+            </div>
+
+            <div className="pt-2.5 border-t border-[var(--border-subtle)] mt-2.5 flex items-center justify-end gap-1.5">
+              <div className="flex gap-1 shrink-0">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setActiveEditingScene(
+                      activeEditingScene === scene.id ? null : scene.id
+                    )
+                  }
+                  className="px-2 py-0.5 rounded text-[10px] font-bold border bg-[var(--bg-card)] hover:border-[var(--accent)] text-[var(--ink-primary)] cursor-pointer"
+                >
+                  {activeEditingScene === scene.id ? "Gotowe" : "Edytuj"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteScene(scene.id)}
+                  disabled={computedScenes.length <= 1}
+                  className="px-2 py-0.5 rounded text-[10px] font-bold border bg-[var(--bg-card)] border-[var(--border-subtle)] hover:border-red-500 hover:text-red-400 text-[var(--ink-muted)] cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed"
+                  title="Usuń scenę"
+                >
+                  🗑
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <details className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] px-3.5 py-2.5 text-xs">
+        <summary className="cursor-pointer font-bold text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] select-none">
+          🔍 Podgląd dokładnego promptu wysyłanego do Seedance ({selectedReferenceAssets.length} referencji PSH)
+        </summary>
+        <pre className="mt-2.5 whitespace-pre-wrap font-mono text-[11px] leading-relaxed text-[var(--ink-primary)] bg-[var(--bg-card)] p-3 rounded-lg border border-[var(--border-subtle)]">
+          {buildFinalSeedancePrompt()}
+        </pre>
+      </details>
+    </div>
+  );
+
+  const renderLogoStageOverlays = () => {
+    const showIntro = isLogoIntroEnabled && (previewIntroForce || currentTime < selectedIntroLogo.durationSec);
+    const showOutro =
+      isLogoOutroEnabled &&
+      (previewOutroForce || (duration > 0 && currentTime >= Math.max(0, duration - selectedLogo.durationSec)));
+    return (
+      <>
+        {showIntro && (
+          <div className="absolute inset-0 z-30 bg-black/90 flex flex-col items-center justify-center p-3 transition-all">
+            <img
+              src={selectedIntroLogo.gifPath}
+              alt={selectedIntroLogo.name}
+              className="max-h-[50%] max-w-[80%] object-contain drop-shadow-xl"
+            />
+            <span className="text-[7px] font-mono tracking-widest text-[#9d85ff] uppercase block mt-1">
+              INTRO · {selectedIntroLogo.name}
+            </span>
+          </div>
+        )}
+        {!showIntro && showOutro && (
+          <div className="absolute inset-0 z-30 bg-black/90 flex flex-col items-center justify-center p-3 transition-all">
+            <img
+              src={selectedLogo.gifPath}
+              alt={selectedLogo.name}
+              className="max-h-[50%] max-w-[80%] object-contain drop-shadow-xl"
+            />
+            <span className="text-[7px] font-mono tracking-widest text-[#9d85ff] uppercase block mt-1">
+              OUTRO · {selectedLogo.name}
+            </span>
+          </div>
+        )}
+      </>
+    );
+  };
+
+  const renderPreviewColumn = (showBottomQuickExport: boolean) => (
+    <div className="lg:col-span-7 space-y-5 lg:sticky lg:top-20 self-start">
+      <div className="p-5 sm:p-6 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] shadow-sm space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <h3 className="text-xs font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
+              Podgląd kadrów (3:4 Master → 9:16 TikTok, 4:5, 1:1)
+            </h3>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowSafeAreas(!showSafeAreas)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 cursor-pointer ${
+                showSafeAreas
+                  ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-600 dark:text-emerald-400"
+                  : "bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-muted)] hover:text-[var(--ink-primary)]"
+              }`}
+            >
+              <span>{showSafeAreas ? "✓ Siatki Safe Area" : "○ Bez siatek"}</span>
+            </button>
+          </div>
+        </div>
+
+        {isSubtitlesEnabled && (
+          <div className="flex items-center justify-between flex-wrap gap-2 pt-2 border-t border-[var(--border-subtle)]">
+            <span className="text-xs font-bold text-[var(--ink-secondary)] flex items-center gap-1.5">
+              <span>Podgląd napisów:</span>
+              <span className="px-1.5 py-0.5 rounded bg-[var(--accent-soft)] text-[var(--accent)] font-extrabold text-[11px]">
+                {previewLang}
+              </span>
+            </span>
+
+            <div className="flex items-center gap-1 overflow-x-auto max-w-full pb-0.5">
+              {selectedTextLangs.map((code) => {
+                const m = SINSAY_MARKETS.find((item) => item.code === code);
+                const isActive = previewLang === code;
+                return (
+                  <button
+                    key={code}
+                    type="button"
+                    onClick={() => setPreviewLang(code)}
+                    className={`px-2 py-0.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1 shrink-0 cursor-pointer ${
+                      isActive
+                        ? "bg-[var(--accent)] text-white border-[var(--accent)] shadow-sm"
+                        : "bg-[var(--bg-subtle)] border-[var(--border-subtle)] text-[var(--ink-secondary)] hover:text-[var(--ink-primary)]"
+                    }`}
+                  >
+                    <span>{m?.flag || "🌐"}</span>
+                    <span>{code}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* 4-Frame Live Stage Container */}
+        <div className="p-4 sm:p-6 rounded-2xl bg-gradient-to-b from-[var(--champagne)] to-[var(--bg-elevated)] border border-[var(--border-subtle)] grid grid-cols-2 lg:grid-cols-4 gap-3.5 items-center justify-items-center min-h-[380px] overflow-hidden">
+          {/* 1. 3:4 MASTER BAZA */}
+          <div className="flex flex-col items-center gap-1.5 w-full">
+            <div className="flex items-center justify-between w-full max-w-[155px] px-1 text-[10px] font-bold text-[var(--ink-secondary)]">
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-[#7c5cff]" />
+                <span className="text-[#7c5cff]">3:4 Master</span>
+              </span>
+              <span className="text-[9px] font-mono text-[var(--ink-muted)]">1440×1920</span>
+            </div>
+
+            <div className="w-full max-w-[155px] aspect-[3/4] rounded-2xl border-2 border-[#7c5cff] bg-black relative overflow-hidden shadow-xl ring-1 ring-[#7c5cff]/30">
+              {videoFile ? (
+                <video
+                  ref={videoRef}
+                  src={videoFile}
+                  loop
+                  muted
+                  playsInline
+                  onLoadedMetadata={handleVideoLoadedMetadata}
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              ) : (
+                <div
+                  onClick={() => {
+                    setVideoFile("/preview/sample_atelier_9x16.mp4");
+                    setUploadedFileName("sample_atelier_9x16.mp4");
+                    showToast("Załadowano wideo próbne atelier 9:16");
+                  }}
+                  className="absolute inset-0 bg-gradient-to-tr from-[#1a1535] via-[#4f35c2] to-[#7c5cff] transition-transform duration-100 cursor-pointer group"
+                  style={{ transform: `scale(${1 + Math.sin(currentTime) * 0.05})` }}
+                  title="Kliknij, aby wczytać wideo próbne atelier"
+                >
+                  <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_50%_40%,#ffeedd_0%,transparent_60%)]" />
+                  <div className="absolute inset-0 flex flex-col items-center justify-center p-2 text-center text-white/90">
+                    <span className="text-xl mb-1 group-hover:scale-125 transition-transform">⚡</span>
+                    <span className="text-[9px] font-extrabold uppercase tracking-wide">Podgląd AI</span>
+                    <span className="text-[8px] opacity-75 mt-0.5 underline">Kliknij wideo</span>
+                  </div>
+                </div>
+              )}
+
+              <audio
+                ref={bgmAudioRef}
+                src={selectedBgm === "lofi" ? "/audio/atelier_lofi.m4a" : "/audio/runway_house.m4a"}
+                loop
+                preload="auto"
+              />
+              <audio
+                ref={voiceAudioRef}
+                src="/audio/voiceover_sample.m4a"
+                preload="auto"
+              />
+
+              {showSafeAreas && <SocialSafeAreaOverlay format="master-3x4" />}
+              {renderLogoStageOverlays()}
+
+              {isSubtitlesEnabled && activeSubtitleText && (
+                <div
+                  className="absolute inset-x-2 z-10 text-center pointer-events-none transition-all duration-150"
+                  style={{ top: `${captionYPercent}%`, transform: "translateY(-50%)" }}
+                >
+                  <p className={`inline-block leading-tight tracking-wide ${getSubtitleStyleClasses()}`}>
+                    {activeSubtitleText}
+                    {activeSubtitleLine2 && <><br /><span className="opacity-90">{activeSubtitleLine2}</span></>}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {isSubtitlesEnabled && (
+              <button
+                type="button"
+                onClick={() => handleBurnAndDownloadSingleVideo("3:4")}
+                disabled={isBurningVideo}
+                className="w-full max-w-[155px] px-2 py-1 rounded-lg text-[10px] font-extrabold bg-[#efecff] dark:bg-[#221b3d] border border-[#7c5cff]/40 text-[#7c5cff] dark:text-[#9d85ff] hover:bg-[#7c5cff] hover:text-white transition-all shadow-xs flex items-center justify-center gap-1 cursor-pointer"
+                title="Wypala napisy w formacie 3:4 bez DaVinci Resolve"
+              >
+                <span>🔥 Wypal 3:4 ({previewLang})</span>
+              </button>
+            )}
+          </div>
+
+          {/* 2. 9:16 TIKTOK VERTICAL */}
+          <div className="flex flex-col items-center gap-1.5 w-full">
+            <div className="flex items-center justify-between w-full max-w-[155px] px-1 text-[10px] font-bold text-[var(--ink-secondary)]">
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                <span className="text-emerald-600 dark:text-emerald-400">9:16 TikTok</span>
+              </span>
+              <span className="text-[9px] font-mono text-[var(--ink-muted)]">1080×1920</span>
+            </div>
+
+            <div className="w-full max-w-[155px] aspect-[9/16] rounded-2xl border-2 border-emerald-500 bg-black relative overflow-hidden shadow-xl ring-1 ring-emerald-500/30">
+              {videoFile ? (
+                <video
+                  src={videoFile}
+                  loop
+                  muted
+                  playsInline
+                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-150"
+                  style={{
+                    transform: `scale(1.25) translateX(${cropOffset * 0.4}%)`,
+                  }}
+                />
+              ) : (
+                <div
+                  className="absolute inset-0 bg-gradient-to-tr from-[#1a1535] via-[#4f35c2] to-[#7c5cff] transition-transform duration-150"
+                  style={{
+                    transform: `scale(${1.25 + Math.sin(currentTime) * 0.05}) translateX(${cropOffset * 0.4}%)`,
+                  }}
+                >
+                  <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_50%_40%,#ffeedd_0%,transparent_60%)]" />
+                </div>
+              )}
+
+              {showSafeAreas && <SocialSafeAreaOverlay format="tiktok-9x16" />}
+              {renderLogoStageOverlays()}
+
+              {isSubtitlesEnabled && activeSubtitleText && (
+                <div
+                  className="absolute inset-x-2 z-10 text-center pointer-events-none transition-all duration-150"
+                  style={{ top: `${captionYPercent}%`, transform: "translateY(-50%)" }}
+                >
+                  <p className={`inline-block leading-tight tracking-wide ${getSubtitleStyleClasses()}`}>
+                    {activeSubtitleText}
+                    {activeSubtitleLine2 && <><br /><span className="opacity-90">{activeSubtitleLine2}</span></>}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {isSubtitlesEnabled && (
+              <button
+                type="button"
+                onClick={() => handleBurnAndDownloadSingleVideo("9:16")}
+                disabled={isBurningVideo}
+                className="w-full max-w-[155px] px-2 py-1 rounded-lg text-[10px] font-extrabold bg-[#efecff] dark:bg-[#221b3d] border border-[#7c5cff]/40 text-[#7c5cff] dark:text-[#9d85ff] hover:bg-[#7c5cff] hover:text-white transition-all shadow-xs flex items-center justify-center gap-1 cursor-pointer"
+                title="Wypala napisy w pikselach wideo bez DaVinci Resolve"
+              >
+                <span>🔥 Wypal 9:16 ({previewLang})</span>
+              </button>
+            )}
+          </div>
+
+          {/* 3. 4:5 IG FEED SMART CROP */}
+          <div className="flex flex-col items-center gap-1.5 w-full">
+            <div className="flex items-center justify-between w-full max-w-[155px] px-1 text-[10px] font-bold text-[var(--ink-secondary)]">
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                <span className="text-indigo-600 dark:text-indigo-400">4:5 Feed</span>
+              </span>
+              <span className="text-[9px] font-mono text-[var(--ink-muted)]">1080×1350</span>
+            </div>
+
+            <div className="w-full max-w-[155px] aspect-[4/5] rounded-2xl border-2 border-indigo-500 bg-black relative overflow-hidden shadow-xl ring-1 ring-indigo-500/30">
+              {videoFile ? (
+                <video
+                  src={videoFile}
+                  loop
+                  muted
+                  playsInline
+                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-150"
+                  style={{ transform: `scale(1.1)` }}
+                />
+              ) : (
+                <div
+                  className="absolute inset-0 bg-gradient-to-tr from-[#1a1535] via-[#4f35c2] to-[#7c5cff] transition-transform duration-150"
+                  style={{
+                    transform: `scale(${1.1 + Math.sin(currentTime) * 0.05})`,
+                  }}
+                >
+                  <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_50%_40%,#ffeedd_0%,transparent_60%)]" />
+                </div>
+              )}
+
+              {showSafeAreas && <SocialSafeAreaOverlay format="feed-4x5" />}
+              {renderLogoStageOverlays()}
+
+              {isSubtitlesEnabled && activeSubtitleText && (
+                <div
+                  className="absolute inset-x-2 z-10 text-center pointer-events-none transition-all duration-150"
+                  style={{ top: `${Math.min(78, captionYPercent + 3)}%`, transform: "translateY(-50%)" }}
+                >
+                  <p className={`inline-block leading-tight tracking-wide ${getSubtitleStyleClasses()}`}>
+                    {activeSubtitleText}
+                    {activeSubtitleLine2 && <><br /><span className="opacity-90">{activeSubtitleLine2}</span></>}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {isSubtitlesEnabled && (
+              <button
+                type="button"
+                onClick={() => handleBurnAndDownloadSingleVideo("4:5")}
+                disabled={isBurningVideo}
+                className="w-full max-w-[155px] px-2 py-1 rounded-lg text-[10px] font-extrabold bg-[#efecff] dark:bg-[#221b3d] border border-[#7c5cff]/40 text-[#7c5cff] dark:text-[#9d85ff] hover:bg-[#7c5cff] hover:text-white transition-all shadow-xs flex items-center justify-center gap-1 cursor-pointer"
+                title="Wypala napisy w formacie 4:5 bez DaVinci Resolve"
+              >
+                <span>🔥 Wypal 4:5 ({previewLang})</span>
+              </button>
+            )}
+          </div>
+
+          {/* 4. 1:1 SQUARE PRODUCT */}
+          <div className="flex flex-col items-center gap-1.5 w-full">
+            <div className="flex items-center justify-between w-full max-w-[155px] px-1 text-[10px] font-bold text-[var(--ink-secondary)]">
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-amber-500" />
+                <span className="text-amber-600 dark:text-amber-400">1:1 Kwadrat</span>
+              </span>
+              <span className="text-[9px] font-mono text-[var(--ink-muted)]">1080×1080</span>
+            </div>
+
+            <div className="w-full max-w-[155px] aspect-square rounded-2xl border-2 border-amber-500 bg-black relative overflow-hidden shadow-xl ring-1 ring-amber-500/30">
+              {videoFile ? (
+                <video
+                  src={videoFile}
+                  loop
+                  muted
+                  playsInline
+                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-150"
+                  style={{ transform: `scale(1.05)` }}
+                />
+              ) : (
+                <div
+                  className="absolute inset-0 bg-gradient-to-tr from-[#1a1535] via-[#4f35c2] to-[#7c5cff] transition-transform duration-150"
+                  style={{
+                    transform: `scale(${1 + Math.sin(currentTime) * 0.05})`,
+                  }}
+                >
+                  <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_50%_40%,#ffeedd_0%,transparent_60%)]" />
+                </div>
+              )}
+
+              {showSafeAreas && <SocialSafeAreaOverlay format="square-1x1" />}
+              {renderLogoStageOverlays()}
+
+              {isSubtitlesEnabled && activeSubtitleText && (
+                <div
+                  className="absolute inset-x-2 z-10 text-center pointer-events-none transition-all duration-150"
+                  style={{ top: `${Math.min(80, captionYPercent + 6)}%`, transform: "translateY(-50%)" }}
+                >
+                  <p className={`inline-block leading-tight tracking-wide ${getSubtitleStyleClasses()}`}>
+                    {activeSubtitleText}
+                    {activeSubtitleLine2 && <><br /><span className="opacity-90">{activeSubtitleLine2}</span></>}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {isSubtitlesEnabled && (
+              <button
+                type="button"
+                onClick={() => handleBurnAndDownloadSingleVideo("1:1")}
+                disabled={isBurningVideo}
+                className="w-full max-w-[155px] px-2 py-1 rounded-lg text-[10px] font-extrabold bg-[#efecff] dark:bg-[#221b3d] border border-[#7c5cff]/40 text-[#7c5cff] dark:text-[#9d85ff] hover:bg-[#7c5cff] hover:text-white transition-all shadow-xs flex items-center justify-center gap-1 cursor-pointer"
+                title="Wypala napisy w formacie 1:1 bez DaVinci Resolve"
+              >
+                <span>🔥 Wypal 1:1 ({previewLang})</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Status bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-3.5 py-2 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-xs">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className={`w-2 h-2 rounded-full ${isSubtitlesEnabled && activeCue ? "bg-emerald-500 animate-pulse" : "bg-zinc-400"}`} />
+            <span className="font-bold text-[var(--ink-secondary)] text-[11px] truncate">
+              {isSubtitlesEnabled
+                ? (activeCue ? activeCue.label : "Czysty kadr (brak napisu w tej sekundzie)")
+                : "Napisy wyłączone"}
+            </span>
+          </div>
+          {isSubtitlesEnabled && activeSubtitleText ? (
+            <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--accent)] font-sinsay truncate">
+              <span className="text-[10px] text-[var(--ink-muted)] font-mono font-normal">[{previewLang}]:</span>
+              <span className="truncate">„{activeSubtitleText}”</span>
+            </div>
+          ) : (
+            <span className="text-[10px] text-[var(--ink-muted)] italic">
+              Oś czasu: {currentTime.toFixed(1)}s
+            </span>
+          )}
+        </div>
+
+        {/* Playback Transport Controls */}
+        <div className="flex items-center justify-between gap-4 pt-1">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={togglePlayback}
+              className="w-10 h-10 rounded-full bg-[#7c5cff] text-white font-extrabold text-sm grid place-items-center shadow-md hover:opacity-95 cursor-pointer"
+              title={isPlaying ? "Zatrzymaj" : "Odtwórz"}
+            >
+              {isPlaying ? "❚❚" : "▶"}
+            </button>
+            <div className="text-xs font-mono font-bold text-[var(--ink-primary)]">
+              {currentTime.toFixed(1)}s / {duration}s
+            </div>
+          </div>
+
+          <div className="flex-1 max-w-md">
+            <input
+              type="range"
+              min={0}
+              max={duration}
+              step={0.1}
+              value={currentTime}
+              onChange={(e) => {
+                const time = Number(e.target.value);
+                setCurrentTime(time);
+                if (videoRef.current) videoRef.current.currentTime = time;
+              }}
+              className="w-full accent-[#7c5cff] cursor-pointer"
+            />
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <label className="text-[11px] font-bold text-[var(--ink-secondary)] whitespace-nowrap">
+              Fokus kadru:
+            </label>
+            <input
+              type="range"
+              min={-50}
+              max={50}
+              step={1}
+              value={cropOffset}
+              onChange={(e) => setCropOffset(Number(e.target.value))}
+              className="w-24 accent-[#7c5cff] cursor-pointer"
+              title="Przesuń kadr 9:16 w lewo lub w prawo"
+            />
+            <button
+              type="button"
+              onClick={() => setCropOffset(0)}
+              className="text-xs font-mono font-bold text-[#7c5cff] hover:underline cursor-pointer min-w-[36px] text-right"
+              title="Kliknij, aby wyśrodkować (0%)"
+            >
+              {cropOffset}%
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {showBottomQuickExport && (
+        <div className="p-5 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-3 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h4 className="text-xs font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
+                Gotowe do publikacji? Pobierz paczkę produkcyjną
+              </h4>
+              <p className="text-[11px] text-[var(--ink-muted)] mt-0.5">
+                Paczka ZIP zawiera 4 formaty wideo (3:4, 9:16, 4:5, 1:1), manifest i specyfikacje renderu{isSubtitlesEnabled ? " oraz napisy .SRT/.VTT" : ""}.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0 flex-wrap">
+              {isSubtitlesEnabled && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => handleBurnAndDownloadSingleVideo("9:16")}
+                    disabled={isBurningVideo}
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#7c5cff] to-[#9d85ff] hover:opacity-95 shadow-md flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <span>{isBurningVideo ? "Wypalanie..." : `🔥 Wypal wideo 9:16 (${previewLang})`}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadSrtOnly(previewLang)}
+                    className="px-3.5 py-2 rounded-xl text-xs font-bold border border-[var(--border-strong)] bg-[var(--bg-subtle)] text-[var(--ink-primary)] hover:border-[#7c5cff] hover:text-[#7c5cff] transition-all cursor-pointer"
+                  >
+                    📄 Tylko .SRT ({previewLang})
+                  </button>
+                </>
+              )}
+              <button
+                type="button"
+                onClick={handleQuickExportZip}
+                disabled={isExportingZip || isBurningVideo}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#7c5cff] shadow-[var(--shadow-pop)] hover:opacity-95 transition-all cursor-pointer"
+              >
+                {isExportingZip || isBurningVideo
+                  ? "Wypalanie & Pakowanie..."
+                  : isSubtitlesEnabled
+                  ? `💾 Pobierz ZIP z wypalonymi wersjami (${selectedTextLangs.length} rynków)`
+                  : "💾 Pobierz ZIP z 4 formatami"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* Top Header */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 p-5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] shadow-sm">
+        <div className="space-y-2">
+          {!lockedMode && (
+            <div className="inline-flex p-1 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-strong)] gap-1">
+              <button
+                type="button"
+                onClick={() => setWorkspaceMode("generate")}
+                className={`px-4 py-2 rounded-lg text-xs font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
+                  workspaceMode === "generate"
+                    ? "bg-[#7c5cff] text-white shadow-sm"
+                    : "text-[var(--ink-secondary)] hover:text-[var(--ink-primary)]"
+                }`}
+              >
+                <span>✨ Generator AI</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setWorkspaceMode("edit")}
+                className={`px-4 py-2 rounded-lg text-xs font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
+                  workspaceMode === "edit"
+                    ? "bg-[#7c5cff] text-white shadow-sm"
+                    : "text-[var(--ink-secondary)] hover:text-[var(--ink-primary)]"
+                }`}
+              >
+                <span>🎬 Montaż wideo</span>
+                {uploadedFileName && (
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                )}
+              </button>
+            </div>
+          )}
 
           <div>
             <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[var(--ink-primary)]">
               {workspaceMode === "generate"
-                ? "Generator Wideo AI · Baza 3:4"
-                : "Montaż wideo & Napisy TikTok"}
+                ? "Generator AI · Studio Wideo"
+                : "Montaż wideo & Napisy"}
             </h1>
             <p className="text-xs text-[var(--ink-secondary)] mt-0.5">
               {workspaceMode === "generate"
-                ? "Generowanie modowego klipu 3:4 z opcjonalnymi napisami, tłumaczeniami i lektorem oraz kadrowanie pod TikTok, IG i Feed."
-                : "Wgraj własne wideo, dodaj napisy z matrycy haseł Sinsay, dopasuj bezpieczne strefy 9:16 i pobierz gotowe formaty."}
+                ? "Krok po kroku: prompt i referencje PCM → storyboard, parametry i intro/outro → napisy i lektor → generowanie i eksport."
+                : "Wgraj własne wideo MP4/MOV, dodaj animowane intro/outro, napisy z tłumaczeniami oraz lektora i pobierz gotowe formaty."}
             </p>
           </div>
         </div>
 
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center gap-2">
-          {workspaceMode === "edit" && isSubtitlesEnabled && (
-            <button
-              type="button"
-              onClick={() => handleDownloadSrtOnly(previewLang)}
-              className="px-3.5 py-2 rounded-xl text-xs font-bold border border-[var(--border-strong)] bg-[var(--bg-subtle)] text-[var(--ink-primary)] hover:border-[#7c5cff] hover:text-[#7c5cff] transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
-              title="Pobierz plik napisów .SRT dla aktualnego języka"
-            >
-              <span>📄 Pobierz napisy .SRT ({previewLang})</span>
-            </button>
-          )}
-
-          <button
-            type="button"
-            onClick={handleQuickExportZip}
-            disabled={isExportingZip || isBurningVideo}
-            className="px-4 py-2 rounded-xl text-xs font-bold border border-[#7c5cff] bg-[#efecff] dark:bg-[#221b3d] text-[#7c5cff] dark:text-[#9d85ff] hover:bg-[#7c5cff] hover:text-white transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
-          >
-            <span>
-              {isExportingZip || isBurningVideo
-                ? "Wypalanie & Pakowanie..."
-                : isSubtitlesEnabled
-                ? `💾 Pobierz ZIP z wersjami rynkowymi (${selectedTextLangs.length} rynków)`
-                : "💾 Zapisz & Pobierz formaty (ZIP)"}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleExportDaVinciFCPXML}
-            className="px-3.5 py-2 rounded-xl text-xs font-bold border bg-[var(--bg-card)] border-[var(--border-strong)] hover:border-[var(--accent)] text-[var(--ink-primary)] cursor-pointer flex items-center gap-1.5"
-            title="Pobierz oś czasu do DaVinci Resolve (File → Import Timeline)"
-          >
-            <span>🎬 DaVinci (.fcpxml)</span>
-          </button>
-
-          {onProceedToPost && (
-            <button
-              onClick={onProceedToPost}
-              className="px-3.5 py-2 rounded-xl text-xs font-bold border bg-[var(--bg-card)] border-[var(--border-strong)] hover:border-[var(--accent)] text-[var(--ink-primary)] cursor-pointer"
-            >
-              Eksport paczek →
-            </button>
-          )}
-
-          {workspaceMode === "generate" && (
-            <button
-              onClick={handleGenerateAiVideo}
-              disabled={isGeneratingAiVideo}
-              className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[var(--accent)] shadow-[var(--shadow-pop)] hover:opacity-95 cursor-pointer disabled:opacity-60 flex items-center gap-2"
-            >
-              {isGeneratingAiVideo ? (
-                <>
-                  <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <span>{generationProgress}% · Renderowanie...</span>
-                </>
-              ) : (
-                <span>⚡ Generuj wideo AI ({generateCostLabel})</span>
+          {workspaceMode === "edit" ? (
+            <>
+              {isSubtitlesEnabled && (
+                <button
+                  type="button"
+                  onClick={() => handleDownloadSrtOnly(previewLang)}
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold border border-[var(--border-strong)] bg-[var(--bg-subtle)] text-[var(--ink-primary)] hover:border-[#7c5cff] hover:text-[#7c5cff] transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+                >
+                  <span>📄 Pobierz .SRT ({previewLang})</span>
+                </button>
               )}
-            </button>
+              <button
+                type="button"
+                onClick={handleQuickExportZip}
+                disabled={isExportingZip || isBurningVideo}
+                className="px-4 py-2 rounded-xl text-xs font-bold border border-[#7c5cff] bg-[#efecff] dark:bg-[#221b3d] text-[#7c5cff] dark:text-[#9d85ff] hover:bg-[#7c5cff] hover:text-white transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+              >
+                <span>
+                  {isExportingZip || isBurningVideo
+                    ? "Wypalanie & Pakowanie..."
+                    : isSubtitlesEnabled
+                    ? `💾 ZIP (${selectedTextLangs.length} rynków)`
+                    : "💾 Pobierz formaty (ZIP)"}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={handleExportDaVinciFCPXML}
+                className="px-3.5 py-2 rounded-xl text-xs font-bold border bg-[var(--bg-card)] border-[var(--border-strong)] hover:border-[var(--accent)] text-[var(--ink-primary)] cursor-pointer flex items-center gap-1.5"
+              >
+                <span>🎬 DaVinci (.fcpxml)</span>
+              </button>
+              {onProceedToPost && (
+                <button
+                  onClick={onProceedToPost}
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold border bg-[var(--bg-card)] border-[var(--border-strong)] hover:border-[var(--accent)] text-[var(--ink-primary)] cursor-pointer"
+                >
+                  Eksport paczek →
+                </button>
+              )}
+            </>
+          ) : (
+            <div className="flex items-center gap-2">
+              <div className="px-3 py-1.5 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-xs font-mono">
+                <span className="text-[var(--ink-muted)] mr-1.5">Szacunek:</span>
+                <span className="font-extrabold text-[#9d85ff]">~${totalCost} USD</span>
+              </div>
+              {activeStep > 1 && (
+                <button
+                  type="button"
+                  onClick={() => setActiveStep((activeStep - 1) as 1 | 2 | 3 | 4)}
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold border border-[var(--border-strong)] bg-[var(--bg-card)] text-[var(--ink-primary)] hover:border-[var(--accent)] transition-all cursor-pointer"
+                >
+                  ← Wstecz
+                </button>
+              )}
+              {activeStep < 4 && (
+                <button
+                  type="button"
+                  onClick={() => setActiveStep((activeStep + 1) as 1 | 2 | 3 | 4)}
+                  className="px-3.5 py-2 rounded-xl text-xs font-extrabold text-white bg-[var(--accent)] shadow-[var(--shadow-pop)] hover:opacity-95 transition-all cursor-pointer"
+                >
+                  Dalej →
+                </button>
+              )}
+            </div>
           )}
         </div>
       </div>
 
-      {/* Real-time Video Generation Pipeline Progress Bar */}
-      {isGeneratingAiVideo && (
-        <div className="p-4 rounded-2xl border border-[var(--accent)] bg-[var(--accent)]/10 dark:bg-[var(--accent)]/15 shadow-sm space-y-2 animate-fadeIn">
-          <div className="flex items-center justify-between text-xs font-bold">
-            <span className="flex items-center gap-2 text-[var(--ink-primary)]">
-              <span className="w-2.5 h-2.5 rounded-full bg-[var(--accent)] animate-ping" />
-              <span>{generationStage || "Przetwarzanie wideo w silniku AI..."}</span>
-            </span>
-            <span className="font-mono text-[var(--accent)]">{generationProgress}%</span>
-          </div>
-          <div className="w-full h-2 rounded-full bg-[var(--border-subtle)] overflow-hidden">
-            <div
-              className="h-full bg-[var(--accent)] transition-all duration-300 rounded-full"
-              style={{ width: `${generationProgress}%` }}
-            />
-          </div>
-          <div className="flex justify-between text-[10px] text-[var(--ink-muted)]">
-            <span>Model: {aiEngine.toUpperCase()}</span>
-            <span>Kadr: 9:16 ({engineResolutionLabel}) · Długość: {duration}s</span>
-          </div>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column */}
-        <div className="lg:col-span-5 space-y-5">
-          {/* ======================================================== */}
-          {/* MODE: GENERATE AI VIDEO (DEFAULT)                        */}
-          {/* ======================================================== */}
-          {workspaceMode === "generate" ? (
-            <>
-              {/* 1. Produkt i Model AI */}
-              <div className="p-5 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-4 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xs font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
-                    Produkt i model AI
-                  </h2>
-                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[var(--status-ok-bg)] text-[var(--status-ok-ink)]">
-                    PCM połączone
+      {/* ======================================================== */}
+      {/* MODE: GENERATE AI VIDEO — 4-STEP WIZARD                  */}
+      {/* ======================================================== */}
+      {workspaceMode === "generate" ? (
+        <div className="space-y-6">
+          {/* 4-Step Stepper */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+            {(
+              [
+                {
+                  step: 1 as const,
+                  title: "Prompt & Referencje",
+                  meta: `${selectedReferenceAssets.length} wybranych zdjęć`,
+                },
+                {
+                  step: 2 as const,
+                  title: "Storyboard & Parametry",
+                  meta: `${genMode === "storyboard" ? `${computedScenes.length} scen` : "1 ujęcie"} · ${videoResolution} · ${genAspectRatio}`,
+                },
+                {
+                  step: 3 as const,
+                  title: "Napisy & Lektor",
+                  meta: isSubtitlesEnabled ? `${selectedTextLangs.length} rynków` : "Bez napisów",
+                },
+                {
+                  step: 4 as const,
+                  title: "Generowanie & Eksport",
+                  meta: isGeneratingAiVideo ? `${generationProgress}%` : `~${totalCost} USD`,
+                },
+              ] as const
+            ).map((item) => {
+              const isActive = activeStep === item.step;
+              const isDone = activeStep > item.step;
+              return (
+                <button
+                  key={item.step}
+                  type="button"
+                  onClick={() => setActiveStep(item.step)}
+                  className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex items-center gap-3 ${
+                    isActive
+                      ? "bg-[var(--accent)]/15 border-[var(--accent)] shadow-sm"
+                      : "bg-[var(--bg-card)] border-[var(--border-subtle)] hover:border-[var(--border-strong)]"
+                  }`}
+                >
+                  <span
+                    className={`w-7 h-7 rounded-full text-xs font-extrabold grid place-items-center shrink-0 ${
+                      isActive
+                        ? "bg-[var(--accent)] text-white"
+                        : isDone
+                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
+                        : "bg-[var(--bg-subtle)] text-[var(--ink-secondary)] border border-[var(--border-subtle)]"
+                    }`}
+                  >
+                    {isDone ? "✓" : item.step}
                   </span>
+                  <div className="min-w-0">
+                    <div className={`text-xs font-extrabold truncate ${isActive ? "text-[var(--ink-primary)]" : "text-[var(--ink-secondary)]"}`}>
+                      {item.title}
+                    </div>
+                    <div className="text-[10px] text-[var(--ink-muted)] truncate mt-0.5">
+                      {item.meta}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* STEP 1: PROMPT & REFERENCJE */}
+          {activeStep === 1 && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                {/* Left: General Prompt & Presets */}
+                <div className="lg:col-span-6 p-6 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-4 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-sm font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
+                      1. Ogólny prompt wideo
+                    </h2>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--bg-subtle)] text-[var(--ink-muted)]">
+                      Baza dla całego klipu
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="text-[11px] font-bold text-[var(--ink-secondary)] block mb-1.5">
+                      Presety asortymentu:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5 mb-3">
+                      {GARMENT_PRESETS.map((p) => (
+                        <button
+                          key={p.label}
+                          type="button"
+                          onClick={() => {
+                            setPrompt(p.prompt);
+                            setSpokenVoiceoverScript(p.voiceover);
+                            if (p.cues && p.cues.length > 0) {
+                              setSubtitleCues((prev) =>
+                                prev.map((cue, idx) => {
+                                  const target = p.cues[idx % p.cues.length];
+                                  return {
+                                    ...cue,
+                                    text: target.text,
+                                    line2: target.line2,
+                                    translations: {
+                                      ...cue.translations,
+                                      PL: { line1: target.text, line2: target.line2 },
+                                    },
+                                  };
+                                })
+                              );
+                            }
+                            showToast(`Załadowano preset: ${p.label}`);
+                          }}
+                          className="px-2.5 py-1 rounded-lg text-[11px] font-bold border border-[var(--border-subtle)] bg-[var(--bg-subtle)] hover:border-[var(--accent)] hover:text-[var(--accent)] text-[var(--ink-secondary)] transition-all cursor-pointer"
+                        >
+                          {p.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    <textarea
+                      rows={7}
+                      value={prompt}
+                      onChange={(e) => setPrompt(e.target.value)}
+                      placeholder="Opisz ogólną estetykę, oświetlenie, lokalizację i klimat filmu..."
+                      className="w-full px-3.5 py-2.5 rounded-xl text-xs leading-relaxed border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)] focus:outline-none focus:border-[var(--accent)]"
+                    />
+                    <p className="text-[11px] text-[var(--ink-muted)] mt-2">
+                      W kolejnym kroku możesz rozbić ten prompt na konkretne sceny na storyboardzie. Wszystkie zaznaczone po prawej stronie referencje trafią do Seedance.
+                    </p>
+                  </div>
                 </div>
 
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-bold text-[var(--ink-primary)]">
-                      Kod MDK (artykuł LPP)
-                    </label>
-                    {pcmFetchSource && (
-                      <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
-                        pcmFetchSource === "pcm"
-                          ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                          : pcmFetchSource === "pdm"
-                          ? "bg-blue-500/15 text-blue-600 dark:text-blue-400"
-                          : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
-                      }`}>
-                        Źródło: {pcmFetchSource === "pcm" ? "PCM Retusz" : pcmFetchSource === "pdm" ? "PDM E-Commerce" : "Wzorzec"}
+                {/* Right: Multi-MDK PCM & Selectable References */}
+                <div className="lg:col-span-6 p-6 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-4 shadow-sm">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <h2 className="text-sm font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
+                      2. Referencje produktowe (MDK / PCM &amp; Dysk)
+                    </h2>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
+                          selectedReferenceAssets.length > 0
+                            ? "bg-[#7c5cff]/15 border-[#7c5cff]/40 text-[#9d85ff]"
+                            : "bg-[var(--bg-subtle)] border-[var(--border-subtle)] text-[var(--ink-muted)]"
+                        }`}
+                      >
+                        {selectedReferenceAssets.length > 0
+                          ? `Tryb: Produkt z referencjami (${selectedReferenceAssets.length})`
+                          : "Tryb: Tekst-do-wideo (0 ref.)"}
                       </span>
-                    )}
+                      {pcmFetchSource && (
+                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400">
+                          Źródło: {pcmFetchSource.toUpperCase()}
+                        </span>
+                      )}
+                    </div>
                   </div>
+
                   <div className="flex gap-2 flex-wrap">
                     <input
                       type="text"
                       value={productId}
                       onChange={(e) => {
-                        const clean = e.target.value.replace(/[\u2010-\u2015\u2212]/g, "-").toUpperCase();
+                        const clean = e.target.value.replace(/[‐-―−]/g, "-").toUpperCase();
                         setProductId(clean);
                       }}
-                      placeholder="np. 001KR-83X lub 206LA-08X"
-                      className="flex-1 min-w-[140px] px-3 py-2 rounded-xl text-xs border font-mono bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)] focus:outline-none focus:border-[var(--accent)]"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleFetchPcm();
+                        }
+                      }}
+                      placeholder="Wpisz kod MDK np. 001KR-83X (Enter pobiera)"
+                      className="flex-1 min-w-[160px] px-3 py-2 rounded-xl text-xs border font-mono bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)] focus:outline-none focus:border-[var(--accent)]"
                     />
                     <button
                       type="button"
@@ -2149,7 +3222,7 @@ ${titleNodes}
                       disabled={isFetchingPcm}
                       className="px-3.5 py-2 rounded-xl text-xs font-bold border border-[#7c5cff] bg-[#efecff] dark:bg-[#221b3d] text-[#7c5cff] dark:text-[#9d85ff] hover:bg-[#7c5cff] hover:text-white transition-all flex items-center gap-1.5 shadow-sm cursor-pointer disabled:opacity-50"
                     >
-                      <span>{isFetchingPcm ? "Pobieranie..." : "Pobierz z PCM ↻"}</span>
+                      <span>{isFetchingPcm ? "Pobieranie..." : "+ Pobierz z PCM ↻"}</span>
                     </button>
                     <label className="px-3 py-2 rounded-xl text-xs font-bold border border-[var(--border-strong)] bg-[var(--bg-card)] text-[var(--ink-secondary)] hover:border-[var(--accent)] hover:text-[var(--ink-primary)] transition-all flex items-center gap-1 shadow-sm cursor-pointer">
                       <span>📁 Z dysku</span>
@@ -2164,95 +3237,170 @@ ${titleNodes}
                     </label>
                   </div>
 
-                  {/* Thumbnail Grid of Real Fetched Packshots */}
-                  {pcmAssets.length > 0 && (
-                    <div className="mt-3 p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] space-y-2">
-                      <div className="flex items-center justify-between text-[11px] font-bold text-[var(--ink-secondary)]">
-                        <span>Pobrane packshoty ({pcmAssets.length}):</span>
-                        <span className="text-[10px] text-[var(--ink-muted)]">Prawdziwe zdjęcia z serwerów LPP</span>
-                      </div>
-                      <div className="flex gap-2 overflow-x-auto pb-1">
-                        {pcmAssets.map((asset) => (
-                          <div
-                            key={asset.id}
-                            className="group relative flex-shrink-0 w-20 h-28 rounded-lg overflow-hidden border border-[var(--border-strong)] bg-white dark:bg-[#0d0c14] shadow-xs cursor-pointer hover:border-[var(--accent)] transition-all"
-                            title={`${asset.label} (${asset.filename})`}
+                  {/* Active MDK Chips */}
+                  {mdkCodes.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-[10px] font-bold text-[var(--ink-muted)] mr-1">Załadowane MDK:</span>
+                      {mdkCodes.map((code) => (
+                        <span
+                          key={code}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-bold bg-[var(--bg-subtle)] border border-[var(--border-strong)] text-[var(--ink-primary)]"
+                        >
+                          <span>{code}</span>
+                          <button
+                            type="button"
+                            onClick={() => removeMdkGroup(code)}
+                            className="text-[var(--ink-muted)] hover:text-rose-400 cursor-pointer"
+                            title={`Usuń zdjęcia MDK ${code}`}
                           >
-                            <img
-                              src={asset.url}
-                              alt={asset.label}
-                              className="w-full h-full object-contain p-1"
-                              loading="lazy"
-                              onError={(e) => {
-                                // If any image fails, gracefully fallback to a clean stylized SVG card
-                                const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="80" height="110" fill="%23241f1c"><rect width="100%" height="100%" fill="%23241f1c"/><text x="40" y="55" fill="%23e56b4e" font-size="10" font-family="monospace" font-weight="bold" text-anchor="middle">${productId || "PSH"}</text><text x="40" y="70" fill="%238e8379" font-size="8" text-anchor="middle">Packshot</text></svg>`;
-                                e.currentTarget.src = `data:image/svg+xml;utf8,${svg}`;
-                              }}
-                            />
-                            <div className="absolute inset-x-0 bottom-0 bg-black/75 text-white text-[8px] font-mono px-1 py-0.5 truncate text-center">
-                              {asset.filename.replace(/^.*[\\/]/, '')}
-                            </div>
-                            <span className={`absolute top-1 right-1 text-[8px] font-bold px-1 rounded text-white ${
-                              asset.source === "pcm" ? "bg-emerald-600" : asset.source === "pdm" ? "bg-blue-600" : "bg-[#7c5cff]"
-                            }`}>
-                              {asset.source.toUpperCase()}
-                            </span>
-                          </div>
-                        ))}
+                            ✕
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Selectable Thumbnail Grid */}
+                  {pcmAssets.length > 0 ? (
+                    <div className="p-3.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] space-y-3">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <span className="text-xs font-bold text-[var(--ink-primary)]">
+                          Zaznaczone do Seedance: <span className="text-[#9d85ff]">{selectedReferenceAssets.length}</span> / {pcmAssets.length}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => selectAllAssets(true)}
+                            className="text-[11px] font-bold text-[#9d85ff] hover:underline cursor-pointer"
+                          >
+                            Zaznacz wszystkie
+                          </button>
+                          <span className="text-[var(--border-strong)]">·</span>
+                          <button
+                            type="button"
+                            onClick={() => selectAllAssets(false)}
+                            className="text-[11px] font-bold text-[var(--ink-muted)] hover:text-[var(--ink-primary)] cursor-pointer"
+                          >
+                            Odznacz
+                          </button>
+                        </div>
                       </div>
+
+                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2.5 max-h-[320px] overflow-y-auto pr-1">
+                        {pcmAssets.map((asset) => {
+                          const isSelected = asset.selected !== false;
+                          return (
+                            <button
+                              key={asset.id}
+                              type="button"
+                              onClick={() => toggleAssetSelection(asset.id)}
+                              className={`group relative aspect-[3/4] rounded-xl overflow-hidden border-2 transition-all cursor-pointer text-left ${
+                                isSelected
+                                  ? "border-[#7c5cff] ring-2 ring-[#7c5cff]/30 opacity-100"
+                                  : "border-[var(--border-subtle)] opacity-45 hover:opacity-80"
+                              } bg-white dark:bg-[#0d0c14]`}
+                              title={`${asset.label} (${asset.filename})`}
+                            >
+                              <img
+                                src={asset.url}
+                                alt={asset.label}
+                                className="w-full h-full object-contain p-1"
+                                loading="lazy"
+                              />
+                              <span
+                                className={`absolute top-1.5 left-1.5 w-5 h-5 rounded-md text-[10px] font-extrabold grid place-items-center shadow-sm ${
+                                  isSelected
+                                    ? "bg-[#7c5cff] text-white"
+                                    : "bg-black/60 text-white/70 border border-white/20"
+                                }`}
+                              >
+                                {isSelected ? "✓" : ""}
+                              </span>
+                              <span className="absolute top-1.5 right-1.5 text-[8px] font-bold px-1 rounded bg-black/70 text-white">
+                                {asset.mdk || asset.source.toUpperCase()}
+                              </span>
+                              <div className="absolute inset-x-0 bottom-0 bg-black/80 text-white text-[8px] font-mono px-1 py-0.5 truncate text-center">
+                                {asset.filename.replace(/^.*[\/]/, "")}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-8 rounded-xl border border-dashed border-[var(--border-strong)] bg-[var(--bg-subtle)] text-center text-xs text-[var(--ink-muted)]">
+                      Wpisz kod MDK powyżej i kliknij <b>+ Pobierz z PCM</b> lub wgraj zdjęcia z dysku. Możesz dodać wiele kodów MDK (np. sukienkę + torebkę) i zaznaczyć dokładne ujęcia.
                     </div>
                   )}
                 </div>
+              </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-bold text-[var(--ink-primary)] block mb-1">
-                      Silnik wideo
-                    </label>
-                    <select
-                      value={aiEngine}
-                      onChange={(e) => setAiEngine(normalizeVideoEngine(e.target.value))}
-                      className="w-full px-3 py-2 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)] font-medium cursor-pointer"
-                    >
-                      {VIDEO_ENGINE_OPTIONS.map((opt) => {
-                        const rate = getRatePerSec(opt.value, videoResolution);
-                        const icon = opt.value === "seedance-2.5" ? "⚡" : opt.value === "seedance-2.0" ? "🚀" : "🌪️";
-                        return (
-                          <option key={opt.value} value={opt.value}>
-                            {icon} {opt.label} (~${rate.toFixed(2)}/s)
-                          </option>
-                        );
-                      })}
-                    </select>
-                    <p className="text-[10px] text-[var(--ink-muted)] mt-1">
-                      {videoServerConfig?.seedance.keyConfigured
-                        ? `BytePlus ModelArk · ${videoResolution} · Secret Manager`
-                        : `BytePlus ModelArk · ${videoResolution}`}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-[var(--ink-primary)] block mb-1">
-                      Tryb
-                    </label>
-                    <select
-                      value={genMode}
-                      onChange={(e) => setGenMode(e.target.value as any)}
-                      className="w-full px-3 py-2 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)] cursor-pointer"
-                    >
-                      <option value="storyboard">Storyboard (6 scen)</option>
-                      <option value="single">Pojedyncze ujęcie</option>
-                    </select>
-                  </div>
-                </div>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setActiveStep(2)}
+                  className="px-6 py-2.5 rounded-xl text-xs font-extrabold text-white bg-[var(--accent)] shadow-[var(--shadow-pop)] hover:opacity-95 cursor-pointer"
+                >
+                  Dalej: Storyboard, Parametry &amp; Intro/Outro →
+                </button>
+              </div>
+            </div>
+          )}
 
-                {/* Rozdzielczość Seedance, długość oraz kalkulator kosztu */}
-                <div className="p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] space-y-2.5">
+          {/* STEP 2: STORYBOARD, PARAMETRY & INTRO/OUTRO */}
+          {activeStep === 2 && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                {/* Left: Engine, Resolution, Aspect Ratio, Duration, ZIP Formats */}
+                <div className="lg:col-span-7 p-6 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-5 shadow-sm">
+                  <h2 className="text-sm font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
+                    Parametry generowania wideo
+                  </h2>
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[11px] font-bold text-[var(--ink-primary)] block mb-1">
+                      <label className="text-xs font-bold text-[var(--ink-primary)] block mb-1">
+                        Silnik wideo
+                      </label>
+                      <select
+                        value={aiEngine}
+                        onChange={(e) => setAiEngine(normalizeVideoEngine(e.target.value))}
+                        className="w-full px-3 py-2 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)] font-medium cursor-pointer"
+                      >
+                        {VIDEO_ENGINE_OPTIONS.map((opt) => {
+                          const rate = getRatePerSec(opt.value, videoResolution);
+                          const icon = opt.value === "seedance-2.5" ? "⚡" : "🚀";
+                          return (
+                            <option key={opt.value} value={opt.value}>
+                              {icon} {opt.label} (~${rate.toFixed(2)}/s)
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold text-[var(--ink-primary)] block mb-1">
+                        Tryb generowania
+                      </label>
+                      <select
+                        value={genMode}
+                        onChange={(e) => setGenMode(e.target.value as any)}
+                        className="w-full px-3 py-2 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)] cursor-pointer"
+                      >
+                        <option value="storyboard">Storyboard</option>
+                        <option value="single">Pojedyncze ujęcie</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Rozdzielczość & Aspect Ratio generacji */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)]">
+                    <div>
+                      <label className="text-[11px] font-bold text-[var(--ink-primary)] block mb-1.5">
                         Rozdzielczość (Seedance)
                       </label>
-                      <div className="grid grid-cols-3 gap-1">
+                      <div className="grid grid-cols-3 gap-1.5">
                         {(
                           [
                             { id: "480p", label: "480p", hint: "Test" },
@@ -2278,1086 +3426,455 @@ ${titleNodes}
                     </div>
 
                     <div>
-                      <label className="text-[11px] font-bold text-[var(--ink-primary)] block mb-1">
-                        Długość klipu ({duration} s)
+                      <label className="text-[11px] font-bold text-[var(--ink-primary)] block mb-1.5">
+                        Proporcje generowanego klipu (Aspect Ratio)
                       </label>
-                      <div className="flex flex-wrap gap-1">
-                        {[4, 5, 8, 10, 15].map((sec) => (
+                      <div className="grid grid-cols-5 gap-1">
+                        {(["9:16", "3:4", "4:5", "1:1", "16:9"] as const).map((ratioOpt) => (
                           <button
-                            key={sec}
+                            key={ratioOpt}
                             type="button"
-                            onClick={() => setDuration(sec)}
-                            className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold border transition-all cursor-pointer ${
-                              duration === sec
+                            onClick={() => setGenAspectRatio(ratioOpt)}
+                            className={`py-2 px-1 rounded-lg text-[11px] font-mono font-bold border transition-all cursor-pointer ${
+                              genAspectRatio === ratioOpt
                                 ? "bg-[var(--accent)] text-white border-[var(--accent)] shadow-xs"
                                 : "bg-[var(--bg-card)] border-[var(--border-strong)] text-[var(--ink-secondary)] hover:border-[var(--accent)]"
                             }`}
                           >
-                            {sec}s
+                            {ratioOpt}
                           </button>
                         ))}
                       </div>
                     </div>
                   </div>
 
-                  <div className="pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between text-[11px]">
-                    <span className="text-[var(--ink-secondary)]">
-                      Szacowany koszt ({duration}s · {videoResolution} · ${ratePerSec.toFixed(2)}/s{renderMultiplier > 1 ? ` × ${renderMultiplier} formaty` : ""}):
-                    </span>
-                    <span className="font-mono font-extrabold text-[#7c5cff] dark:text-[#9d85ff]">
-                      ~${totalCost} USD
-                    </span>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1">
-                    <label className="text-xs font-bold text-[var(--ink-primary)]">
-                      Prompt wideo
-                    </label>
-                    <span className="text-[10px] text-[var(--ink-muted)] font-medium">
-                      Presety asortymentu:
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-1 mb-2">
-                    {GARMENT_PRESETS.map((p) => (
-                      <button
-                        key={p.label}
-                        type="button"
-                        onClick={() => {
-                          setPrompt(p.prompt);
-                          setSpokenVoiceoverScript(p.voiceover);
-                          if (p.cues && p.cues.length > 0) {
-                            setSubtitleCues((prev) =>
-                              prev.map((cue, idx) => {
-                                const target = p.cues[idx % p.cues.length];
-                                return {
-                                  ...cue,
-                                  text: target.text,
-                                  line2: target.line2,
-                                  translations: {
-                                    ...cue.translations,
-                                    PL: { line1: target.text, line2: target.line2 },
-                                  },
-                                };
-                              })
-                            );
-                          }
-                          showToast(`Załadowano preset: ${p.label}`);
-                        }}
-                        className="px-2 py-0.5 rounded-md text-[10px] font-bold border border-[var(--border-subtle)] bg-[var(--bg-subtle)] hover:border-[var(--accent)] hover:text-[var(--accent)] text-[var(--ink-secondary)] transition-all cursor-pointer"
-                      >
-                        {p.label}
-                      </button>
-                    ))}
-                  </div>
-                  <textarea
-                    rows={3}
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)]"
-                  />
-                </div>
-
-                <div>
-                  <div className="flex justify-between items-center text-xs font-bold mb-1">
-                    <span>Czas trwania klipu</span>
-                    <span className="text-[var(--accent)] font-extrabold">{duration} s</span>
-                  </div>
-                  <input
-                    type="range"
-                    min={5}
-                    max={30}
-                    value={duration}
-                    onChange={(e) => handleDurationChange(Number(e.target.value))}
-                    className="w-full accent-[var(--accent)] cursor-pointer"
-                  />
-                </div>
-              </div>
-
-              {/* 2. Formaty i Kadrowanie */}
-              <div className="p-5 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-3 shadow-sm">
-                <h2 className="text-xs font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
-                  Formaty i kadrowanie
-                </h2>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    ["3x4", "3:4 · Baza modowa"],
-                    ["9x16", "9:16 · TikTok / Reels"],
-                    ["4x5", "4:5 · Feed IG"],
-                    ["1x1", "1:1 · Kwadrat"],
-                  ].map(([key, label]) => (
-                    <button
-                      key={key}
-                      onClick={() => toggleRatio(key)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all cursor-pointer ${
-                        selectedRatios.includes(key)
-                          ? "bg-[var(--accent-soft)] border-[var(--accent)] text-[var(--accent)]"
-                          : "bg-[var(--bg-subtle)] border-[var(--border-subtle)] text-[var(--ink-secondary)]"
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* 3. Panel: Napisy & Tłumaczenia (Włączany jak lektor) */}
-              <div className="p-5 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-3 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-xs font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
-                      Napisy &amp; Tłumaczenia (Matryca LPP)
-                    </h2>
-                    <span className="text-[10px] text-[var(--ink-muted)] block">
-                      Generuj wideo z wypalonymi napisami, tłumaczeniami i bezpieczną strefą
-                    </span>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={isSubtitlesEnabled}
-                    onChange={(e) => setIsSubtitlesEnabled(e.target.checked)}
-                    className="w-4 h-4 accent-[#7c5cff] cursor-pointer"
-                  />
-                </div>
-
-                {isSubtitlesEnabled && (
-                  <div className="pt-2 border-t border-[var(--border-subtle)]">
-                    {renderSubtitlesSection()}
-                  </div>
-                )}
-              </div>
-
-              {/* 4. Lektor & Audio (ElevenLabs) */}
-              <div className="p-5 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-3 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-xs font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
-                      Lektor &amp; Audio (ElevenLabs)
-                    </h2>
-                    <span className="text-[10px] text-[var(--ink-muted)] block">
-                      Dubbing głosem lektora i muzyka w tle
-                    </span>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={isDubEnabled}
-                    onChange={(e) => setIsDubEnabled(e.target.checked)}
-                    className="w-4 h-4 accent-[#7c5cff] cursor-pointer"
-                  />
-                </div>
-
-                {isDubEnabled && (
-                  <div className="space-y-2.5 pt-2 border-t border-[var(--border-subtle)]">
-                    <textarea
-                      rows={2}
-                      value={spokenVoiceoverScript}
-                      onChange={(e) => setSpokenVoiceoverScript(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)]"
-                      placeholder="Skrypt audio dla lektora..."
-                    />
-                    <div className="grid grid-cols-2 gap-2">
-                      <select
-                        value={selectedVoice}
-                        onChange={(e) => setSelectedVoice(e.target.value)}
-                        className="px-2 py-1.5 rounded-lg text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)]"
-                      >
-                        <option value="maja">Maja · Sinsay Editorial (Ciepły)</option>
-                        <option value="karolina">Karolina · Sinsay Youth (Dynamiczny TikTok)</option>
-                        <option value="adam">Adam · Fashion Runway (Głęboki)</option>
-                        <option value="claire">Claire · International English (Clean)</option>
-                      </select>
-                      <select
-                        value={selectedBgm}
-                        onChange={(e) => setSelectedBgm(e.target.value)}
-                        className="px-2 py-1.5 rounded-lg text-xs border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)]"
-                      >
-                        <option value="runway">Warm Runway House (122 BPM)</option>
-                        <option value="lofi">Atelier Lo-Fi Beats (98 BPM)</option>
-                        <option value="groove">Deep Fashion Groove (126 BPM)</option>
-                        <option value="ambient">Minimal Acoustic Ambient (92 BPM)</option>
-                        <option value="none">Bez muzyki (Tylko lektor)</option>
-                      </select>
+                  {/* Długość klipu (sam suwak) */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs font-bold">
+                      <span>Długość klipu wideo</span>
+                      <span className="text-[var(--accent)] font-mono font-extrabold">{duration} s</span>
                     </div>
-                  </div>
-                )}
-              </div>
-
-              {/* 5. Animowane Logo Sinsay (Outro) */}
-              <div className="p-5 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-3 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-xs font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
-                      Animowane Logo Sinsay (Outro)
-                    </h2>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#193328] text-[#75d9ae]">
-                      Brand Kit LPP
-                    </span>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={isLogoOutroEnabled}
-                    onChange={(e) => setIsLogoOutroEnabled(e.target.checked)}
-                    className="w-4 h-4 accent-[#7c5cff] cursor-pointer"
-                  />
-                </div>
-
-                {isLogoOutroEnabled && (
-                  <div className="flex items-center justify-between gap-3 p-3 rounded-xl border border-[#dcd9ec] dark:border-[#262338] bg-[var(--bg-subtle)]">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-10 rounded-lg bg-black/80 p-1 flex items-center justify-center shrink-0 border border-black/20">
-                        <img
-                          src={selectedLogo.gifPath}
-                          alt={selectedLogo.name}
-                          className="max-h-full max-w-full object-contain"
-                        />
-                      </div>
-                      <div>
-                        <span className="text-xs font-bold text-[var(--ink-primary)] block">
-                          🎬 {selectedLogo.name}
-                        </span>
-                        <span className="text-[10px] text-[var(--ink-muted)] block">
-                          Czas: {selectedLogo.durationSec}s
-                        </span>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setIsLogoModalOpen(true)}
-                      className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-[var(--bg-card)] border border-[var(--border-strong)] hover:border-[#7c5cff] text-[var(--ink-primary)] cursor-pointer"
-                    >
-                      Zmień logo ⚙
-                    </button>
-                  </div>
-                )}
-              </div>
-            </>
-          ) : (
-            /* ======================================================== */
-            /* MODE: EDIT / MONTAGE (Mam plik wideo)                     */
-            /* ======================================================== */
-            <>
-              {/* 1. DUŻY, CZYTELNY OBSZAR WGRYWANIA WIDEO */}
-              <div className="p-5 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-3 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xs font-extrabold uppercase tracking-wide text-[var(--ink-primary)] flex items-center gap-1.5">
-                    <span>1. Plik wideo do montażu</span>
-                  </h2>
-                  {uploadedFileName ? (
-                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
-                      ✓ Wczytany plik
-                    </span>
-                  ) : (
-                    <span className="text-[10px] font-bold text-[var(--ink-muted)]">
-                      MP4 / MOV
-                    </span>
-                  )}
-                </div>
-
-                {uploadedFileName ? (
-                  <div className="p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 dark:bg-emerald-950/20 space-y-2.5">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <span className="text-xs font-extrabold text-[var(--ink-primary)] truncate block">
-                          🎬 {uploadedFileName}
-                        </span>
-                        <div className="flex items-center gap-2 text-[10px] text-[var(--ink-muted)] mt-0.5">
-                          <span>Rozmiar: {uploadedFileSize || "—"}</span>
-                          <span>·</span>
-                          <span>Czas: <b className="text-[var(--accent)]">{duration}s</b></span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-1 shrink-0">
-                        <label className="px-2.5 py-1 rounded-lg text-xs font-bold border border-[var(--border-strong)] bg-[var(--bg-card)] hover:border-[var(--accent)] text-[var(--ink-primary)] cursor-pointer">
-                          Zmień ↻
-                          <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="video/*"
-                            onChange={handleVideoUpload}
-                            className="hidden"
-                          />
-                        </label>
-                        <button
-                          type="button"
-                          onClick={handleClearVideo}
-                          className="px-2 py-1 rounded-lg text-xs font-bold text-rose-500 hover:bg-rose-500/10 cursor-pointer"
-                          title="Usuń wideo"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <label className="block border-2 border-dashed border-[#7c5cff]/40 hover:border-[#7c5cff] bg-[var(--bg-subtle)] hover:bg-[#7c5cff]/5 p-6 rounded-2xl text-center cursor-pointer transition-all">
-                    <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-[#efecff] dark:bg-[#221b3d] text-[#7c5cff] grid place-items-center text-xl shadow-xs">
-                      ↑
-                    </div>
-                    <span className="text-xs font-extrabold text-[var(--ink-primary)] block">
-                      Kliknij lub przeciągnij plik wideo tutaj
-                    </span>
-                    <span className="text-[11px] text-[var(--ink-muted)] block mt-1">
-                      Obsługa MP4, MOV. Długość klipu zostanie dopasowana automatycznie.
-                    </span>
-                    <span className="inline-block mt-3 px-3.5 py-1.5 rounded-xl text-xs font-bold text-white bg-[#7c5cff] shadow-xs">
-                      Wybierz wideo z komputera
-                    </span>
                     <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="video/*"
-                      onChange={handleVideoUpload}
-                      className="hidden"
+                      type="range"
+                      min={4}
+                      max={15}
+                      step={1}
+                      value={Math.min(15, Math.max(4, duration))}
+                      onChange={(e) => handleDurationChange(Number(e.target.value))}
+                      className="w-full accent-[var(--accent)] cursor-pointer"
                     />
-                  </label>
-                )}
-
-                {/* Artykuł MDK powiązany z wideo */}
-                <div className="pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between gap-2">
-                  <label className="text-[11px] font-bold text-[var(--ink-secondary)]">
-                    Kod MDK (dla nazwy plików i paczki):
-                  </label>
-                  <input
-                    type="text"
-                    value={productId}
-                    onChange={(e) => setProductId(e.target.value)}
-                    placeholder="np. 001KR-83X"
-                    className="w-36 px-2.5 py-1 rounded-lg text-xs font-mono font-bold border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)] text-right"
-                  />
-                </div>
-              </div>
-
-              {/* 2. NAPISY NA OSI CZASU & MATRYCA SINSAY */}
-              <div className="p-5 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-4 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xs font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
-                    2. Napisy &amp; Tłumaczenia na osi czasu
-                  </h2>
-                  <input
-                    type="checkbox"
-                    checked={isSubtitlesEnabled}
-                    onChange={(e) => setIsSubtitlesEnabled(e.target.checked)}
-                    className="w-4 h-4 accent-[#7c5cff] cursor-pointer"
-                  />
-                </div>
-
-                {isSubtitlesEnabled && (
-                  <div className="pt-2 border-t border-[var(--border-subtle)]">
-                    {renderSubtitlesSection()}
-                  </div>
-                )}
-              </div>
-
-              {/* 3. ANIMOWANE LOGO SINSAY (OUTRO) */}
-              <div className="p-5 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-3 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-xs font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
-                      3. Animowane Logo Sinsay (Outro)
-                    </h2>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#193328] text-[#75d9ae]">
-                      Brand Kit LPP
-                    </span>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={isLogoOutroEnabled}
-                    onChange={(e) => setIsLogoOutroEnabled(e.target.checked)}
-                    className="w-4 h-4 accent-[#7c5cff] cursor-pointer"
-                  />
-                </div>
-
-                {isLogoOutroEnabled && (
-                  <div className="flex items-center justify-between gap-3 p-3 rounded-xl border border-[#dcd9ec] dark:border-[#262338] bg-[var(--bg-subtle)]">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-10 rounded-lg bg-black/80 p-1 flex items-center justify-center shrink-0 border border-black/20">
-                        <img
-                          src={selectedLogo.gifPath}
-                          alt={selectedLogo.name}
-                          className="max-h-full max-w-full object-contain"
-                        />
-                      </div>
-                      <div>
-                        <span className="text-xs font-bold text-[var(--ink-primary)] block">
-                          🎬 {selectedLogo.name}
-                        </span>
-                        <span className="text-[10px] text-[var(--ink-muted)] block">
-                          Czas trwania: {selectedLogo.durationSec} s
-                        </span>
-                      </div>
+                    <div className="flex items-center justify-between text-[10px] font-mono text-[var(--ink-muted)]">
+                      <span>4s (krótki hook)</span>
+                      <span>Szacowany koszt: <b className="text-[#9d85ff]">~${totalCost} USD</b></span>
+                      <span>15s (pełny lookbook)</span>
                     </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setIsLogoModalOpen(true)}
-                      className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-[var(--bg-card)] border border-[var(--border-strong)] hover:border-[#7c5cff] text-[var(--ink-primary)] cursor-pointer"
-                    >
-                      Zmień logo ⚙
-                    </button>
                   </div>
-                )}
-              </div>
-            </>
-          )}
-        </div>
+                </div>
 
-        {/* Right Column: Live 4-Format Previews & Controls */}
-        <div className="lg:col-span-7 space-y-5">
-          <div className="p-5 sm:p-6 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] shadow-sm space-y-4">
-            {/* Header of Preview */}
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2">
-                <h3 className="text-xs font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
-                  Podgląd kadrów (3:4 Master → 9:16 TikTok, 4:5, 1:1)
-                </h3>
+                {/* Right: Independent Intro & Outro */}
+                <div className="lg:col-span-5">
+                  {renderIntroOutroCards()}
+                </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              {/* Full-width Modular Storyboard (ukryty w trybie Pojedyncze ujęcie) */}
+              {genMode === "storyboard" ? (
+                renderStoryboardCard()
+              ) : (
+                <div className="px-4 py-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] text-xs text-[var(--ink-secondary)] flex items-center justify-between gap-3">
+                  <span>
+                    Tryb <b className="text-[var(--ink-primary)]">Pojedyncze ujęcie</b> — storyboard scen jest pominięty, do Seedance idzie główny prompt z Kroku 1.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setGenMode("storyboard")}
+                    className="text-xs font-bold text-[#9d85ff] hover:underline shrink-0 cursor-pointer"
+                  >
+                    Przełącz na Storyboard →
+                  </button>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between gap-3">
                 <button
                   type="button"
-                  onClick={() => setShowSafeAreas(!showSafeAreas)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 cursor-pointer ${
-                    showSafeAreas
-                      ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-600 dark:text-emerald-400"
-                      : "bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-muted)] hover:text-[var(--ink-primary)]"
-                  }`}
+                  onClick={() => setActiveStep(1)}
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold border border-[var(--border-strong)] bg-[var(--bg-card)] text-[var(--ink-primary)] hover:border-[var(--accent)] cursor-pointer"
                 >
-                  <span>{showSafeAreas ? "✓ Siatki Safe Area" : "○ Bez siatek"}</span>
+                  ← Wstecz: Prompt &amp; Referencje
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveStep(3)}
+                  className="px-6 py-2.5 rounded-xl text-xs font-extrabold text-white bg-[var(--accent)] shadow-[var(--shadow-pop)] hover:opacity-95 cursor-pointer"
+                >
+                  Dalej: Napisy, Lektor &amp; Tłumaczenia →
                 </button>
               </div>
             </div>
+          )}
 
-            {/* Quick Language Switcher for Preview (if subtitles enabled) */}
-            {isSubtitlesEnabled && (
-              <div className="flex items-center justify-between flex-wrap gap-2 pt-2 border-t border-[var(--border-subtle)]">
-                <span className="text-xs font-bold text-[var(--ink-secondary)] flex items-center gap-1.5">
-                  <span>Podgląd napisów:</span>
-                  <span className="px-1.5 py-0.5 rounded bg-[var(--accent-soft)] text-[var(--accent)] font-extrabold text-[11px]">
-                    {previewLang}
-                  </span>
-                </span>
+          {/* STEP 3: NAPISY, LEKTOR & TŁUMACZENIA */}
+          {activeStep === 3 && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              <div className="lg:col-span-5 space-y-5">
+                <div className="p-5 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-3 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-xs font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
+                        Napisy &amp; Tłumaczenia (Matryca LPP)
+                      </h2>
+                      <span className="text-[10px] text-[var(--ink-muted)] block">
+                        Generuj wideo z wypalonymi napisami, tłumaczeniami i bezpieczną strefą
+                      </span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={isSubtitlesEnabled}
+                      onChange={(e) => setIsSubtitlesEnabled(e.target.checked)}
+                      className="w-4 h-4 accent-[#7c5cff] cursor-pointer"
+                    />
+                  </div>
 
-                <div className="flex items-center gap-1 overflow-x-auto max-w-full pb-0.5">
-                  {selectedTextLangs.map((code) => {
-                    const m = SINSAY_MARKETS.find((item) => item.code === code);
-                    const isActive = previewLang === code;
-                    return (
-                      <button
-                        key={code}
-                        type="button"
-                        onClick={() => setPreviewLang(code)}
-                        className={`px-2 py-0.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1 shrink-0 cursor-pointer ${
-                          isActive
-                            ? "bg-[var(--accent)] text-white border-[var(--accent)] shadow-sm"
-                            : "bg-[var(--bg-subtle)] border-[var(--border-subtle)] text-[var(--ink-secondary)] hover:text-[var(--ink-primary)]"
-                        }`}
-                      >
-                        <span>{m?.flag || "🌐"}</span>
-                        <span>{code}</span>
-                      </button>
-                    );
-                  })}
+                  {isSubtitlesEnabled && (
+                    <div className="pt-2 border-t border-[var(--border-subtle)]">
+                      {renderSubtitlesSection()}
+                    </div>
+                  )}
+                </div>
+
+                {renderAudioVoiceoverCard()}
+
+                <div className="flex items-center justify-between gap-3 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setActiveStep(2)}
+                    className="px-4 py-2.5 rounded-xl text-xs font-bold border border-[var(--border-strong)] bg-[var(--bg-card)] text-[var(--ink-primary)] hover:border-[var(--accent)] cursor-pointer"
+                  >
+                    ← Wstecz
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveStep(4)}
+                    className="px-5 py-2.5 rounded-xl text-xs font-extrabold text-white bg-[var(--accent)] shadow-[var(--shadow-pop)] hover:opacity-95 cursor-pointer"
+                  >
+                    Dalej: Generowanie &amp; Eksport →
+                  </button>
                 </div>
               </div>
-            )}
 
-            {/* 4-Frame Live Stage Container */}
-            <div className="p-4 sm:p-6 rounded-2xl bg-gradient-to-b from-[var(--champagne)] to-[var(--bg-elevated)] border border-[var(--border-subtle)] grid grid-cols-2 lg:grid-cols-4 gap-3.5 items-center justify-items-center min-h-[380px] overflow-hidden">
-              {/* 1. 3:4 MASTER BAZA */}
-              <div className="flex flex-col items-center gap-1.5 w-full">
-                <div className="flex items-center justify-between w-full max-w-[155px] px-1 text-[10px] font-bold text-[var(--ink-secondary)]">
-                  <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-[#7c5cff]" />
-                    <span className="text-[#7c5cff]">3:4 Master</span>
-                  </span>
-                  <span className="text-[9px] font-mono text-[var(--ink-muted)]">1440×1920</span>
-                </div>
+              {renderPreviewColumn(false)}
+            </div>
+          )}
 
-                <div className="w-full max-w-[155px] aspect-[3/4] rounded-2xl border-2 border-[#7c5cff] bg-black relative overflow-hidden shadow-xl ring-1 ring-[#7c5cff]/30">
-                  {videoFile ? (
-                    <video
-                      ref={videoRef}
-                      src={videoFile}
-                      loop
-                      muted
-                      playsInline
-                      onLoadedMetadata={handleVideoLoadedMetadata}
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div
-                      onClick={() => {
-                        setVideoFile("/preview/sample_atelier_9x16.mp4");
-                        setUploadedFileName("sample_atelier_9x16.mp4");
-                        showToast("Załadowano wideo próbne atelier 9:16");
-                      }}
-                      className="absolute inset-0 bg-gradient-to-tr from-[#1a1535] via-[#4f35c2] to-[#7c5cff] transition-transform duration-100 cursor-pointer group"
-                      style={{ transform: `scale(${1 + Math.sin(currentTime) * 0.05})` }}
-                      title="Kliknij, aby wczytać wideo próbne atelier"
-                    >
-                      <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_50%_40%,#ffeedd_0%,transparent_60%)]" />
-                      <div className="absolute inset-0 flex flex-col items-center justify-center p-2 text-center text-white/90">
-                        <span className="text-xl mb-1 group-hover:scale-125 transition-transform">⚡</span>
-                        <span className="text-[9px] font-extrabold uppercase tracking-wide">Podgląd AI</span>
-                        <span className="text-[8px] opacity-75 mt-0.5 underline">Kliknij wideo</span>
+          {/* STEP 4: GENEROWANIE & EKSPORT */}
+          {activeStep === 4 && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              <div className="lg:col-span-5 space-y-5">
+                {/* Summary + Generate CTA */}
+                <div className="p-6 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-4 shadow-sm">
+                  <h2 className="text-sm font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
+                    Podsumowanie i generowanie AI
+                  </h2>
+
+                  <div className="grid grid-cols-2 gap-2.5 text-xs">
+                    <div className="p-3 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-subtle)]">
+                      <span className="text-[10px] text-[var(--ink-muted)] block">Silnik &amp; Tryb</span>
+                      <span className="font-bold text-[var(--ink-primary)]">
+                        {aiEngine.toUpperCase()} · {genMode === "storyboard" ? `${computedScenes.length} scen` : "1 ujęcie"}
+                      </span>
+                    </div>
+                    <div className="p-3 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-subtle)]">
+                      <span className="text-[10px] text-[var(--ink-muted)] block">Parametry obrazu</span>
+                      <span className="font-bold text-[var(--ink-primary)]">
+                        {videoResolution} · {genAspectRatio} · {duration}s
+                      </span>
+                    </div>
+                    <div className="p-3 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-subtle)]">
+                      <span className="text-[10px] text-[var(--ink-muted)] block">Referencje PSH</span>
+                      <span className="font-bold text-[var(--ink-primary)]">
+                        {selectedReferenceAssets.length} zdjęć {mdkCodes.length > 0 ? `(${mdkCodes.join(", ")})` : ""}
+                      </span>
+                    </div>
+                    <div className="p-3 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-subtle)]">
+                      <span className="text-[10px] text-[var(--ink-muted)] block">Intro / Outro</span>
+                      <span className="font-bold text-[var(--ink-primary)] truncate block">
+                        {isLogoIntroEnabled ? "Intro ✓" : "Brak intro"} · {isLogoOutroEnabled ? "Outro ✓" : "Brak outro"}
+                      </span>
+                    </div>
+                    <div className="p-3 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-subtle)] col-span-2">
+                      <span className="text-[10px] text-[var(--ink-muted)] block">Napisy &amp; Audio</span>
+                      <span className="font-bold text-[var(--ink-primary)]">
+                        {isSubtitlesEnabled ? `${selectedTextLangs.length} rynków (${selectedTextLangs.join(", ")})` : "Bez napisów"} · {isDubEnabled ? `Lektor: ${selectedVoice}` : "Bez lektora"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleGenerateAiVideo}
+                    disabled={isGeneratingAiVideo}
+                    className="w-full py-3.5 px-5 rounded-xl text-sm font-extrabold text-white bg-[var(--accent)] shadow-[var(--shadow-pop)] hover:opacity-95 cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2"
+                  >
+                    {isGeneratingAiVideo ? (
+                      <>
+                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span>{generationProgress}% · Renderowanie wideo...</span>
+                      </>
+                    ) : (
+                      <span>⚡ Generuj wideo AI ({generateCostLabel})</span>
+                    )}
+                  </button>
+
+                  {isGeneratingAiVideo && (
+                    <div className="p-3.5 rounded-xl border border-[var(--accent)] bg-[var(--accent)]/10 space-y-2">
+                      <div className="flex items-center justify-between text-xs font-bold">
+                        <span className="text-[var(--ink-primary)] truncate pr-2">
+                          {generationStage || "Przetwarzanie wideo w silniku AI..."}
+                        </span>
+                        <span className="font-mono text-[var(--accent)]">{generationProgress}%</span>
+                      </div>
+                      <div className="w-full h-2 rounded-full bg-[var(--border-subtle)] overflow-hidden">
+                        <div
+                          className="h-full bg-[var(--accent)] transition-all duration-300 rounded-full"
+                          style={{ width: `${generationProgress}%` }}
+                        />
                       </div>
                     </div>
                   )}
-
-                  <audio
-                    ref={bgmAudioRef}
-                    src={selectedBgm === "lofi" ? "/audio/atelier_lofi.m4a" : "/audio/runway_house.m4a"}
-                    loop
-                    preload="auto"
-                  />
-                  <audio
-                    ref={voiceAudioRef}
-                    src="/audio/voiceover_sample.m4a"
-                    preload="auto"
-                  />
-
-                  {showSafeAreas && <SocialSafeAreaOverlay format="master-3x4" />}
-
-                  {/* Logo Outro */}
-                  {isLogoOutroEnabled && (previewOutroForce || (duration > 0 && currentTime >= Math.max(0, duration - selectedLogo.durationSec))) && (
-                    <div className="absolute inset-0 z-30 bg-black/90 flex flex-col items-center justify-center p-3 transition-all">
-                      <img
-                        src={selectedLogo.gifPath}
-                        alt={selectedLogo.name}
-                        className="max-h-[50%] max-w-[80%] object-contain drop-shadow-xl"
-                      />
-                      <span className="text-[7px] font-mono tracking-widest text-[#9d85ff] uppercase block mt-1">
-                        {selectedLogo.name}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Subtitle */}
-                  {isSubtitlesEnabled && activeSubtitleText && (
-                    <div
-                      className="absolute inset-x-2 z-10 text-center pointer-events-none transition-all duration-150"
-                      style={{ top: `${captionYPercent}%`, transform: "translateY(-50%)" }}
-                    >
-                      <p className={`inline-block leading-tight tracking-wide ${getSubtitleStyleClasses()}`}>
-                        {activeSubtitleText}
-                        {activeSubtitleLine2 && <><br /><span className="opacity-90">{activeSubtitleLine2}</span></>}
-                      </p>
-                    </div>
-                  )}
                 </div>
 
-                {isSubtitlesEnabled && (
-                  <button
-                    type="button"
-                    onClick={() => handleBurnAndDownloadSingleVideo("3:4")}
-                    disabled={isBurningVideo}
-                    className="w-full max-w-[155px] px-2 py-1 rounded-lg text-[10px] font-extrabold bg-[#efecff] dark:bg-[#221b3d] border border-[#7c5cff]/40 text-[#7c5cff] dark:text-[#9d85ff] hover:bg-[#7c5cff] hover:text-white transition-all shadow-xs flex items-center justify-center gap-1 cursor-pointer"
-                    title="Wypala napisy w formacie 3:4 bez DaVinci Resolve"
-                  >
-                    <span>🔥 Wypal 3:4 ({previewLang})</span>
-                  </button>
-                )}
+                {/* Export Card */}
+                <div className="p-6 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-4 shadow-sm">
+                  <div>
+                    <h3 className="text-xs font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
+                      Eksport &amp; Paczka Produkcyjna
+                    </h3>
+                    <p className="text-[11px] text-[var(--ink-muted)] mt-0.5">
+                      Wybierz formaty docelowe do paczki ZIP, pobierz czyste MP4 lub wyeksportuj projekt do DaVinci Resolve.
+                    </p>
+                  </div>
+
+                  {/* Formaty docelowe paczki ZIP */}
+                  <div className="space-y-2 pt-1">
+                    <span className="text-[11px] font-bold text-[var(--ink-secondary)] block">
+                      Formaty w paczce ZIP:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {[
+                        ["3x4", "3:4 · Baza"],
+                        ["9x16", "9:16 · TikTok"],
+                        ["4x5", "4:5 · Feed"],
+                        ["1x1", "1:1 · Kwadrat"],
+                      ].map(([key, label]) => (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => toggleRatio(key)}
+                          className={`px-2.5 py-1 rounded-full text-[11px] font-bold border transition-all cursor-pointer ${
+                            selectedRatios.includes(key)
+                              ? "bg-[var(--accent-soft)] border-[var(--accent)] text-[var(--accent)]"
+                              : "bg-[var(--bg-subtle)] border-[var(--border-subtle)] text-[var(--ink-secondary)]"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2 pt-1">
+                    {videoFile && (
+                      <a
+                        href={videoFile}
+                        download={`${(productId || "sinsay_ai").trim()}_raw.mp4`}
+                        className="w-full px-4 py-2.5 rounded-xl text-xs font-bold border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all text-center cursor-pointer"
+                      >
+                        ⬇ Pobierz surowe MP4 (1 klik)
+                      </a>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={handleQuickExportZip}
+                      disabled={isExportingZip || isBurningVideo}
+                      className="w-full px-4 py-2.5 rounded-xl text-xs font-bold border border-[#7c5cff] bg-[#efecff] dark:bg-[#221b3d] text-[#7c5cff] dark:text-[#9d85ff] hover:bg-[#7c5cff] hover:text-white transition-all cursor-pointer"
+                    >
+                      {isExportingZip || isBurningVideo
+                        ? "Wypalanie & Pakowanie..."
+                        : isSubtitlesEnabled
+                        ? `💾 Pobierz ZIP z wersjami rynkowymi (${selectedTextLangs.length} rynków)`
+                        : "💾 Pobierz paczkę formatów (ZIP)"}
+                    </button>
+
+                    {isSubtitlesEnabled && (
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleBurnAndDownloadSingleVideo("9:16")}
+                          disabled={isBurningVideo}
+                          className="px-3 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#7c5cff] to-[#9d85ff] hover:opacity-95 cursor-pointer"
+                        >
+                          🔥 Wypal 9:16 ({previewLang})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadSrtOnly(previewLang)}
+                          className="px-3 py-2 rounded-xl text-xs font-bold border border-[var(--border-strong)] bg-[var(--bg-subtle)] text-[var(--ink-primary)] hover:border-[#7c5cff] cursor-pointer"
+                        >
+                          📄 Pobierz .SRT ({previewLang})
+                        </button>
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={handleExportDaVinciFCPXML}
+                      className="w-full px-3 py-2 rounded-xl text-xs font-bold border bg-[var(--bg-subtle)] border-[var(--border-strong)] hover:border-[var(--accent)] text-[var(--ink-primary)] cursor-pointer"
+                    >
+                      🎬 Eksportuj oś czasu DaVinci (.fcpxml)
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveStep(3)}
+                  className="px-4 py-2.5 rounded-xl text-xs font-bold border border-[var(--border-strong)] bg-[var(--bg-card)] text-[var(--ink-primary)] hover:border-[var(--accent)] cursor-pointer"
+                >
+                  ← Wstecz: Napisy &amp; Lektor
+                </button>
               </div>
 
-              {/* 2. 9:16 TIKTOK VERTICAL */}
-              <div className="flex flex-col items-center gap-1.5 w-full">
-                <div className="flex items-center justify-between w-full max-w-[155px] px-1 text-[10px] font-bold text-[var(--ink-secondary)]">
-                  <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                    <span className="text-emerald-600 dark:text-emerald-400">9:16 TikTok</span>
-                  </span>
-                  <span className="text-[9px] font-mono text-[var(--ink-muted)]">1080×1920</span>
-                </div>
-
-                <div className="w-full max-w-[155px] aspect-[9/16] rounded-2xl border-2 border-emerald-500 bg-black relative overflow-hidden shadow-xl ring-1 ring-emerald-500/30">
-                  {videoFile ? (
-                    <video
-                      src={videoFile}
-                      loop
-                      muted
-                      playsInline
-                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-150"
-                      style={{
-                        transform: `scale(1.25) translateX(${cropOffset * 0.4}%)`,
-                      }}
-                    />
-                  ) : (
-                    <div
-                      className="absolute inset-0 bg-gradient-to-tr from-[#1a1535] via-[#4f35c2] to-[#7c5cff] transition-transform duration-150"
-                      style={{
-                        transform: `scale(${1.25 + Math.sin(currentTime) * 0.05}) translateX(${cropOffset * 0.4}%)`,
-                      }}
-                    >
-                      <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_50%_40%,#ffeedd_0%,transparent_60%)]" />
-                    </div>
-                  )}
-
-                  {showSafeAreas && <SocialSafeAreaOverlay format="tiktok-9x16" />}
-
-                  {/* Logo Outro */}
-                  {isLogoOutroEnabled && (previewOutroForce || (duration > 0 && currentTime >= Math.max(0, duration - selectedLogo.durationSec))) && (
-                    <div className="absolute inset-0 z-30 bg-black/90 flex flex-col items-center justify-center p-3 transition-all">
-                      <img
-                        src={selectedLogo.gifPath}
-                        alt={selectedLogo.name}
-                        className="max-h-[50%] max-w-[80%] object-contain drop-shadow-xl"
-                      />
-                      <span className="text-[7px] font-mono tracking-widest text-[#9d85ff] uppercase block mt-1">
-                        {selectedLogo.name}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Subtitle */}
-                  {isSubtitlesEnabled && activeSubtitleText && (
-                    <div
-                      className="absolute inset-x-2 z-10 text-center pointer-events-none transition-all duration-150"
-                      style={{ top: `${captionYPercent}%`, transform: "translateY(-50%)" }}
-                    >
-                      <p className={`inline-block leading-tight tracking-wide ${getSubtitleStyleClasses()}`}>
-                        {activeSubtitleText}
-                        {activeSubtitleLine2 && <><br /><span className="opacity-90">{activeSubtitleLine2}</span></>}
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {isSubtitlesEnabled && (
-                  <button
-                    type="button"
-                    onClick={() => handleBurnAndDownloadSingleVideo("9:16")}
-                    disabled={isBurningVideo}
-                    className="w-full max-w-[155px] px-2 py-1 rounded-lg text-[10px] font-extrabold bg-[#efecff] dark:bg-[#221b3d] border border-[#7c5cff]/40 text-[#7c5cff] dark:text-[#9d85ff] hover:bg-[#7c5cff] hover:text-white transition-all shadow-xs flex items-center justify-center gap-1 cursor-pointer"
-                    title="Wypala napisy w pikselach wideo bez DaVinci Resolve"
-                  >
-                    <span>🔥 Wypal 9:16 ({previewLang})</span>
-                  </button>
-                )}
-              </div>
-
-              {/* 3. 4:5 IG FEED SMART CROP */}
-              <div className="flex flex-col items-center gap-1.5 w-full">
-                <div className="flex items-center justify-between w-full max-w-[155px] px-1 text-[10px] font-bold text-[var(--ink-secondary)]">
-                  <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-indigo-500" />
-                    <span className="text-indigo-600 dark:text-indigo-400">4:5 Feed</span>
-                  </span>
-                  <span className="text-[9px] font-mono text-[var(--ink-muted)]">1080×1350</span>
-                </div>
-
-                <div className="w-full max-w-[155px] aspect-[4/5] rounded-2xl border-2 border-indigo-500 bg-black relative overflow-hidden shadow-xl ring-1 ring-indigo-500/30">
-                  {videoFile ? (
-                    <video
-                      src={videoFile}
-                      loop
-                      muted
-                      playsInline
-                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-150"
-                      style={{ transform: `scale(1.1)` }}
-                    />
-                  ) : (
-                    <div
-                      className="absolute inset-0 bg-gradient-to-tr from-[#1a1535] via-[#4f35c2] to-[#7c5cff] transition-transform duration-150"
-                      style={{
-                        transform: `scale(${1.1 + Math.sin(currentTime) * 0.05})`,
-                      }}
-                    >
-                      <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_50%_40%,#ffeedd_0%,transparent_60%)]" />
-                    </div>
-                  )}
-
-                  {showSafeAreas && <SocialSafeAreaOverlay format="feed-4x5" />}
-
-                  {/* Logo Outro */}
-                  {isLogoOutroEnabled && (previewOutroForce || (duration > 0 && currentTime >= Math.max(0, duration - selectedLogo.durationSec))) && (
-                    <div className="absolute inset-0 z-30 bg-black/90 flex flex-col items-center justify-center p-3 transition-all">
-                      <img
-                        src={selectedLogo.gifPath}
-                        alt={selectedLogo.name}
-                        className="max-h-[50%] max-w-[80%] object-contain drop-shadow-xl"
-                      />
-                      <span className="text-[7px] font-mono tracking-widest text-[#9d85ff] uppercase block mt-1">
-                        {selectedLogo.name}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Subtitle */}
-                  {isSubtitlesEnabled && activeSubtitleText && (
-                    <div
-                      className="absolute inset-x-2 z-10 text-center pointer-events-none transition-all duration-150"
-                      style={{ top: `${Math.min(78, captionYPercent + 3)}%`, transform: "translateY(-50%)" }}
-                    >
-                      <p className={`inline-block leading-tight tracking-wide ${getSubtitleStyleClasses()}`}>
-                        {activeSubtitleText}
-                        {activeSubtitleLine2 && <><br /><span className="opacity-90">{activeSubtitleLine2}</span></>}
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {isSubtitlesEnabled && (
-                  <button
-                    type="button"
-                    onClick={() => handleBurnAndDownloadSingleVideo("4:5")}
-                    disabled={isBurningVideo}
-                    className="w-full max-w-[155px] px-2 py-1 rounded-lg text-[10px] font-extrabold bg-[#efecff] dark:bg-[#221b3d] border border-[#7c5cff]/40 text-[#7c5cff] dark:text-[#9d85ff] hover:bg-[#7c5cff] hover:text-white transition-all shadow-xs flex items-center justify-center gap-1 cursor-pointer"
-                    title="Wypala napisy w formacie 4:5 bez DaVinci Resolve"
-                  >
-                    <span>🔥 Wypal 4:5 ({previewLang})</span>
-                  </button>
-                )}
-              </div>
-
-              {/* 4. 1:1 SQUARE PRODUCT */}
-              <div className="flex flex-col items-center gap-1.5 w-full">
-                <div className="flex items-center justify-between w-full max-w-[155px] px-1 text-[10px] font-bold text-[var(--ink-secondary)]">
-                  <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-amber-500" />
-                    <span className="text-amber-600 dark:text-amber-400">1:1 Kwadrat</span>
-                  </span>
-                  <span className="text-[9px] font-mono text-[var(--ink-muted)]">1080×1080</span>
-                </div>
-
-                <div className="w-full max-w-[155px] aspect-square rounded-2xl border-2 border-amber-500 bg-black relative overflow-hidden shadow-xl ring-1 ring-amber-500/30">
-                  {videoFile ? (
-                    <video
-                      src={videoFile}
-                      loop
-                      muted
-                      playsInline
-                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-150"
-                      style={{ transform: `scale(1.05)` }}
-                    />
-                  ) : (
-                    <div
-                      className="absolute inset-0 bg-gradient-to-tr from-[#1a1535] via-[#4f35c2] to-[#7c5cff] transition-transform duration-150"
-                      style={{
-                        transform: `scale(${1 + Math.sin(currentTime) * 0.05})`,
-                      }}
-                    >
-                      <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_50%_40%,#ffeedd_0%,transparent_60%)]" />
-                    </div>
-                  )}
-
-                  {showSafeAreas && <SocialSafeAreaOverlay format="square-1x1" />}
-
-                  {/* Logo Outro */}
-                  {isLogoOutroEnabled && (previewOutroForce || (duration > 0 && currentTime >= Math.max(0, duration - selectedLogo.durationSec))) && (
-                    <div className="absolute inset-0 z-30 bg-black/90 flex flex-col items-center justify-center p-3 transition-all">
-                      <img
-                        src={selectedLogo.gifPath}
-                        alt={selectedLogo.name}
-                        className="max-h-[50%] max-w-[80%] object-contain drop-shadow-xl"
-                      />
-                      <span className="text-[7px] font-mono tracking-widest text-[#9d85ff] uppercase block mt-1">
-                        {selectedLogo.name}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Subtitle */}
-                  {isSubtitlesEnabled && activeSubtitleText && (
-                    <div
-                      className="absolute inset-x-2 z-10 text-center pointer-events-none transition-all duration-150"
-                      style={{ top: `${Math.min(80, captionYPercent + 6)}%`, transform: "translateY(-50%)" }}
-                    >
-                      <p className={`inline-block leading-tight tracking-wide ${getSubtitleStyleClasses()}`}>
-                        {activeSubtitleText}
-                        {activeSubtitleLine2 && <><br /><span className="opacity-90">{activeSubtitleLine2}</span></>}
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {isSubtitlesEnabled && (
-                  <button
-                    type="button"
-                    onClick={() => handleBurnAndDownloadSingleVideo("1:1")}
-                    disabled={isBurningVideo}
-                    className="w-full max-w-[155px] px-2 py-1 rounded-lg text-[10px] font-extrabold bg-[#efecff] dark:bg-[#221b3d] border border-[#7c5cff]/40 text-[#7c5cff] dark:text-[#9d85ff] hover:bg-[#7c5cff] hover:text-white transition-all shadow-xs flex items-center justify-center gap-1 cursor-pointer"
-                    title="Wypala napisy w formacie 1:1 bez DaVinci Resolve"
-                  >
-                    <span>🔥 Wypal 1:1 ({previewLang})</span>
-                  </button>
-                )}
-              </div>
+              {renderPreviewColumn(false)}
             </div>
-
-            {/* Status bar: Active cue text & Timecode */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-3.5 py-2 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-xs">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className={`w-2 h-2 rounded-full ${isSubtitlesEnabled && activeCue ? "bg-emerald-500 animate-pulse" : "bg-zinc-400"}`} />
-                <span className="font-bold text-[var(--ink-secondary)] text-[11px] truncate">
-                  {isSubtitlesEnabled
-                    ? (activeCue ? activeCue.label : "Czysty kadr (brak napisu w tej sekundzie)")
-                    : "Napisy wyłączone"}
-                </span>
+          )}
+        </div>
+      ) : (
+        /* ======================================================== */
+        /* MODE: EDIT / MONTAGE (Mam plik wideo)                     */
+        /* ======================================================== */
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-5 space-y-5">
+            {/* 1. Upload Wideo */}
+            <div className="p-5 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-3 shadow-sm">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xs font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
+                  1. Plik wideo do montażu
+                </h2>
+                {uploadedFileName ? (
+                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400">
+                    ✓ Wczytany plik
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-bold text-[var(--ink-muted)]">MP4 / MOV</span>
+                )}
               </div>
-              {isSubtitlesEnabled && activeSubtitleText ? (
-                <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--accent)] font-sinsay truncate">
-                  <span className="text-[10px] text-[var(--ink-muted)] font-mono font-normal">[{previewLang}]:</span>
-                  <span className="truncate">„{activeSubtitleText}”</span>
+
+              {uploadedFileName ? (
+                <div className="p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 dark:bg-emerald-950/20 space-y-2.5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <span className="text-xs font-extrabold text-[var(--ink-primary)] truncate block">
+                        🎬 {uploadedFileName}
+                      </span>
+                      <div className="flex items-center gap-2 text-[10px] text-[var(--ink-muted)] mt-0.5">
+                        <span>Rozmiar: {uploadedFileSize || "—"}</span>
+                        <span>·</span>
+                        <span>Czas: <b className="text-[var(--accent)]">{duration}s</b></span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1 shrink-0">
+                      <label className="px-2.5 py-1 rounded-lg text-xs font-bold border border-[var(--border-strong)] bg-[var(--bg-card)] hover:border-[var(--accent)] text-[var(--ink-primary)] cursor-pointer">
+                        Zmień ↻
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="video/*"
+                          onChange={handleVideoUpload}
+                          className="hidden"
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleClearVideo}
+                        className="px-2 py-1 rounded-lg text-xs font-bold text-rose-500 hover:bg-rose-500/10 cursor-pointer"
+                        title="Usuń wideo"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
                 </div>
               ) : (
-                <span className="text-[10px] text-[var(--ink-muted)] italic">
-                  Oś czasu: {currentTime.toFixed(1)}s
-                </span>
+                <label className="block border-2 border-dashed border-[#7c5cff]/40 hover:border-[#7c5cff] bg-[var(--bg-subtle)] hover:bg-[#7c5cff]/5 p-6 rounded-2xl text-center cursor-pointer transition-all">
+                  <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-[#efecff] dark:bg-[#221b3d] text-[#7c5cff] grid place-items-center text-xl shadow-xs">
+                    ↑
+                  </div>
+                  <span className="text-xs font-extrabold text-[var(--ink-primary)] block">
+                    Kliknij lub przeciągnij plik wideo tutaj
+                  </span>
+                  <span className="text-[11px] text-[var(--ink-muted)] block mt-1">
+                    Obsługa MP4, MOV. Długość klipu zostanie dopasowana automatycznie.
+                  </span>
+                  <span className="inline-block mt-3 px-3.5 py-1.5 rounded-xl text-xs font-bold text-white bg-[#7c5cff] shadow-xs">
+                    Wybierz wideo z komputera
+                  </span>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="video/*"
+                    onChange={handleVideoUpload}
+                    className="hidden"
+                  />
+                </label>
               )}
+
+              <div className="pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between gap-2">
+                <label className="text-[11px] font-bold text-[var(--ink-secondary)]">
+                  Kod MDK (dla nazwy plików i paczki):
+                </label>
+                <input
+                  type="text"
+                  value={productId}
+                  onChange={(e) => setProductId(e.target.value)}
+                  placeholder="np. 001KR-83X"
+                  className="w-36 px-2.5 py-1 rounded-lg text-xs font-mono font-bold border bg-[var(--bg-subtle)] border-[var(--border-strong)] text-[var(--ink-primary)] text-right"
+                />
+              </div>
             </div>
 
-            {/* Playback Transport Controls */}
-            <div className="flex items-center justify-between gap-4 pt-1">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={togglePlayback}
-                  className="w-10 h-10 rounded-full bg-[#7c5cff] text-white font-extrabold text-sm grid place-items-center shadow-md hover:opacity-95 cursor-pointer"
-                  title={isPlaying ? "Zatrzymaj" : "Odtwórz"}
-                >
-                  {isPlaying ? "❚❚" : "▶"}
-                </button>
-                <div className="text-xs font-mono font-bold text-[var(--ink-primary)]">
-                  {currentTime.toFixed(1)}s / {duration}s
-                </div>
-              </div>
+            {renderFormatsCard()}
+            {renderIntroOutroCards()}
 
-              <div className="flex-1 max-w-md">
+            {/* 4. Napisy */}
+            <div className="p-5 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xs font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
+                  Napisy &amp; Tłumaczenia na osi czasu
+                </h2>
                 <input
-                  type="range"
-                  min={0}
-                  max={duration}
-                  step={0.1}
-                  value={currentTime}
-                  onChange={(e) => {
-                    const time = Number(e.target.value);
-                    setCurrentTime(time);
-                    if (videoRef.current) videoRef.current.currentTime = time;
-                  }}
-                  className="w-full accent-[#7c5cff] cursor-pointer"
+                  type="checkbox"
+                  checked={isSubtitlesEnabled}
+                  onChange={(e) => setIsSubtitlesEnabled(e.target.checked)}
+                  className="w-4 h-4 accent-[#7c5cff] cursor-pointer"
                 />
               </div>
 
-              <div className="text-xs font-bold text-[var(--ink-secondary)]">
-                Fokus kadru: <span className="text-[#7c5cff]">{cropOffset}%</span>
-              </div>
+              {isSubtitlesEnabled && (
+                <div className="pt-2 border-t border-[var(--border-subtle)]">
+                  {renderSubtitlesSection()}
+                </div>
+              )}
             </div>
+
+            {renderAudioVoiceoverCard()}
           </div>
 
-          {/* Szybki panel eksportu na dole podglądu */}
-          <div className="p-5 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-3 shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <h4 className="text-xs font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
-                  Gotowe do publikacji? Pobierz paczkę produkcyjną
-                </h4>
-                <p className="text-[11px] text-[var(--ink-muted)] mt-0.5">
-                  Paczka ZIP zawiera 4 formaty wideo (3:4, 9:16, 4:5, 1:1), manifest i specyfikacje renderu{isSubtitlesEnabled ? " oraz napisy .SRT/.VTT" : ""}.
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2 shrink-0">
-                {isSubtitlesEnabled && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => handleBurnAndDownloadSingleVideo("9:16")}
-                      disabled={isBurningVideo}
-                      className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#7c5cff] to-[#9d85ff] hover:opacity-95 shadow-md flex items-center gap-1.5 cursor-pointer"
-                      title="Wypala napisy w pikselach wideo bezpośrednio w przeglądarce bez DaVinci Resolve"
-                    >
-                      <span>{isBurningVideo ? "Wypalanie..." : `🔥 Wypal wideo 9:16 (${previewLang})`}</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDownloadSrtOnly(previewLang)}
-                      className="px-3.5 py-2 rounded-xl text-xs font-bold border border-[var(--border-strong)] bg-[var(--bg-subtle)] text-[var(--ink-primary)] hover:border-[#7c5cff] hover:text-[#7c5cff] transition-all cursor-pointer"
-                    >
-                      📄 Tylko .SRT ({previewLang})
-                    </button>
-                  </>
-                )}
-                <button
-                  type="button"
-                  onClick={handleQuickExportZip}
-                  disabled={isExportingZip || isBurningVideo}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#7c5cff] shadow-[var(--shadow-pop)] hover:opacity-95 transition-all cursor-pointer"
-                >
-                  {isExportingZip || isBurningVideo
-                    ? "Wypalanie & Pakowanie..."
-                    : isSubtitlesEnabled
-                    ? `💾 Pobierz ZIP z wypalonymi wersjami (${selectedTextLangs.length} rynków)`
-                    : "💾 Pobierz ZIP z 4 formatami"}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Modular Storyboard Grid (Tylko w trybie generatora AI) */}
-          {workspaceMode === "generate" && (
-            <div className="p-6 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-4 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
-                    Storyboard modularny (6 scen)
-                  </h3>
-                  <small className="text-xs text-[var(--ink-muted)]">
-                    Zmieniaj czasówki poszczególnych ujęć przyciskami „−” i „+”, a całkowity czas klipu dostosuje się automatycznie
-                  </small>
-                </div>
-                <span className="text-xs font-bold px-3 py-1 rounded-full bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-[#7c5cff] font-mono">
-                  {duration} s łącznie
-                </span>
-              </div>
-
-              {/* Visual Storyboard Timeline Track */}
-              <div className="space-y-1">
-                <div className="relative w-full h-3 bg-black/30 rounded-full overflow-hidden flex border border-white/10 select-none">
-                  {computedScenes.map((sc, i) => {
-                    const pct = Math.max(5, (sc.durationSec / duration) * 100);
-                    const colors = [
-                      "bg-[#6e1d2f]",
-                      "bg-[#7c5cff]",
-                      "bg-[#8f4f0e]",
-                      "bg-[#10b981]",
-                      "bg-[#1b4353]",
-                      "bg-[#4a1c40]",
-                    ];
-                    return (
-                      <div
-                        key={sc.id}
-                        style={{ width: `${pct}%` }}
-                        className={`h-full ${colors[i % colors.length]} border-r border-black/40 hover:brightness-125 transition-all`}
-                        title={`${sc.name}: ${sc.timeRange} (${sc.durationSec}s)`}
-                      />
-                    );
-                  })}
-                </div>
-                <div className="flex justify-between text-[9px] font-mono text-[var(--ink-muted)] px-0.5">
-                  <span>0.0s (Start)</span>
-                  <span>Oś czasu scen wideo</span>
-                  <span>{duration}s (Koniec)</span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {computedScenes.map((scene, idx) => (
-                  <div
-                    key={scene.id}
-                    className={`p-3.5 rounded-xl border flex flex-col justify-between transition-all ${
-                      activeEditingScene === scene.id
-                        ? "bg-[var(--accent-soft)] border-[var(--accent)] shadow-md"
-                        : "bg-[var(--bg-subtle)] border-[var(--border-subtle)]"
-                    }`}
-                  >
-                    <div>
-                      <div className="flex justify-between items-center text-[10px] font-bold text-[var(--accent)] mb-1">
-                        <span className="truncate pr-1">{scene.name}</span>
-                        <span className="font-mono text-[11px] text-[#7c5cff] font-extrabold whitespace-nowrap">
-                          {scene.timeRange}
-                        </span>
-                      </div>
-
-                      {/* Kontrola czasówki per scena */}
-                      <div className="flex items-center justify-between text-[10px] py-1 px-1.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-subtle)] mb-2">
-                        <span className="font-bold text-[var(--ink-secondary)] text-[9px]">Czas sceny:</span>
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => handleSceneDurationChange(scene.id, scene.durationSec - 0.5)}
-                            className="w-4 h-4 rounded bg-black/10 dark:bg-white/10 text-[10px] font-bold grid place-items-center hover:bg-[#7c5cff] hover:text-white transition-all cursor-pointer"
-                            title="Skróć ujęcie o 0.5s"
-                          >
-                            −
-                          </button>
-                          <span className="font-mono font-extrabold text-[11px] text-[#7c5cff] px-0.5">
-                            {scene.durationSec.toFixed(1)}s
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleSceneDurationChange(scene.id, scene.durationSec + 0.5)}
-                            className="w-4 h-4 rounded bg-black/10 dark:bg-white/10 text-[10px] font-bold grid place-items-center hover:bg-[#7c5cff] hover:text-white transition-all cursor-pointer"
-                            title="Wydłuż ujęcie o 0.5s"
-                          >
-                            +
-                          </button>
-                        </div>
-                      </div>
-
-                      {activeEditingScene === scene.id ? (
-                        <textarea
-                          rows={2}
-                          value={scene.prompt}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setScenes((prev) =>
-                              prev.map((s) => (s.id === scene.id ? { ...s, prompt: val } : s))
-                            );
-                          }}
-                          className="w-full text-xs p-1.5 rounded border border-[var(--border-strong)] bg-[var(--bg-card)] text-[var(--ink-primary)]"
-                        />
-                      ) : (
-                        <p className="text-xs text-[var(--ink-secondary)] line-clamp-2">
-                          {scene.prompt}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="pt-2.5 border-t border-[var(--border-subtle)] mt-2 flex items-center justify-between gap-1.5 flex-wrap">
-                      <div className="flex items-center gap-1">
-                        <span className="text-[9px] font-mono text-[var(--ink-muted)] truncate max-w-[120px]">
-                          PCM: {productId || "001KR"}_{scene.pcmImage.includes("05") ? scene.pcmImage : (idx === 0 ? "050" : idx === 1 ? "051" : idx === 2 ? "052" : idx === 3 ? "051" : "050")}.jpg
-                        </span>
-                        <select
-                          value={scene.pcmImage.includes("05") ? scene.pcmImage : (idx === 0 ? "050" : idx === 1 ? "051" : idx === 2 ? "052" : idx === 3 ? "051" : "050")}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setScenes((prev) =>
-                              prev.map((s) => (s.id === scene.id ? { ...s, pcmImage: val } : s))
-                            );
-                          }}
-                          className="text-[9px] px-1 py-0.5 rounded bg-[var(--bg-subtle)] border border-[var(--border-subtle)] text-[var(--ink-primary)] cursor-pointer"
-                          title="Wybierz ujęcie packshotu PCM"
-                        >
-                          <option value="050">050 Przód</option>
-                          <option value="051">051 Sylwetka</option>
-                          <option value="052">052 Detal tkaniny</option>
-                          <option value="053">053 Tył</option>
-                        </select>
-                      </div>
-                      <div className="flex gap-1">
-                        <button
-                          onClick={() =>
-                            setActiveEditingScene(
-                              activeEditingScene === scene.id ? null : scene.id
-                            )
-                          }
-                          className="px-2 py-0.5 rounded text-[10px] font-bold border bg-[var(--bg-card)] hover:border-[var(--accent)] text-[var(--ink-primary)] cursor-pointer"
-                        >
-                          {activeEditingScene === scene.id ? "Zapisz" : "Edytuj"}
-                        </button>
-                        <button
-                          onClick={() =>
-                            showToast(
-                              `Przelosowano Scenę ${scene.name.split(" ")[0]} w silniku Seedance 2.5 Pro.`
-                            )
-                          }
-                          className="px-2 py-0.5 rounded text-[10px] font-bold border bg-[var(--bg-card)] hover:border-[var(--accent)] text-[var(--accent)] cursor-pointer"
-                          title="Przelosuj ujęcie"
-                        >
-                          ↻
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {renderPreviewColumn(true)}
         </div>
-      </div>
+      )}
 
       {/* Wypalanie Napisów Progress Modal */}
       {isBurningVideo && (
@@ -3399,6 +3916,17 @@ ${titleNodes}
         onSelectConfig={(cfg) => {
           setSelectedLogo(cfg);
           showToast(`Ustawiono logo: ${cfg.name}`);
+        }}
+      />
+
+      {/* Animated Sinsay Intro Logo Modal */}
+      <AnimatedLogoModal
+        isOpen={isIntroModalOpen}
+        onClose={() => setIsIntroModalOpen(false)}
+        selectedConfig={selectedIntroLogo}
+        onSelectConfig={(cfg) => {
+          setSelectedIntroLogo(cfg);
+          showToast(`Ustawiono intro: ${cfg.name}`);
         }}
       />
     </div>

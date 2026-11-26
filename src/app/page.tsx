@@ -9,11 +9,11 @@ import { LocalizationView } from "@/components/LocalizationView";
 import BatchProductionView from "@/components/BatchProductionView";
 import ExportView from "@/components/ExportView";
 import IntegrationsView from "@/components/IntegrationsView";
-import SharePointSyncBar from "@/components/SharePointSyncBar";
 import { loadStoredAssets } from "@/lib/brandStorage";
 
 export type ViewTab =
   | "single"
+  | "montage"
   | "batch"
   | "post"
   | "assets"
@@ -45,7 +45,7 @@ export default function SiMotionApp() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Studio TikTok state
-  const [productId, setProductId] = useState("001KR-83X");
+  const [productId, setProductId] = useState("");
   const [studioVideoUrl, setStudioVideoUrl] = useState<string | null>(null);
   const [aiEngine, setAiEngine] = useState<"seedance" | "higgsfield">("seedance");
   const [genMode, setGenMode] = useState<"storyboard" | "single">("storyboard");
@@ -234,12 +234,11 @@ export default function SiMotionApp() {
             <nav className="flex items-center gap-1 p-1 rounded-full bg-[var(--bg-elevated)] border border-[var(--border-subtle)] shadow-xs">
               {(
                 [
-                  ["single", "Studio Wideo"],
+                  ["single", "Generator AI"],
+                  ["montage", "Montaż wideo"],
                   ["batch", "Batch"],
                   ["static", "Grafiki"],
                   ["assets", "Materiały"],
-                  ["local", "Tłumaczenia"],
-                  ["export", "Eksport"],
                 ] as const
               ).map(([key, label]) => (
                 <button
@@ -259,11 +258,6 @@ export default function SiMotionApp() {
 
           {/* Actions & Theme toggle */}
           <div className="flex items-center gap-2 shrink-0">
-            <SharePointSyncBar
-              onSyncComplete={(data) => {
-                // optional live notification
-              }}
-            />
             <button
               onClick={toggleTheme}
               className="px-2.5 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 bg-[var(--bg-card)] border-[var(--border-subtle)] hover:border-[var(--accent)] transition-colors text-[var(--ink-primary)]"
@@ -288,16 +282,29 @@ export default function SiMotionApp() {
 
       {/* MAIN CONTAINER */}
       <main className="w-full max-w-[1600px] mx-auto p-6 md:p-8 flex-1">
-        {/* VIEW 1: STUDIO TIKTOK */}
+        {/* VIEW 1: GENERATOR AI (4-KROKOWY KREATOR) */}
         {activeTab === "single" && (
           <StudioTikTokView
             productId={productId}
             setProductId={setProductId}
             showToast={showToast}
-            onProceedToPost={() => setActiveTab("export")}
             initialVideoUrl={studioVideoUrl}
             onVideoReady={setStudioVideoUrl}
             externalCaptions={studioCaptionsOverride}
+            lockedMode="generate"
+          />
+        )}
+
+        {/* VIEW 2: MONTAŻ WIDEO (GOTOWY PLIK MP4/MOV) */}
+        {activeTab === "montage" && (
+          <StudioTikTokView
+            productId={productId}
+            setProductId={setProductId}
+            showToast={showToast}
+            initialVideoUrl={studioVideoUrl}
+            onVideoReady={setStudioVideoUrl}
+            externalCaptions={studioCaptionsOverride}
+            lockedMode="edit"
           />
         )}
 
