@@ -147,3 +147,10 @@ gcloud run deploy simotion `
 ### ElevenLabs (opcjonalnie)
 
 Bez klucza endpoint `/api/tts` działa w trybie symulacji. Klucz podpina się analogicznie: `--update-secrets "ELEVENLABS_API_KEY=<sekret>:latest"` — nigdy w kodzie ani w obrazie.
+
+### Bezpieczeństwo
+
+- **SheetJS (`xlsx`) 0.20.3** jest dołączony do repozytorium jako `vendor/xlsx-0.20.3.tgz` (pobrany z oficjalnego serwera producenta `cdn.sheetjs.com`). Rejestr npm zawiera tylko przestarzałą wersję 0.18.5 z podatnościami (prototype pollution, ReDoS). Build nie łączy się z serwerem SheetJS; integralność pliku sprawdza `package-lock.json`. Aktualizacja: pobrać nowy plik `.tgz` z `cdn.sheetjs.com`, podmienić w `vendor/` i wykonać `npm install xlsx@file:vendor/<plik>.tgz`.
+- **`@google-cloud/storage` 9** (wymaga Node ≥ 22; obraz używa Node 24).
+- **Nagłówki bezpieczeństwa** (`next.config.ts`): Content-Security-Policy dopuszczająca zasoby wyłącznie z własnej domeny (plus `blob:`/`data:` dla podglądu i eksportu), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Strict-Transport-Security`, `Permissions-Policy` (bez kamery, mikrofonu i lokalizacji). Każde nowe połączenie przeglądarki z obcą domeną trzeba dopisać do CSP.
+- Kontrola: `npm audit --omit=dev` powinien zwracać 0 podatności.

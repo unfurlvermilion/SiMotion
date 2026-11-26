@@ -8,6 +8,8 @@ ARG NODE_IMAGE=node:24-slim
 FROM ${NODE_IMAGE} AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
+# Lokalne paczki (np. SheetJS xlsx z cdn.sheetjs.com) wskazane w package.json jako file:vendor/...
+COPY vendor ./vendor
 RUN npm ci --no-audit --no-fund
 
 # ---------- 2. Build ----------

@@ -107,6 +107,14 @@ function seedanceKey(): string {
   return (process.env.SEEDANCE_API_KEY || "").trim();
 }
 
+function gcsHttpStatus(err: any): number | null {
+  for (const candidate of [err?.code, err?.status, err?.response?.status]) {
+    const status = Number(candidate);
+    if (Number.isInteger(status) && status >= 100 && status <= 599) return status;
+  }
+  return null;
+}
+
 let storageClient: Storage | null = null;
 function videoBucketFile(taskId: string): GcsFile | null {
   if (!VIDEO_BUCKET) return null;
@@ -251,8 +259,9 @@ async function archiveVideo(file: GcsFile, sourceUrl: string, task: ArkTask): Pr
         })
       );
     } catch (err: any) {
-      // 412 = obiekt zapisał już równoległy request — wynik jest poprawny
-      if (err?.code !== 412) throw err;
+      // 412 = obiekt zapisał już równoległy request — wynik jest poprawny.
+      // @google-cloud/storage 9 zgłasza kod jako liczbę lub tekst, w polu code, status albo response.status.
+      if (gcsHttpStatus(err) !== 412) throw err;
     }
   })();
 
@@ -277,7 +286,7 @@ async function readArchivedMetadata(
       tokens: Number.isFinite(tokens as number) ? tokens : null,
     };
   } catch (err: any) {
-    if (err?.code === 404) return null;
+    if (gcsHttpStatus(err) === 404) return null;
     throw err;
   }
 }
