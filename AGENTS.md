@@ -17,3 +17,13 @@
 - **Product Fidelity ("Produkt jest święty")**: Garment, cut, colors, prints, and texture from reference packshots (PSH) must remain accurate and faithful.
 - **AI Prompts**: Always generate prompts in English, formatted in clean ready-to-copy blocks, with clear aspect ratios (e.g. 9:16 vertical, 3:4), lighting and camera details.
 - **Production Workflows**: Maintain robust batch queues, CSV ingestion (MDK, AI instructions), and side-by-side review standards.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+## This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->
