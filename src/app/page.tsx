@@ -47,7 +47,6 @@ export default function SiMotionApp() {
   // Studio TikTok state
   const [productId, setProductId] = useState("");
   const [studioVideoUrl, setStudioVideoUrl] = useState<string | null>(null);
-  const [aiEngine, setAiEngine] = useState<"seedance" | "higgsfield">("seedance");
   const [genMode, setGenMode] = useState<"storyboard" | "single">("storyboard");
   const [template, setTemplate] = useState("TikTok try-on · 6 scen");
   const [prompt, setPrompt] = useState(
@@ -185,7 +184,7 @@ export default function SiMotionApp() {
   };
 
   // Calculations for Single
-  const ratePerSec = aiEngine === "seedance" ? 0.22 : 0.26;
+  const ratePerSec = 0.22;
   const renderMultiplier = separateRender ? Math.max(1, selectedRatios.length) : 1;
   const videoCost = duration * ratePerSec * renderMultiplier;
   const ttsCost = (isDubEnabled ? selectedDubLangs.length : 0) * 0.3;
@@ -236,7 +235,6 @@ export default function SiMotionApp() {
                 [
                   ["single", "Generator AI"],
                   ["montage", "Montaż wideo"],
-                  ["batch", "Batch"],
                   ["static", "Grafiki"],
                   ["assets", "Materiały"],
                 ] as const
@@ -394,10 +392,10 @@ export default function SiMotionApp() {
                 </div>
                 <div>
                   <h3 className="font-sinsay font-extrabold text-sm text-[var(--ink-primary)]">
-                    Ustawienia Aplikacji &amp; Integracje API
+                    Status połączeń &amp; Silniki AI
                   </h3>
                   <p className="text-[11px] text-[var(--ink-muted)]">
-                    Klucze API wideo (Seedance / Higgsfield), ElevenLabs, PCM oraz SharePoint
+                    Seedance 2.5 / 2.0, ElevenLabs oraz PCM LPP (konfiguracja serwerowa)
                   </p>
                 </div>
               </div>

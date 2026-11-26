@@ -2464,14 +2464,19 @@ ${titleNodes}
     );
   };
 
-  const renderPreviewColumn = (showBottomQuickExport: boolean) => (
+  const renderPreviewColumn = (showBottomQuickExport: boolean, showPerFrameBurnButtons = true) => (
     <div className="lg:col-span-7 space-y-5 lg:sticky lg:top-20 self-start">
       <div className="p-5 sm:p-6 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] shadow-sm space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <h3 className="text-xs font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
               Podgląd kadrów (3:4 Master → 9:16 TikTok, 4:5, 1:1)
             </h3>
+            {workspaceMode === "generate" && (
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-[var(--accent)]/15 border border-[var(--accent)]/40 text-[#9d85ff]">
+                Proporcje AI: {genAspectRatio}
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -2593,7 +2598,7 @@ ${titleNodes}
               )}
             </div>
 
-            {isSubtitlesEnabled && (
+            {showPerFrameBurnButtons && isSubtitlesEnabled && (
               <button
                 type="button"
                 onClick={() => handleBurnAndDownloadSingleVideo("3:4")}
@@ -2655,7 +2660,7 @@ ${titleNodes}
               )}
             </div>
 
-            {isSubtitlesEnabled && (
+            {showPerFrameBurnButtons && isSubtitlesEnabled && (
               <button
                 type="button"
                 onClick={() => handleBurnAndDownloadSingleVideo("9:16")}
@@ -2715,7 +2720,7 @@ ${titleNodes}
               )}
             </div>
 
-            {isSubtitlesEnabled && (
+            {showPerFrameBurnButtons && isSubtitlesEnabled && (
               <button
                 type="button"
                 onClick={() => handleBurnAndDownloadSingleVideo("4:5")}
@@ -2775,7 +2780,7 @@ ${titleNodes}
               )}
             </div>
 
-            {isSubtitlesEnabled && (
+            {showPerFrameBurnButtons && isSubtitlesEnabled && (
               <button
                 type="button"
                 onClick={() => handleBurnAndDownloadSingleVideo("1:1")}
@@ -3563,7 +3568,7 @@ ${titleNodes}
                 </div>
               </div>
 
-              {renderPreviewColumn(false)}
+              {renderPreviewColumn(false, false)}
             </div>
           )}
 
@@ -3746,7 +3751,7 @@ ${titleNodes}
                 </button>
               </div>
 
-              {renderPreviewColumn(false)}
+              {renderPreviewColumn(false, true)}
             </div>
           )}
         </div>
