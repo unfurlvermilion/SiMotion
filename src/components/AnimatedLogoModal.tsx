@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { isVideoLogoSrc, loadCustomMediaAssets } from "@/lib/brandStorage";
 
 export interface LogoAnimationVariant {
   id: string;
@@ -110,12 +111,40 @@ export default function AnimatedLogoModal({
   const [activeVariantId, setActiveVariantId] = useState<string>(selectedConfig.variantId || "outro_all");
   const [colorScheme, setColorScheme] = useState<"white" | "black">(selectedConfig.colorScheme || "white");
   const [filterType, setFilterType] = useState<"all" | "outro" | "intro" | "accent">("all");
+  const [customVariants, setCustomVariants] = useState<LogoAnimationVariant[]>([]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setActiveVariantId(selectedConfig.variantId || "outro_all");
+    setColorScheme(selectedConfig.colorScheme || "white");
+    loadCustomMediaAssets("logo_anim")
+      .then((items) => {
+        const mapped: LogoAnimationVariant[] = items.map((item) => {
+          const src = item.url || item.dataUrl || "";
+          return {
+            id: item.id,
+            name: `${item.name} (Własne)`,
+            desc: "Własna animacja wgrana w zakładce Materiały.",
+            fileBlack: src,
+            fileWhite: src,
+            gifBlack: src,
+            gifWhite: src,
+            durationSec: item.durationSec || 2.0,
+            type: "outro",
+          };
+        });
+        setCustomVariants(mapped);
+      })
+      .catch(() => {});
+  }, [isOpen, selectedConfig.variantId, selectedConfig.colorScheme]);
 
   if (!isOpen) return null;
 
+  const allVariants = [...LOGO_VARIANTS, ...customVariants];
   const currentVariant =
-    LOGO_VARIANTS.find((v) => v.id === activeVariantId) || LOGO_VARIANTS[0];
+    allVariants.find((v) => v.id === activeVariantId) || LOGO_VARIANTS[0];
 
+  const isCustomVariant = currentVariant.id.startsWith("logoanim-");
   const currentFilePath =
     colorScheme === "white" ? currentVariant.fileWhite : currentVariant.fileBlack;
 
@@ -129,13 +158,16 @@ export default function AnimatedLogoModal({
       filePath: currentFilePath,
       gifPath: currentGifPath,
       durationSec: currentVariant.durationSec,
-      name: `${currentVariant.name} (${colorScheme === "white" ? "Białe" : "Czarne"})`,
+      name: isCustomVariant
+        ? currentVariant.name
+        : `${currentVariant.name} (${colorScheme === "white" ? "Białe" : "Czarne"})`,
     });
     onClose();
   };
 
-  const filteredVariants = LOGO_VARIANTS.filter((v) => {
+  const filteredVariants = allVariants.filter((v) => {
     if (filterType === "all") return true;
+    if (v.id.startsWith("logoanim-")) return true;
     return v.type === filterType;
   });
 
@@ -248,15 +280,26 @@ export default function AnimatedLogoModal({
                   <div className="flex items-center gap-3">
                     {/* Real Animation Thumbnail */}
                     <div
-                      className={`w-14 h-12 rounded-lg grid place-items-center p-1 shrink-0 border border-white/10 ${
+                      className={`w-14 h-12 rounded-lg grid place-items-center p-1 shrink-0 border border-white/10 overflow-hidden ${
                         colorScheme === "white" ? "bg-black/60" : "bg-neutral-200"
                       }`}
                     >
-                      <img
-                        src={variantThumb}
-                        alt={v.name}
-                        className="max-h-full max-w-full object-contain"
-                      />
+                      {isVideoLogoSrc(variantThumb) ? (
+                        <video
+                          src={variantThumb}
+                          autoPlay
+                          loop
+                          muted
+                          playsInline
+                          className="max-h-full max-w-full object-contain"
+                        />
+                      ) : (
+                        <img
+                          src={variantThumb}
+                          alt={v.name}
+                          className="max-h-full max-w-full object-contain"
+                        />
+                      )}
                     </div>
 
                     <div className="space-y-0.5">
@@ -311,14 +354,26 @@ export default function AnimatedLogoModal({
                 {/* Simulated Fashion background video backdrop */}
                 <div className="absolute inset-0 opacity-20 bg-gradient-to-t from-black via-transparent to-black" />
 
-                {/* Real Animated Logo representation from After Effects */}
+                {/* Real Animated Logo representation */}
                 <div className="relative z-10 flex flex-col items-center justify-center p-3 text-center">
-                  <img
-                    key={`${currentVariant.id}-${colorScheme}`}
-                    src={currentGifPath}
-                    alt={currentVariant.name}
-                    className="max-h-[110px] max-w-[85%] object-contain drop-shadow-md"
-                  />
+                  {isVideoLogoSrc(currentGifPath) ? (
+                    <video
+                      key={`${currentVariant.id}-${colorScheme}`}
+                      src={currentGifPath}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      className="max-h-[110px] max-w-[85%] object-contain drop-shadow-md"
+                    />
+                  ) : (
+                    <img
+                      key={`${currentVariant.id}-${colorScheme}`}
+                      src={currentGifPath}
+                      alt={currentVariant.name}
+                      className="max-h-[110px] max-w-[85%] object-contain drop-shadow-md"
+                    />
+                  )}
                   <span
                     className={`text-[9px] font-mono tracking-widest uppercase block mt-3 px-2 py-0.5 rounded-full ${
                       colorScheme === "white" ? "text-white/80 bg-white/10" : "text-black/80 bg-black/10"

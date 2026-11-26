@@ -7,6 +7,7 @@ import {
   BUILTIN_BGM_TRACKS,
   StoredAsset,
   StoredLogoConfig,
+  clearDefaultLogoConfig,
   saveStoredAsset,
   deleteStoredAsset,
   fileToDataUrl,
@@ -778,6 +779,14 @@ export const BrandKitView: React.FC<BrandKitViewProps> = ({
                       onClick={async () => {
                         await deleteStoredAsset(anim.id);
                         setCustomLogoAnims((prev) => prev.filter((item) => item.id !== anim.id));
+                        if (defaultIntroId === anim.id) {
+                          clearDefaultLogoConfig("intro");
+                          setDefaultIntroId(null);
+                        }
+                        if (defaultOutroId === anim.id) {
+                          clearDefaultLogoConfig("outro");
+                          setDefaultOutroId(null);
+                        }
                         showToast(`Usunięto własną animację: ${anim.name}`);
                       }}
                       className="text-xs text-rose-400 hover:text-rose-300 cursor-pointer"

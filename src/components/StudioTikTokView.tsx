@@ -1731,6 +1731,28 @@ ${titleNodes}
     showToast("Usunięto wczytane wideo. Wyświetlam podgląd referencyjny.");
   };
 
+  const handleDownloadRawMp4 = async () => {
+    if (!videoFile) return;
+    const filename = `Sinsay_${safeSku}_raw.mp4`;
+    try {
+      const res = await fetch(videoFile);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const objUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(objUrl);
+      showToast(`✓ Pobrano surowe wideo: ${filename}`);
+    } catch {
+      window.open(videoFile, "_blank", "noopener,noreferrer");
+      showToast("Otwarto wideo w nowej karcie — zapisz plik (Cmd+S / prawy przycisk).");
+    }
+  };
+
   const handleVideoLoadedMetadata = (e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
     const vid = e.currentTarget;
     if (workspaceMode === "edit" && vid.duration && !isNaN(vid.duration) && isFinite(vid.duration)) {
@@ -3962,13 +3984,13 @@ ${titleNodes}
                   <div className="flex flex-col gap-2 pt-1">
                     {videoFile && (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <a
-                          href={videoFile}
-                          download={`Sinsay_${safeSku}_raw.mp4`}
+                        <button
+                          type="button"
+                          onClick={handleDownloadRawMp4}
                           className="w-full px-3 py-2.5 rounded-xl text-xs font-bold border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all text-center cursor-pointer"
                         >
                           ⬇ Surowe MP4 ({genAspectRatio === "4:5" ? "baza 3:4" : genAspectRatio})
-                        </a>
+                        </button>
                         <button
                           type="button"
                           onClick={() => handleBurnAndDownloadSingleVideo("4:5", !isSubtitlesEnabled)}

@@ -71,10 +71,25 @@ export const StaticGraphicsView: React.FC<StaticGraphicsViewProps> = ({
     subline: "Odkryj swój styl",
   };
 
+  const uploadedImageUrlRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (uploadedImageUrlRef.current) {
+        URL.revokeObjectURL(uploadedImageUrlRef.current);
+        uploadedImageUrlRef.current = null;
+      }
+    };
+  }, []);
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (uploadedImageUrlRef.current) {
+        URL.revokeObjectURL(uploadedImageUrlRef.current);
+      }
       const url = URL.createObjectURL(file);
+      uploadedImageUrlRef.current = url;
       setUploadedImage(url);
       const img = new Image();
       img.onload = () => {
@@ -83,9 +98,14 @@ export const StaticGraphicsView: React.FC<StaticGraphicsViewProps> = ({
       img.src = url;
       showToast(`Wczytano zdjęcie: ${file.name}`);
     }
+    e.target.value = "";
   };
 
   const handleRemoveImage = () => {
+    if (uploadedImageUrlRef.current) {
+      URL.revokeObjectURL(uploadedImageUrlRef.current);
+      uploadedImageUrlRef.current = null;
+    }
     setUploadedImage(null);
     setOriginalDimensions(null);
     showToast("Usunięto zdjęcie. Aktywne tło gradientowe.");
@@ -112,6 +132,18 @@ export const StaticGraphicsView: React.FC<StaticGraphicsViewProps> = ({
     newTexts["ENG"] = { headline: enText, subline: "New Collection, your way · Sinsay" };
     newTexts["en-US"] = { headline: enText, subline: "New Collection, your way · Sinsay" };
 
+    const MARKET_SUBLINES: Record<string, string> = {
+      PL: "Sinsay · Nowości",
+      DE: "Sinsay · Neu",
+      RO: "Sinsay · Noutăți",
+      CZ: "Sinsay · Novinky",
+      SK: "Sinsay · Novinky",
+      HU: "Sinsay · Újdonság",
+      IT: "Sinsay · Novità",
+      ES: "Sinsay · Novedades",
+      FR: "Sinsay · Nouveautés",
+    };
+
     // All available translations
     if (item.translations) {
       Object.entries(item.translations).forEach(([mCode, translatedText]) => {
@@ -119,7 +151,7 @@ export const StaticGraphicsView: React.FC<StaticGraphicsViewProps> = ({
           const repaired = repairMultilingualText(translatedText, mCode);
           newTexts[mCode] = {
             headline: (repaired && !repaired.includes("?")) ? repaired : enText,
-            subline: "Sinsay · Nowości",
+            subline: MARKET_SUBLINES[mCode.toUpperCase()] || "Sinsay · New In",
           };
         }
       });
@@ -144,7 +176,8 @@ export const StaticGraphicsView: React.FC<StaticGraphicsViewProps> = ({
     canvas: HTMLCanvasElement,
     imgObj: HTMLImageElement | null,
     headline: string,
-    subline: string
+    subline: string,
+    badgeImgObj: HTMLImageElement | null = null
   ) => {
     const { width, height } = getCanvasDimensions();
     canvas.width = width;
@@ -295,54 +328,77 @@ export const StaticGraphicsView: React.FC<StaticGraphicsViewProps> = ({
     ctx.font = `500 ${sSize}px "Euclid Circular B", -apple-system, sans-serif`;
     ctx.fillText(subline, alignX, currentCursorY);
 
-    // 7. Draw Badge (if active from brand kit)
+    // 7. Draw Badge or PNG/SVG Overlay (if active from brand kit)
     if (activeAsset) {
-      const badgeW = Math.round(width * 0.22);
-      const badgeH = Math.round(badgeW * 0.36);
-      const badgeX = width - badgeW - paddingX;
-      const badgeY = paddingX;
+      if (activeAsset.type === "image" && badgeImgObj && badgeImgObj.naturalWidth > 0) {
+        const maxW = Math.round(width * 0.28);
+        const maxH = Math.round(height * 0.14);
+        const imgAspect = badgeImgObj.naturalWidth / badgeImgObj.naturalHeight;
+        let dw = maxW;
+        let dh = dw / imgAspect;
+        if (dh > maxH) {
+          dh = maxH;
+          dw = dh * imgAspect;
+        }
+        const bx = width - dw - paddingX;
+        const by = paddingX;
+        ctx.save();
+        ctx.shadowColor = "rgba(0,0,0,0.35)";
+        ctx.shadowBlur = 10;
+        ctx.drawImage(badgeImgObj, bx, by, dw, dh);
+        ctx.restore();
+      } else {
+        const badgeW = Math.round(width * 0.22);
+        const badgeH = Math.round(badgeW * 0.36);
+        const badgeX = width - badgeW - paddingX;
+        const badgeY = paddingX;
 
-      ctx.save();
-      ctx.fillStyle = "#6e1d2f";
-      ctx.shadowColor = "rgba(0,0,0,0.4)";
-      ctx.shadowBlur = 10;
-      ctx.beginPath();
-      ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 12);
-      ctx.fill();
+        ctx.save();
+        ctx.fillStyle = "#6e1d2f";
+        ctx.shadowColor = "rgba(0,0,0,0.4)";
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 12);
+        ctx.fill();
 
-      ctx.fillStyle = "#ffffff";
-      ctx.font = `700 ${Math.round(badgeH * 0.45)}px "Euclid Circular B", sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(activeAsset.text || "NOWOŚĆ", badgeX + badgeW / 2, badgeY + badgeH / 2);
-      ctx.restore();
+        ctx.fillStyle = "#ffffff";
+        ctx.font = `700 ${Math.round(badgeH * 0.45)}px "Euclid Circular B", sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(activeAsset.text || activeAsset.name || "NOWOŚĆ", badgeX + badgeW / 2, badgeY + badgeH / 2);
+        ctx.restore();
+      }
     }
   };
 
+  const loadImageElement = (src?: string | null): Promise<HTMLImageElement | null> =>
+    new Promise((resolve) => {
+      if (!src) return resolve(null);
+      const image = new Image();
+      image.crossOrigin = "anonymous";
+      image.onload = () => resolve(image);
+      image.onerror = () => resolve(null);
+      image.src = src;
+    });
+
   // Export single PNG for active language
-  const exportPNG = () => {
+  const exportPNG = async () => {
     const canvas = document.createElement("canvas");
     const { width, height } = getCanvasDimensions();
 
-    const doExport = (img: HTMLImageElement | null) => {
-      renderCanvasFrame(canvas, img, activeCopy.headline, activeCopy.subline);
-      const link = document.createElement("a");
-      const langCode = activeStaticLang.split("-")[0].toUpperCase();
-      const ratioLabel = staticRatio === "original" ? "oryginal" : staticRatio.replace(":", "x");
-      link.download = `Sinsay_Grafika_${langCode}_${ratioLabel}.png`;
-      link.href = canvas.toDataURL("image/png");
-      link.click();
-      showToast(`Wygenerowano i pobrano plik PNG (${width}×${height}px) dla: ${langCode}.`);
-    };
+    const [img, badgeImg] = await Promise.all([
+      loadImageElement(uploadedImage),
+      activeAsset?.type === "image" ? loadImageElement(activeAsset.url) : Promise.resolve(null),
+    ]);
 
-    if (uploadedImage) {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => doExport(img);
-      img.src = uploadedImage;
-    } else {
-      doExport(null);
-    }
+    renderCanvasFrame(canvas, img, activeCopy.headline, activeCopy.subline, badgeImg);
+    const link = document.createElement("a");
+    const langCode = activeStaticLang.split("-")[0].toUpperCase();
+    const ratioLabel = staticRatio === "original" ? "oryginal" : staticRatio.replace(":", "x");
+    link.download = `Sinsay_Grafika_${langCode}_${ratioLabel}.png`;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+    showToast(`Wygenerowano i pobrano plik PNG (${width}×${height}px) dla: ${langCode}.`);
   };
 
   // Export ZIP Package with all selected languages
@@ -359,22 +415,18 @@ export const StaticGraphicsView: React.FC<StaticGraphicsViewProps> = ({
       const zip = new JSZip();
       const canvas = document.createElement("canvas");
 
-      // Load image once if present
-      const img: HTMLImageElement | null = await new Promise((resolve) => {
-        if (!uploadedImage) return resolve(null);
-        const image = new Image();
-        image.crossOrigin = "anonymous";
-        image.onload = () => resolve(image);
-        image.onerror = () => resolve(null);
-        image.src = uploadedImage;
-      });
+      // Load main photo and optional PNG/SVG badge once
+      const [img, badgeImg] = await Promise.all([
+        loadImageElement(uploadedImage),
+        activeAsset?.type === "image" ? loadImageElement(activeAsset.url) : Promise.resolve(null),
+      ]);
 
       const ratioLabel = staticRatio === "original" ? "oryginal" : staticRatio.replace(":", "x");
 
       // Render each selected market to canvas and add to ZIP
       for (const mCode of selectedMarkets) {
         const copy = staticTexts[mCode] || staticTexts[`${mCode.toLowerCase()}-${mCode}`] || activeCopy;
-        renderCanvasFrame(canvas, img, copy.headline, copy.subline);
+        renderCanvasFrame(canvas, img, copy.headline, copy.subline, badgeImg);
 
         const blob: Blob | null = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
         if (blob) {

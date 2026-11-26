@@ -49,6 +49,13 @@ export function saveDefaultLogoConfig(slot: "intro" | "outro", config: StoredLog
   }
 }
 
+export function clearDefaultLogoConfig(slot: "intro" | "outro"): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(slot === "intro" ? DEFAULT_INTRO_KEY : DEFAULT_OUTRO_KEY);
+  } catch {}
+}
+
 export function loadDefaultLogoConfig(slot: "intro" | "outro"): StoredLogoConfig | null {
   if (typeof window === "undefined") return null;
   try {
