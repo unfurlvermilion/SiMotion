@@ -282,8 +282,8 @@ export default function SiMotionApp() {
 
       {/* MAIN CONTAINER */}
       <main className="w-full max-w-[1600px] mx-auto p-6 md:p-8 flex-1">
-        {/* VIEW 1: GENERATOR AI (4-KROKOWY KREATOR) */}
-        {activeTab === "single" && (
+        {/* VIEW 1: GENERATOR AI (4-KROKOWY KREATOR — utrzymywany w pamięci, aby nie gubić renderu) */}
+        <div className={activeTab === "single" ? "block" : "hidden"}>
           <StudioTikTokView
             productId={productId}
             setProductId={setProductId}
@@ -292,11 +292,12 @@ export default function SiMotionApp() {
             onVideoReady={setStudioVideoUrl}
             externalCaptions={studioCaptionsOverride}
             lockedMode="generate"
+            isActive={activeTab === "single"}
           />
-        )}
+        </div>
 
         {/* VIEW 2: MONTAŻ WIDEO (GOTOWY PLIK MP4/MOV) */}
-        {activeTab === "montage" && (
+        <div className={activeTab === "montage" ? "block" : "hidden"}>
           <StudioTikTokView
             productId={productId}
             setProductId={setProductId}
@@ -305,8 +306,9 @@ export default function SiMotionApp() {
             onVideoReady={setStudioVideoUrl}
             externalCaptions={studioCaptionsOverride}
             lockedMode="edit"
+            isActive={activeTab === "montage"}
           />
-        )}
+        </div>
 
         {/* VIEW 3: PRODUKCJA BATCHOWA */}
         {activeTab === "batch" && <BatchProductionView />}

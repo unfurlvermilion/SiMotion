@@ -27,14 +27,26 @@ export const BUILTIN_BGM_TRACKS = [
   { id: "lofi", name: "Atelier Lo-Fi Beats (98 BPM)", src: "/audio/atelier_lofi.m4a", durationHint: "Spokojny" },
 ] as const;
 
+export function isVideoLogoSrc(src?: string | null): boolean {
+  if (!src) return false;
+  const lower = src.toLowerCase();
+  return lower.startsWith("data:video/") || /\.(mp4|mov|webm)(\?|$)/i.test(lower);
+}
+
 const DEFAULT_INTRO_KEY = "simotion_default_intro";
 const DEFAULT_OUTRO_KEY = "simotion_default_outro";
 
 export function saveDefaultLogoConfig(slot: "intro" | "outro", config: StoredLogoConfig): void {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(slot === "intro" ? DEFAULT_INTRO_KEY : DEFAULT_OUTRO_KEY, JSON.stringify(config));
-  } catch {}
+    // Nie zapisujemy wielkich data: URL-i w localStorage (limit ~5 MB) — dociągamy je z IndexedDB po variantId
+    const compact: StoredLogoConfig = config.variantId.startsWith("logoanim-")
+      ? { ...config, filePath: "", gifPath: "" }
+      : config;
+    localStorage.setItem(slot === "intro" ? DEFAULT_INTRO_KEY : DEFAULT_OUTRO_KEY, JSON.stringify(compact));
+  } catch (err) {
+    console.warn("Failed to save default logo config:", err);
+  }
 }
 
 export function loadDefaultLogoConfig(slot: "intro" | "outro"): StoredLogoConfig | null {
@@ -45,6 +57,19 @@ export function loadDefaultLogoConfig(slot: "intro" | "outro"): StoredLogoConfig
   } catch {
     return null;
   }
+}
+
+export async function resolveDefaultLogoConfig(slot: "intro" | "outro"): Promise<StoredLogoConfig | null> {
+  const cfg = loadDefaultLogoConfig(slot);
+  if (!cfg) return null;
+  if (cfg.variantId.startsWith("logoanim-") && !cfg.gifPath) {
+    const customAnims = await loadCustomMediaAssets("logo_anim");
+    const found = customAnims.find((a) => a.id === cfg.variantId);
+    const src = found?.url || found?.dataUrl || "";
+    if (!src) return null;
+    return { ...cfg, filePath: src, gifPath: src };
+  }
+  return cfg;
 }
 
 const DB_NAME = "simotion_brand_kit";

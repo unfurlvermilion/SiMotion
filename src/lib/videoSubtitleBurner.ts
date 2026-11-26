@@ -35,9 +35,20 @@ export interface BurnSubtitlesOptions {
 
 type DecodedGifFrame = { bitmap: ImageBitmap; durationSec: number };
 
+function isVideoOverlaySrc(src?: string): boolean {
+  if (!src) return false;
+  const lower = src.toLowerCase();
+  return lower.startsWith("data:video/") || /\.(mp4|mov|webm)(\?|$)/i.test(lower);
+}
+
 async function decodeGifFrames(imageSrc?: string): Promise<DecodedGifFrame[]> {
   const frames: DecodedGifFrame[] = [];
-  if (!imageSrc || !imageSrc.toLowerCase().endsWith(".gif") || typeof (window as any).ImageDecoder === "undefined") {
+  if (!imageSrc || typeof (window as any).ImageDecoder === "undefined") {
+    return frames;
+  }
+  const lower = imageSrc.toLowerCase();
+  const isGif = lower.endsWith(".gif") || lower.startsWith("data:image/gif");
+  if (!isGif) {
     return frames;
   }
   try {
@@ -67,6 +78,7 @@ function drawLogoOverlay(
   canvas: HTMLCanvasElement,
   frames: DecodedGifFrame[],
   fallbackImg: HTMLImageElement | null,
+  fallbackVideo: HTMLVideoElement | null,
   elapsed: number,
   alpha: number
 ) {
@@ -78,7 +90,11 @@ function drawLogoOverlay(
   let srcW = 1;
   let srcH = 1;
 
-  if (frames.length > 0) {
+  if (fallbackVideo && fallbackVideo.readyState >= 2 && fallbackVideo.videoWidth > 0) {
+    frameSource = fallbackVideo;
+    srcW = fallbackVideo.videoWidth || 1;
+    srcH = fallbackVideo.videoHeight || 1;
+  } else if (frames.length > 0) {
     const totalGifDur = frames.reduce((acc, f) => acc + f.durationSec, 0) || 1;
     let gifCursor = elapsed % totalGifDur;
     let chosen = frames[frames.length - 1];
@@ -92,7 +108,7 @@ function drawLogoOverlay(
     frameSource = chosen.bitmap;
     srcW = chosen.bitmap.width || 1;
     srcH = chosen.bitmap.height || 1;
-  } else if (fallbackImg && fallbackImg.complete) {
+  } else if (fallbackImg && fallbackImg.complete && fallbackImg.naturalWidth > 0) {
     frameSource = fallbackImg;
     srcW = fallbackImg.naturalWidth || 1;
     srcH = fallbackImg.naturalHeight || 1;
@@ -212,19 +228,41 @@ export async function burnSubtitlesToVideo(options: BurnSubtitlesOptions): Promi
     video.playsInline = true;
     video.autoplay = false;
 
-    // Optional intro & outro fallback image elements
+    // Optional intro & outro fallback image or video elements
     let introImg: HTMLImageElement | null = null;
+    let introVideo: HTMLVideoElement | null = null;
     if (logoIntro?.imageSrc) {
-      introImg = new Image();
-      introImg.crossOrigin = "anonymous";
-      introImg.src = logoIntro.imageSrc;
+      if (isVideoOverlaySrc(logoIntro.imageSrc)) {
+        introVideo = document.createElement("video");
+        introVideo.crossOrigin = "anonymous";
+        introVideo.muted = true;
+        introVideo.loop = true;
+        introVideo.playsInline = true;
+        introVideo.preload = "auto";
+        introVideo.src = logoIntro.imageSrc;
+      } else {
+        introImg = new Image();
+        introImg.crossOrigin = "anonymous";
+        introImg.src = logoIntro.imageSrc;
+      }
     }
 
     let outroImg: HTMLImageElement | null = null;
+    let outroVideo: HTMLVideoElement | null = null;
     if (logoOutro?.imageSrc) {
-      outroImg = new Image();
-      outroImg.crossOrigin = "anonymous";
-      outroImg.src = logoOutro.imageSrc;
+      if (isVideoOverlaySrc(logoOutro.imageSrc)) {
+        outroVideo = document.createElement("video");
+        outroVideo.crossOrigin = "anonymous";
+        outroVideo.muted = true;
+        outroVideo.loop = true;
+        outroVideo.playsInline = true;
+        outroVideo.preload = "auto";
+        outroVideo.src = logoOutro.imageSrc;
+      } else {
+        outroImg = new Image();
+        outroImg.crossOrigin = "anonymous";
+        outroImg.src = logoOutro.imageSrc;
+      }
     }
 
     let started = false;
@@ -464,26 +502,50 @@ export async function burnSubtitlesToVideo(options: BurnSubtitlesOptions): Promi
           ctx.restore();
         }
 
-        // 3. Draw Logo Intro if enabled (at the start of clip)
-        const effectiveIntroDur = logoIntro ? Math.min(logoIntro.durationSec, totalDur * 0.35) : 0;
-        if (logoIntro && t < effectiveIntroDur && (introFrames.length > 0 || (introImg && introImg.complete))) {
+        // 3. Draw Logo Intro / Outro without overlapping on short clips
+        const bothLogosActive = Boolean(logoIntro && logoOutro);
+        const maxLogoShare = bothLogosActive ? totalDur * 0.4 : totalDur * 0.45;
+
+        const effectiveIntroDur = logoIntro ? Math.min(logoIntro.durationSec, maxLogoShare) : 0;
+        if (
+          logoIntro &&
+          t < effectiveIntroDur &&
+          (introFrames.length > 0 || (introImg && introImg.complete) || introVideo)
+        ) {
+          if (introVideo && introVideo.paused) {
+            introVideo.currentTime = 0;
+            introVideo.play().catch(() => {});
+          }
           const introFadeOut = Math.min(1, Math.max(0, (effectiveIntroDur - t) / 0.3));
-          drawLogoOverlay(ctx, canvas, introFrames, introImg, t, introFadeOut);
+          drawLogoOverlay(ctx, canvas, introFrames, introImg, introVideo, t, introFadeOut);
+        } else if (introVideo && !introVideo.paused) {
+          introVideo.pause();
         }
 
-        // 4. Draw Logo Outro if enabled and within last seconds (animated GIF frames + smooth fade)
-        const effectiveOutroDur = logoOutro ? Math.min(logoOutro.durationSec, totalDur * 0.45) : 0;
-        const outroStart = Math.max(0, totalDur - effectiveOutroDur);
-        if (logoOutro && t >= outroStart && (outroFrames.length > 0 || (outroImg && outroImg.complete))) {
+        const effectiveOutroDur = logoOutro ? Math.min(logoOutro.durationSec, maxLogoShare) : 0;
+        const outroStart = Math.max(effectiveIntroDur, totalDur - effectiveOutroDur);
+        if (
+          logoOutro &&
+          t >= outroStart &&
+          (outroFrames.length > 0 || (outroImg && outroImg.complete) || outroVideo)
+        ) {
+          if (outroVideo && outroVideo.paused) {
+            outroVideo.currentTime = 0;
+            outroVideo.play().catch(() => {});
+          }
           const outroElapsed = Math.max(0, t - outroStart);
           const fadeAlpha = Math.min(1, outroElapsed / 0.35);
-          drawLogoOverlay(ctx, canvas, outroFrames, outroImg, outroElapsed, fadeAlpha);
+          drawLogoOverlay(ctx, canvas, outroFrames, outroImg, outroVideo, outroElapsed, fadeAlpha);
+        } else if (outroVideo && !outroVideo.paused) {
+          outroVideo.pause();
         }
 
         // Check if finished
         if (t >= totalDur || video.ended) {
           cancelAnimationFrame(animId);
           video.pause();
+          if (introVideo) introVideo.pause();
+          if (outroVideo) outroVideo.pause();
           if (bgmSourceNode) {
             try { bgmSourceNode.stop(); } catch {}
           }

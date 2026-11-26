@@ -8,8 +8,9 @@ import { SocialSafeAreaOverlay } from "./SocialSafeAreaOverlay";
 import { burnSubtitlesToVideo, getVideoExtension } from "@/lib/videoSubtitleBurner";
 import {
   StoredAsset,
+  isVideoLogoSrc,
   loadCustomMediaAssets,
-  loadDefaultLogoConfig,
+  resolveDefaultLogoConfig,
 } from "@/lib/brandStorage";
 import {
   VIDEO_ENGINE_OPTIONS,
@@ -169,7 +170,11 @@ interface StudioTikTokViewProps {
   onVideoReady?: (url: string | null) => void;
   externalCaptions?: Record<string, { line1: string; line2: string }> | null;
   lockedMode?: "generate" | "edit";
+  isActive?: boolean;
 }
+
+const ACTIVE_VIDEO_JOB_KEY = "simotion_active_video_job";
+const MAX_VIDEO_POLL_MS = 12 * 60 * 1000; // 12 minut limitu bezpieczeństwa
 
 export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
   productId,
@@ -180,6 +185,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
   onVideoReady,
   externalCaptions = null,
   lockedMode,
+  isActive = true,
 }) => {
   // Primary Workspace Mode & 4-Step Wizard State
   const [workspaceMode, setWorkspaceMode] = useState<"generate" | "edit">(lockedMode || "generate");
@@ -205,19 +211,47 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
   const [integrationMode, setIntegrationMode] = useState<"sandbox" | "live">("live");
 
   const [customBgmTracks, setCustomBgmTracks] = useState<StoredAsset[]>([]);
+  const isMountedRef = useRef<boolean>(true);
+  const videoObjectUrlRef = useRef<string | null>(null);
+  const packshotBlobUrlsRef = useRef<string[]>([]);
+  const userPickedIntroRef = useRef<boolean>(false);
+  const userPickedOutroRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      if (videoObjectUrlRef.current) {
+        URL.revokeObjectURL(videoObjectUrlRef.current);
+        videoObjectUrlRef.current = null;
+      }
+      packshotBlobUrlsRef.current.forEach((u) => URL.revokeObjectURL(u));
+      packshotBlobUrlsRef.current = [];
+    };
+  }, []);
 
   useEffect(() => {
     const cfg = readIntegrationsConfig();
     setAiEngine(normalizeVideoEngine(cfg.seedanceModel));
     setIntegrationMode(cfg.mode);
     fetchVideoServerConfig().then(setVideoServerConfig);
-
-    const defIntro = loadDefaultLogoConfig("intro");
-    if (defIntro) setSelectedIntroLogo(defIntro);
-    const defOutro = loadDefaultLogoConfig("outro");
-    if (defOutro) setSelectedLogo(defOutro);
-    loadCustomMediaAssets("audio").then(setCustomBgmTracks).catch(() => {});
   }, []);
+
+  // Odświeżaj własne BGM oraz domyślne Intro/Outro przy wejściu na zakładkę
+  useEffect(() => {
+    if (!isActive) return;
+    loadCustomMediaAssets("audio").then(setCustomBgmTracks).catch(() => {});
+    if (!userPickedIntroRef.current) {
+      resolveDefaultLogoConfig("intro").then((defIntro) => {
+        if (defIntro && isMountedRef.current) setSelectedIntroLogo(defIntro);
+      }).catch(() => {});
+    }
+    if (!userPickedOutroRef.current) {
+      resolveDefaultLogoConfig("outro").then((defOutro) => {
+        if (defOutro && isMountedRef.current) setSelectedLogo(defOutro);
+      }).catch(() => {});
+    }
+  }, [isActive]);
   const [genMode, setGenMode] = useState<"storyboard" | "single">("storyboard");
   const [template, setTemplate] = useState("TikTok try-on · 6 scen");
   const [prompt, setPrompt] = useState(
@@ -351,11 +385,28 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
 
   const localPackshotInputRef = useRef<HTMLInputElement | null>(null);
 
+  const maxAllowedDuration = aiEngine === "seedance-2.0" ? 15 : 30;
+  const maxReferenceImages = aiEngine === "seedance-2.0" ? 9 : 12;
+
+  const safeSku = React.useMemo(() => {
+    const candidate = (productId || mdkCodes[0] || "Sinsay_Clip").trim();
+    return candidate.replace(/[^a-zA-Z0-9_-]/g, "_") || "Sinsay_Clip";
+  }, [productId, mdkCodes]);
+
+  const resolveActiveBgmSrc = (): string | undefined => {
+    if (selectedBgm === "none") return undefined;
+    const custom = customBgmTracks.find((t) => t.id === selectedBgm);
+    if (custom) return custom.url || custom.dataUrl;
+    if (selectedBgm === "lofi") return "/audio/atelier_lofi.m4a";
+    return "/audio/runway_house.m4a";
+  };
+
   const handleUploadLocalPackshots = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     const newAssets: PcmAsset[] = Array.from(files).map((f, i) => {
       const url = URL.createObjectURL(f);
+      packshotBlobUrlsRef.current.push(url);
       return {
         id: `local-${Date.now()}-${i}`,
         label: f.name.replace(/\.[^/.]+$/, ""),
@@ -370,6 +421,7 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
     setPcmAssets((prev) => [...prev, ...newAssets]);
     setPcmFetchSource("pcm");
     showToast(`✓ Dodano ${newAssets.length} packshotów z dysku!`);
+    e.target.value = "";
   };
 
   const [subtitleCues, setSubtitleCues] = useState<SubtitleCue[]>([
@@ -498,25 +550,22 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
     }));
   };
 
-  const handleBurnAndDownloadSingleVideo = async (ratio: "9:16" | "3:4" | "4:5" | "1:1" = "9:16") => {
+  const handleBurnAndDownloadSingleVideo = async (
+    ratio: "9:16" | "3:4" | "4:5" | "1:1" = "9:16",
+    onlyCrop = false
+  ) => {
     if (!videoFile) {
-      showToast("Wgraj plik wideo lub wybierz wideo z sesji, aby wypalić napisy.");
+      showToast("Wgraj plik wideo lub wygeneruj klip AI, aby wyeksportować format.");
       return;
     }
 
     setIsBurningVideo(true);
     setBurnProgress(0);
-    setBurnStatus("Inicjalizacja silnika renderującego klatki...");
+    setBurnStatus(onlyCrop ? `Kadrowanie wideo do formatu ${ratio}...` : "Inicjalizacja silnika renderującego klatki...");
 
     try {
-      const mappedCues = buildCuesForLang(previewLang);
-
-      const activeBgmSrc =
-        selectedBgm === "none"
-          ? undefined
-          : selectedBgm === "lofi"
-          ? "/audio/atelier_lofi.m4a"
-          : "/audio/runway_house.m4a";
+      const mappedCues = onlyCrop || !isSubtitlesEnabled ? [] : buildCuesForLang(previewLang);
+      const activeBgmSrc = isDubEnabled ? resolveActiveBgmSrc() : undefined;
 
       const blob = await burnSubtitlesToVideo({
         videoSrc: videoFile,
@@ -554,16 +603,17 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      const ext = blob.type.includes("mp4") ? "mp4" : "webm";
-      a.download = `Sinsay_${productId || "001KR"}_${ratio.replace(":", "x")}_${previewLang}_Wypalone_Napisy.${ext}`;
+      const ext = getVideoExtension(blob);
+      const suffix = mappedCues.length > 0 ? `${previewLang}_Wypalone_Napisy` : "Clean";
+      a.download = `Sinsay_${safeSku}_${ratio.replace(":", "x")}_${suffix}.${ext}`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      showToast(`✓ Gotowe! Pobrano wideo z wypalonymi napisami (${ratio} · ${previewLang})!`);
+      showToast(`✓ Pobrano wideo w formacie ${ratio}!`);
     } catch (err: any) {
       console.error("Burn video error:", err);
-      showToast("Błąd podczas wypalania napisów: " + err.message);
+      showToast("Błąd podczas renderowania formatu: " + err.message);
     } finally {
       setIsBurningVideo(false);
     }
@@ -797,7 +847,7 @@ ${titleNodes}
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `Sinsay_${productId || "001KR-83X"}_DaVinci_${previewLang}_9x16.fcpxml`;
+    link.download = `Sinsay_${safeSku}_DaVinci_${previewLang}_9x16.fcpxml`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -863,14 +913,15 @@ ${titleNodes}
       });
     } else {
       const cap = videoCaptions[lang] || videoCaptions["PL"] || { line1: "Nowa kolekcja", line2: "na Twój sposób" };
-      srtContent = `1\n00:00:00,000 --> 00:00:02,500\n${cap.line1}\n${cap.line2}\n\n2\n00:00:02,550 --> 00:00:0${Math.floor(duration)},000\nSinsay — modne stylizacje w najlepszych cenach.\n`;
+      const endTs = formatSrtTime(Math.max(3, duration));
+      srtContent = `1\n00:00:00,000 --> 00:00:02,500\n${cap.line1}\n${cap.line2}\n\n2\n00:00:02,550 --> ${endTs}\nSinsay — modne stylizacje w najlepszych cenach.\n`;
     }
 
     const blob = new Blob([srtContent], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `Sinsay_${productId || "001KR"}_subtitles_${lang.toLowerCase()}.srt`;
+    a.download = `Sinsay_${safeSku}_subtitles_${lang.toLowerCase()}.srt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -885,12 +936,12 @@ ${titleNodes}
 
     try {
       const zip = new JSZip();
-      const folderName = `Sinsay_${productId || "001KR-83X"}_Video_Package`;
+      const folderName = `Sinsay_${safeSku}_Video_Package`;
       const root = zip.folder(folderName) || zip;
 
       // 1. Manifest
       const manifest = {
-        sku: productId || "001KR-83X",
+        sku: safeSku,
         brand: "Sinsay (LPP SA)",
         workspaceMode,
         videoSource: uploadedFileName ? `Własny plik: ${uploadedFileName}` : `Silnik AI: ${aiEngine}`,
@@ -949,7 +1000,8 @@ ${titleNodes}
             const cap = videoCaptions[lang] || videoCaptions["PL"] || { line1: "Nowa kolekcja", line2: "na Twój sposób" };
             const l1 = cap.line1 || "Nowa kolekcja";
             const l2 = cap.line2 || "na Twój sposób";
-            srtContent = `1\n00:00:00,000 --> 00:00:02,500\n${l1}\n${l2}\n\n2\n00:00:02,550 --> 00:00:0${Math.floor(duration)},000\nSinsay — modne stylizacje w najlepszych cenach.\n`;
+            const endTs = formatSrtTime(Math.max(3, duration));
+            srtContent = `1\n00:00:00,000 --> 00:00:02,500\n${l1}\n${l2}\n\n2\n00:00:02,550 --> ${endTs}\nSinsay — modne stylizacje w najlepszych cenach.\n`;
             vttContent = `WEBVTT\n\n1\n00:00:00.000 --> 00:00:02.500\n${l1}\n${l2}\n`;
           }
 
@@ -1005,12 +1057,7 @@ ${titleNodes}
           setIsBurningVideo(true);
           setBurnProgress(0);
 
-          const activeBgmSrc =
-            selectedBgm === "none"
-              ? undefined
-              : selectedBgm === "lofi"
-              ? "/audio/atelier_lofi.m4a"
-              : "/audio/runway_house.m4a";
+          const activeBgmSrc = isDubEnabled ? resolveActiveBgmSrc() : undefined;
 
           const totalSteps =
             specsToRender.length +
@@ -1142,7 +1189,7 @@ ${titleNodes}
       } else {
         const videoSpecs = `SiMotion Video Production Render Specifications\n` +
           `===================================================\n` +
-          `SKU: ${productId || "001KR-83X"}\n` +
+          `SKU: ${safeSku}\n` +
           `Tryb: ${workspaceMode === "generate" ? "Generator AI " + aiEngine : "Montaż wideo z pliku"}\n` +
           `Napisy: ${isSubtitlesEnabled ? "Włączone (Font: Euclid Circular B LPP SA)" : "Wyłączone (Czyste wideo)"}\n` +
           `Pozycja pionowa napisów (Oś Y): ${captionYPercent}% Safe Zone\n` +
@@ -1163,7 +1210,7 @@ ${titleNodes}
       const downloadUrl = URL.createObjectURL(zipBlob);
       const link = document.createElement("a");
       link.href = downloadUrl;
-      link.download = `Sinsay_${productId || "001KR-83X"}_Campaign_Package.zip`;
+      link.download = `Sinsay_${safeSku}_Campaign_Package.zip`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -1250,7 +1297,11 @@ ${titleNodes}
   }, [scenes]);
 
   // Scaled duration handler when the main slider changes (e.g. from 10s to 21s)
-  const handleDurationChange = (newDur: number) => {
+  const handleDurationChange = (rawDur: number) => {
+    const newDur =
+      workspaceMode === "generate"
+        ? Math.min(maxAllowedDuration, Math.max(4, Math.round(rawDur)))
+        : Math.max(1, Math.round(rawDur * 10) / 10);
     setDuration(newDur);
 
     // 1. Proportionally scale all storyboard scenes so they sum to newDur
@@ -1287,14 +1338,39 @@ ${titleNodes}
     });
   };
 
+  // Jeśli użytkownik przełączy silnik z 2.5 (do 30s) na 2.0 (do 15s), dopasuj długość do limitu modelu
+  useEffect(() => {
+    if (workspaceMode === "generate" && duration > maxAllowedDuration) {
+      handleDurationChange(maxAllowedDuration);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aiEngine, maxAllowedDuration]);
+
+  // Pomocnik normalizujący sumę scen do całkowitych sekund w zakresie [4, maxAllowedDuration]
+  const normalizeScenesToModelRange = (list: StoryboardScene[]): { scenes: StoryboardScene[]; total: number } => {
+    const rawSum = list.reduce((sum, s) => sum + s.durationSec, 0) || 4;
+    const clampedTotal = Math.min(maxAllowedDuration, Math.max(4, Math.round(rawSum)));
+    const scale = clampedTotal / rawSum;
+    let acc = 0;
+    const adjusted = list.map((s, idx) => {
+      const dur =
+        idx === list.length - 1
+          ? Number(Math.max(0.5, clampedTotal - acc).toFixed(1))
+          : Number(Math.max(0.5, s.durationSec * scale).toFixed(1));
+      if (idx < list.length - 1) acc += dur;
+      return { ...s, durationSec: dur };
+    });
+    return { scenes: adjusted, total: clampedTotal };
+  };
+
   // Adjust duration of an individual scene (with +/- buttons or input)
   const handleSceneDurationChange = (sceneId: string, newSec: number) => {
-    const safeSec = Number(Math.max(0.5, Math.min(25, newSec)).toFixed(1));
+    const safeSec = Number(Math.max(0.5, Math.min(maxAllowedDuration, newSec)).toFixed(1));
     setScenes((prev) => {
-      const next = prev.map((s) => (s.id === sceneId ? { ...s, durationSec: safeSec } : s));
-      const newTotal = Number(next.reduce((sum, s) => sum + s.durationSec, 0).toFixed(1));
-      setDuration(newTotal);
-      return next;
+      const updated = prev.map((s) => (s.id === sceneId ? { ...s, durationSec: safeSec } : s));
+      const { scenes: normalized, total } = normalizeScenesToModelRange(updated);
+      setDuration(total);
+      return normalized;
     });
   };
 
@@ -1303,7 +1379,7 @@ ${titleNodes}
     const newId = `sc-${Date.now()}`;
     setScenes((prev) => {
       const num = String(prev.length + 1).padStart(2, "0");
-      const next: StoryboardScene[] = [
+      const updated: StoryboardScene[] = [
         ...prev,
         {
           id: newId,
@@ -1314,9 +1390,9 @@ ${titleNodes}
           durationSec: 2.0,
         },
       ];
-      const newTotal = Number(next.reduce((sum, s) => sum + s.durationSec, 0).toFixed(1));
-      setDuration(newTotal);
-      return next;
+      const { scenes: normalized, total } = normalizeScenesToModelRange(updated);
+      setDuration(total);
+      return normalized;
     });
     setActiveEditingScene(newId);
   };
@@ -1328,10 +1404,10 @@ ${titleNodes}
         showToast("Storyboard musi zawierać przynajmniej 1 scenę.");
         return prev;
       }
-      const next = prev.filter((s) => s.id !== sceneId);
-      const newTotal = Number(next.reduce((sum, s) => sum + s.durationSec, 0).toFixed(1));
-      setDuration(newTotal);
-      return next;
+      const updated = prev.filter((s) => s.id !== sceneId);
+      const { scenes: normalized, total } = normalizeScenesToModelRange(updated);
+      setDuration(total);
+      return normalized;
     });
     if (activeEditingScene === sceneId) setActiveEditingScene(null);
   };
@@ -1402,8 +1478,143 @@ ${titleNodes}
     }
   };
 
+  const startVideoJobPolling = (
+    jobId: string,
+    pollIntervalMs: number,
+    meta: { sku: string; engine: string; targetRatio: string; startedAt: number }
+  ) => {
+    let consecutiveErrors = 0;
+
+    const clearSavedJob = () => {
+      try {
+        sessionStorage.removeItem(ACTIVE_VIDEO_JOB_KEY);
+      } catch {}
+    };
+
+    const poll = async () => {
+      if (!isMountedRef.current) return;
+
+      if (Date.now() - meta.startedAt > MAX_VIDEO_POLL_MS) {
+        clearSavedJob();
+        setIsGeneratingAiVideo(false);
+        showToast("Przekroczono limit czasu oczekiwania na render (12 min). Sprawdź status zadania i spróbuj ponownie.");
+        return;
+      }
+
+      try {
+        const pollRes = await fetch(`/api/video?jobId=${encodeURIComponent(jobId)}`, { cache: "no-store" });
+        if (pollRes.ok) {
+          consecutiveErrors = 0;
+          const pollData = await pollRes.json();
+          if (!isMountedRef.current) return;
+
+          setGenerationProgress(pollData.progress || 50);
+          if (pollData.stage) setGenerationStage(pollData.stage);
+
+          if (pollData.status === "completed") {
+            clearSavedJob();
+            setIsGeneratingAiVideo(false);
+            const targetUrl = pollData.videoUrl || "/preview/sample_atelier_9x16.mp4";
+            if (videoObjectUrlRef.current) {
+              URL.revokeObjectURL(videoObjectUrlRef.current);
+              videoObjectUrlRef.current = null;
+            }
+            setVideoFile(targetUrl);
+            const ratioTag = meta.targetRatio.replace(":", "x");
+            setUploadedFileName(`${meta.sku}_${meta.engine}_${ratioTag}.mp4`);
+            if (pollData.source === "seedance_live") {
+              setUploadedFileSize(await probeVideoSize(targetUrl));
+              const costInfo =
+                typeof pollData.costUsd === "number"
+                  ? ` Koszt: $${pollData.costUsd.toFixed(2)}`
+                  : "";
+              const tokenInfo =
+                typeof pollData.totalTokens === "number"
+                  ? ` (${pollData.totalTokens.toLocaleString("pl-PL")} tokenów)`
+                  : "";
+              showToast(`✓ Wygenerowano wideo AI w silniku ${meta.engine.toUpperCase()}!${costInfo}${tokenInfo}`);
+            } else {
+              setUploadedFileSize("14.2 MB");
+              showToast(`✓ Wygenerowano wideo AI w silniku ${meta.engine.toUpperCase()}!`);
+            }
+
+            setTimeout(() => {
+              if (videoRef.current && isMountedRef.current) {
+                videoRef.current.play().then(() => {
+                  setIsPlaying(true);
+                  if (isDubEnabled && selectedBgm !== "none" && bgmAudioRef.current) {
+                    bgmAudioRef.current.play().catch(() => {});
+                  }
+                }).catch(() => {});
+              }
+            }, 300);
+            return;
+          }
+          if (pollData.status === "failed") {
+            clearSavedJob();
+            setIsGeneratingAiVideo(false);
+            showToast("Błąd klastra renderującego: " + (pollData.error || "Niepowodzenie"));
+            return;
+          }
+        } else {
+          consecutiveErrors++;
+        }
+      } catch (pollErr) {
+        consecutiveErrors++;
+        console.warn("Poll check error:", pollErr);
+      }
+
+      if (consecutiveErrors >= 15) {
+        clearSavedJob();
+        setIsGeneratingAiVideo(false);
+        showToast("Utracono połączenie z serwerem podczas sprawdzania statusu wideo.");
+        return;
+      }
+
+      if (isMountedRef.current) {
+        setTimeout(poll, pollIntervalMs);
+      }
+    };
+
+    setTimeout(poll, pollIntervalMs);
+  };
+
+  // Wznów aktywne zadanie po odświeżeniu karty (F5) w trybie Generator AI
+  useEffect(() => {
+    if (lockedMode === "edit") return;
+    try {
+      const raw = sessionStorage.getItem(ACTIVE_VIDEO_JOB_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw) as {
+        jobId: string;
+        pollIntervalMs: number;
+        sku: string;
+        engine: string;
+        targetRatio: string;
+        startedAt: number;
+      };
+      if (saved?.jobId && Date.now() - saved.startedAt < MAX_VIDEO_POLL_MS) {
+        setActiveStep(4);
+        setIsGeneratingAiVideo(true);
+        setGenerationProgress(45);
+        setGenerationStage("Wznawianie monitorowania aktywnego renderu AI...");
+        startVideoJobPolling(saved.jobId, saved.pollIntervalMs || 2500, saved);
+      } else {
+        sessionStorage.removeItem(ACTIVE_VIDEO_JOB_KEY);
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Real AI Video Generation Workflow
   const handleGenerateAiVideo = async () => {
+    const effectivePrompt = buildFinalSeedancePrompt();
+    if (effectivePrompt.trim().length < 3) {
+      showToast("Wpisz najpierw prompt opisujący wideo w Kroku 1.");
+      setActiveStep(1);
+      return;
+    }
+
     setIsGeneratingAiVideo(true);
     setGenerationProgress(10);
     setGenerationStage("Przygotowywanie zlecenia dla silnika " + aiEngine.toUpperCase());
@@ -1413,12 +1624,22 @@ ${titleNodes}
     setIntegrationMode(mode);
     const isLiveSeedance = mode === "live" && aiEngine.startsWith("seedance");
 
+    // Dla 4:5 generujemy w natywnym 3:4 (baza modowa Seedance) i docinamy do 4:5 w aplikacji
+    const apiAspectRatio = genAspectRatio === "4:5" ? "3:4" : genAspectRatio;
+    if (genAspectRatio === "4:5" && !selectedRatios.includes("4x5")) {
+      setSelectedRatios((prev) => [...prev, "4x5"]);
+    }
+
     try {
-      // Z automatu bierzemy wszystkie zaznaczone packshoty (z PCM lub dysku, do 12 ujęć)
       const primaryPackshot = selectedReferenceAssets[0]?.url || selectedReferenceAssets[0]?.rawPcmUrl;
       let referenceImages: string[] = [];
       if (isLiveSeedance && selectedReferenceAssets.length > 0) {
-        const assetsToSend = selectedReferenceAssets.slice(0, 12);
+        if (selectedReferenceAssets.length > maxReferenceImages) {
+          showToast(
+            `Uwaga: ${aiEngine.toUpperCase()} przyjmuje maks. ${maxReferenceImages} zdjęć — wysyłam pierwsze ${maxReferenceImages} zaznaczonych.`
+          );
+        }
+        const assetsToSend = selectedReferenceAssets.slice(0, maxReferenceImages);
         setGenerationStage(`Przygotowanie ${assetsToSend.length} wybranych packshotów jako referencji...`);
         try {
           referenceImages = await Promise.all(
@@ -1429,17 +1650,15 @@ ${titleNodes}
         }
       }
 
-      const effectivePrompt = buildFinalSeedancePrompt();
-
       const res = await fetch("/api/video", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt: effectivePrompt,
           model: aiEngine,
-          duration,
+          duration: Math.min(maxAllowedDuration, Math.max(4, Math.round(duration))),
           resolution: videoResolution,
-          aspectRatio: genAspectRatio,
+          aspectRatio: apiAspectRatio,
           mode,
           ...(isLiveSeedance ? { referenceImages } : { packshotUrl: primaryPackshot }),
         }),
@@ -1455,7 +1674,7 @@ ${titleNodes}
       setGenerationProgress(25);
       setGenerationStage(
         data.source === "seedance_live"
-          ? `Zlecenie przyjęte przez BytePlus (${data.duration} s, ${data.resolution}). Generowanie trwa zwykle kilka minut...`
+          ? `Zlecenie przyjęte przez BytePlus (${data.duration} s, ${data.resolution}, kadr bazowy ${apiAspectRatio}). Generowanie trwa zwykle kilka minut...`
           : "Zlecenie przyjęte. Przetwarzanie w pipeline..."
       );
       if (data.durationAdjusted) {
@@ -1465,61 +1684,19 @@ ${titleNodes}
         showToast("Brak packshotu — wideo zostanie wygenerowane tylko z promptu.");
       }
 
-      // Odpytywanie sekwencyjne (bez nakładania się zapytań)
-      const poll = async () => {
-        try {
-          const pollRes = await fetch(`/api/video?jobId=${encodeURIComponent(jobId)}`, { cache: "no-store" });
-          if (pollRes.ok) {
-            const pollData = await pollRes.json();
-
-            setGenerationProgress(pollData.progress || 50);
-            if (pollData.stage) setGenerationStage(pollData.stage);
-
-            if (pollData.status === "completed") {
-              setIsGeneratingAiVideo(false);
-              const targetUrl = pollData.videoUrl || "/preview/sample_atelier_9x16.mp4";
-              setVideoFile(targetUrl);
-              setUploadedFileName(`${productId || "001KR-83X"}_${aiEngine}_9x16.mp4`);
-              if (pollData.source === "seedance_live") {
-                setUploadedFileSize(await probeVideoSize(targetUrl));
-                const costInfo =
-                  typeof pollData.costUsd === "number"
-                    ? ` Koszt: $${pollData.costUsd.toFixed(2)}`
-                    : "";
-                const tokenInfo =
-                  typeof pollData.totalTokens === "number"
-                    ? ` (${pollData.totalTokens.toLocaleString("pl-PL")} tokenów)`
-                    : "";
-                showToast(`✓ Wygenerowano wideo AI w silniku ${aiEngine.toUpperCase()}!${costInfo}${tokenInfo}`);
-              } else {
-                setUploadedFileSize("14.2 MB");
-                showToast(`✓ Wygenerowano wideo AI w silniku ${aiEngine.toUpperCase()}!`);
-              }
-
-              setTimeout(() => {
-                if (videoRef.current) {
-                  videoRef.current.play().then(() => {
-                    setIsPlaying(true);
-                    if (selectedBgm !== "none" && bgmAudioRef.current) {
-                      bgmAudioRef.current.play().catch(() => {});
-                    }
-                  }).catch(() => {});
-                }
-              }, 300);
-              return;
-            }
-            if (pollData.status === "failed") {
-              setIsGeneratingAiVideo(false);
-              showToast("Błąd klastra renderującego: " + (pollData.error || "Niepowodzenie"));
-              return;
-            }
-          }
-        } catch (pollErr) {
-          console.warn("Poll check error:", pollErr);
-        }
-        setTimeout(poll, pollIntervalMs);
+      const jobMeta = {
+        jobId,
+        pollIntervalMs,
+        sku: safeSku,
+        engine: aiEngine,
+        targetRatio: genAspectRatio,
+        startedAt: Date.now(),
       };
-      setTimeout(poll, pollIntervalMs);
+      try {
+        sessionStorage.setItem(ACTIVE_VIDEO_JOB_KEY, JSON.stringify(jobMeta));
+      } catch {}
+
+      startVideoJobPolling(jobId, pollIntervalMs, jobMeta);
     } catch (err: any) {
       setIsGeneratingAiVideo(false);
       showToast("Błąd: " + err.message);
@@ -1529,15 +1706,24 @@ ${titleNodes}
   const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (videoObjectUrlRef.current) {
+        URL.revokeObjectURL(videoObjectUrlRef.current);
+      }
       const url = URL.createObjectURL(file);
+      videoObjectUrlRef.current = url;
       setVideoFile(url);
       setUploadedFileName(file.name);
       setUploadedFileSize(`${(file.size / (1024 * 1024)).toFixed(1)} MB`);
       showToast(`✓ Załadowano wideo: ${file.name}`);
     }
+    e.target.value = "";
   };
 
   const handleClearVideo = () => {
+    if (videoObjectUrlRef.current) {
+      URL.revokeObjectURL(videoObjectUrlRef.current);
+      videoObjectUrlRef.current = null;
+    }
     setVideoFile(null);
     setUploadedFileName(null);
     setUploadedFileSize(null);
@@ -1547,9 +1733,9 @@ ${titleNodes}
 
   const handleVideoLoadedMetadata = (e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
     const vid = e.currentTarget;
-    if (vid.duration && !isNaN(vid.duration) && isFinite(vid.duration)) {
+    if (workspaceMode === "edit" && vid.duration && !isNaN(vid.duration) && isFinite(vid.duration)) {
       const detectedDur = Math.round(vid.duration * 10) / 10;
-      setDuration(detectedDur);
+      handleDurationChange(detectedDur);
     }
   };
 
@@ -2152,8 +2338,6 @@ ${titleNodes}
             >
               <option value="runway">Warm Runway House (122 BPM)</option>
               <option value="lofi">Atelier Lo-Fi Beats (98 BPM)</option>
-              <option value="groove">Deep Fashion Groove (126 BPM)</option>
-              <option value="ambient">Minimal Acoustic Ambient (92 BPM)</option>
               {customBgmTracks.map((track) => (
                 <option key={track.id} value={track.id}>
                   🎵 {track.name} (Własny)
@@ -2191,12 +2375,23 @@ ${titleNodes}
         {isLogoIntroEnabled && (
           <div className="flex items-center justify-between gap-3 p-3 rounded-xl border border-[#dcd9ec] dark:border-[#262338] bg-[var(--bg-subtle)]">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-12 h-10 rounded-lg bg-black/80 p-1 flex items-center justify-center shrink-0 border border-black/20">
-                <img
-                  src={selectedIntroLogo.gifPath}
-                  alt={selectedIntroLogo.name}
-                  className="max-h-full max-w-full object-contain"
-                />
+              <div className="w-12 h-10 rounded-lg bg-black/80 p-1 flex items-center justify-center shrink-0 border border-black/20 overflow-hidden">
+                {isVideoLogoSrc(selectedIntroLogo.gifPath) ? (
+                  <video
+                    src={selectedIntroLogo.gifPath}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="max-h-full max-w-full object-contain"
+                  />
+                ) : (
+                  <img
+                    src={selectedIntroLogo.gifPath}
+                    alt={selectedIntroLogo.name}
+                    className="max-h-full max-w-full object-contain"
+                  />
+                )}
               </div>
               <div className="min-w-0">
                 <span className="text-xs font-bold text-[var(--ink-primary)] block truncate">
@@ -2241,12 +2436,23 @@ ${titleNodes}
         {isLogoOutroEnabled && (
           <div className="flex items-center justify-between gap-3 p-3 rounded-xl border border-[#dcd9ec] dark:border-[#262338] bg-[var(--bg-subtle)]">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-12 h-10 rounded-lg bg-black/80 p-1 flex items-center justify-center shrink-0 border border-black/20">
-                <img
-                  src={selectedLogo.gifPath}
-                  alt={selectedLogo.name}
-                  className="max-h-full max-w-full object-contain"
-                />
+              <div className="w-12 h-10 rounded-lg bg-black/80 p-1 flex items-center justify-center shrink-0 border border-black/20 overflow-hidden">
+                {isVideoLogoSrc(selectedLogo.gifPath) ? (
+                  <video
+                    src={selectedLogo.gifPath}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="max-h-full max-w-full object-contain"
+                  />
+                ) : (
+                  <img
+                    src={selectedLogo.gifPath}
+                    alt={selectedLogo.name}
+                    className="max-h-full max-w-full object-contain"
+                  />
+                )}
               </div>
               <div className="min-w-0">
                 <span className="text-xs font-bold text-[var(--ink-primary)] block truncate">
@@ -2448,19 +2654,34 @@ ${titleNodes}
   );
 
   const renderLogoStageOverlays = () => {
-    const showIntro = isLogoIntroEnabled && (previewIntroForce || currentTime < selectedIntroLogo.durationSec);
-    const showOutro =
-      isLogoOutroEnabled &&
-      (previewOutroForce || (duration > 0 && currentTime >= Math.max(0, duration - selectedLogo.durationSec)));
+    const bothLogosActive = isLogoIntroEnabled && isLogoOutroEnabled;
+    const maxShare = duration > 0 ? (bothLogosActive ? duration * 0.4 : duration * 0.45) : 2.5;
+    const effIntroDur = Math.min(selectedIntroLogo.durationSec, maxShare);
+    const effOutroDur = Math.min(selectedLogo.durationSec, maxShare);
+    const outroStart = Math.max(isLogoIntroEnabled ? effIntroDur : 0, duration - effOutroDur);
+
+    const showIntro = isLogoIntroEnabled && (previewIntroForce || currentTime < effIntroDur);
+    const showOutro = isLogoOutroEnabled && (previewOutroForce || (duration > 0 && currentTime >= outroStart));
     return (
       <>
         {showIntro && (
           <div className="absolute inset-0 z-30 bg-black/90 flex flex-col items-center justify-center p-3 transition-all">
-            <img
-              src={selectedIntroLogo.gifPath}
-              alt={selectedIntroLogo.name}
-              className="max-h-[50%] max-w-[80%] object-contain drop-shadow-xl"
-            />
+            {isVideoLogoSrc(selectedIntroLogo.gifPath) ? (
+              <video
+                src={selectedIntroLogo.gifPath}
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="max-h-[50%] max-w-[80%] object-contain drop-shadow-xl"
+              />
+            ) : (
+              <img
+                src={selectedIntroLogo.gifPath}
+                alt={selectedIntroLogo.name}
+                className="max-h-[50%] max-w-[80%] object-contain drop-shadow-xl"
+              />
+            )}
             <span className="text-[7px] font-mono tracking-widest text-[#9d85ff] uppercase block mt-1">
               INTRO · {selectedIntroLogo.name}
             </span>
@@ -2468,11 +2689,22 @@ ${titleNodes}
         )}
         {!showIntro && showOutro && (
           <div className="absolute inset-0 z-30 bg-black/90 flex flex-col items-center justify-center p-3 transition-all">
-            <img
-              src={selectedLogo.gifPath}
-              alt={selectedLogo.name}
-              className="max-h-[50%] max-w-[80%] object-contain drop-shadow-xl"
-            />
+            {isVideoLogoSrc(selectedLogo.gifPath) ? (
+              <video
+                src={selectedLogo.gifPath}
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="max-h-[50%] max-w-[80%] object-contain drop-shadow-xl"
+              />
+            ) : (
+              <img
+                src={selectedLogo.gifPath}
+                alt={selectedLogo.name}
+                className="max-h-[50%] max-w-[80%] object-contain drop-shadow-xl"
+              />
+            )}
             <span className="text-[7px] font-mono tracking-widest text-[#9d85ff] uppercase block mt-1">
               OUTRO · {selectedLogo.name}
             </span>
@@ -3292,7 +3524,14 @@ ${titleNodes}
                     <div className="p-3.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] space-y-3">
                       <div className="flex items-center justify-between flex-wrap gap-2">
                         <span className="text-xs font-bold text-[var(--ink-primary)]">
-                          Zaznaczone do Seedance: <span className="text-[#9d85ff]">{selectedReferenceAssets.length}</span> / {pcmAssets.length}
+                          Zaznaczone do Seedance:{" "}
+                          <span className={selectedReferenceAssets.length > maxReferenceImages ? "text-amber-400" : "text-[#9d85ff]"}>
+                            {selectedReferenceAssets.length}
+                          </span>{" "}
+                          / {pcmAssets.length}{" "}
+                          <span className="text-[10px] font-normal text-[var(--ink-muted)]">
+                            (limit {aiEngine.toUpperCase()}: {maxReferenceImages})
+                          </span>
                         </span>
                         <div className="flex items-center gap-2">
                           <button
@@ -3461,7 +3700,12 @@ ${titleNodes}
                           <button
                             key={ratioOpt}
                             type="button"
-                            onClick={() => setGenAspectRatio(ratioOpt)}
+                            onClick={() => {
+                              setGenAspectRatio(ratioOpt);
+                              if (ratioOpt === "4:5" && !selectedRatios.includes("4x5")) {
+                                setSelectedRatios((prev) => [...prev, "4x5"]);
+                              }
+                            }}
                             className={`py-2 px-1 rounded-lg text-[11px] font-mono font-bold border transition-all cursor-pointer ${
                               genAspectRatio === ratioOpt
                                 ? "bg-[var(--accent)] text-white border-[var(--accent)] shadow-xs"
@@ -3472,10 +3716,15 @@ ${titleNodes}
                           </button>
                         ))}
                       </div>
+                      {genAspectRatio === "4:5" && (
+                        <p className="text-[10px] text-[#9d85ff] mt-1.5 leading-snug">
+                          Seedance generuje bazę modową <b>3:4</b>, a aplikacja docina kadr do <b>4:5 (1080×1350)</b> z uwzględnieniem Fokusu kadru.
+                        </p>
+                      )}
                     </div>
                   </div>
 
-                  {/* Długość klipu (sam suwak) */}
+                  {/* Długość klipu (sam suwak w granicach modelu) */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-xs font-bold">
                       <span>Długość klipu wideo</span>
@@ -3484,16 +3733,16 @@ ${titleNodes}
                     <input
                       type="range"
                       min={4}
-                      max={15}
+                      max={maxAllowedDuration}
                       step={1}
-                      value={Math.min(15, Math.max(4, duration))}
+                      value={Math.min(maxAllowedDuration, Math.max(4, Math.round(duration)))}
                       onChange={(e) => handleDurationChange(Number(e.target.value))}
                       className="w-full accent-[var(--accent)] cursor-pointer"
                     />
                     <div className="flex items-center justify-between text-[10px] font-mono text-[var(--ink-muted)]">
                       <span>4s (krótki hook)</span>
                       <span>Szacowany koszt: <b className="text-[#9d85ff]">~${totalCost} USD</b></span>
-                      <span>15s (pełny lookbook)</span>
+                      <span>{maxAllowedDuration}s (maks. {aiEngine.toUpperCase()})</span>
                     </div>
                   </div>
                 </div>
@@ -3712,13 +3961,27 @@ ${titleNodes}
 
                   <div className="flex flex-col gap-2 pt-1">
                     {videoFile && (
-                      <a
-                        href={videoFile}
-                        download={`${(productId || "sinsay_ai").trim()}_raw.mp4`}
-                        className="w-full px-4 py-2.5 rounded-xl text-xs font-bold border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all text-center cursor-pointer"
-                      >
-                        ⬇ Pobierz surowe MP4 (1 klik)
-                      </a>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <a
+                          href={videoFile}
+                          download={`Sinsay_${safeSku}_raw.mp4`}
+                          className="w-full px-3 py-2.5 rounded-xl text-xs font-bold border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all text-center cursor-pointer"
+                        >
+                          ⬇ Surowe MP4 ({genAspectRatio === "4:5" ? "baza 3:4" : genAspectRatio})
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => handleBurnAndDownloadSingleVideo("4:5", !isSubtitlesEnabled)}
+                          disabled={isBurningVideo}
+                          className={`w-full px-3 py-2.5 rounded-xl text-xs font-bold border transition-all cursor-pointer disabled:opacity-50 ${
+                            genAspectRatio === "4:5"
+                              ? "border-[var(--accent)] bg-[var(--accent)] text-white shadow-xs hover:opacity-95"
+                              : "border-[var(--border-strong)] bg-[var(--bg-subtle)] text-[var(--ink-primary)] hover:border-[var(--accent)]"
+                          }`}
+                        >
+                          ✂ Pobierz docięte 4:5 (1080×1350)
+                        </button>
+                      </div>
                     )}
 
                     <button
@@ -3941,6 +4204,7 @@ ${titleNodes}
         onClose={() => setIsLogoModalOpen(false)}
         selectedConfig={selectedLogo}
         onSelectConfig={(cfg) => {
+          userPickedOutroRef.current = true;
           setSelectedLogo(cfg);
           showToast(`Ustawiono logo: ${cfg.name}`);
         }}
@@ -3952,6 +4216,7 @@ ${titleNodes}
         onClose={() => setIsIntroModalOpen(false)}
         selectedConfig={selectedIntroLogo}
         onSelectConfig={(cfg) => {
+          userPickedIntroRef.current = true;
           setSelectedIntroLogo(cfg);
           showToast(`Ustawiono intro: ${cfg.name}`);
         }}
