@@ -1,12 +1,18 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { BrandAsset } from "@/app/page";
 import { LOGO_VARIANTS } from "./AnimatedLogoModal";
 import {
+  BUILTIN_BGM_TRACKS,
+  StoredAsset,
+  StoredLogoConfig,
   saveStoredAsset,
   deleteStoredAsset,
   fileToDataUrl,
+  loadCustomMediaAssets,
+  loadDefaultLogoConfig,
+  saveDefaultLogoConfig,
 } from "@/lib/brandStorage";
 
 interface BrandKitViewProps {
@@ -17,6 +23,7 @@ interface BrandKitViewProps {
   selectedStaticAssetId: string | null;
   setSelectedStaticAssetId: (id: string | null) => void;
   showToast: (msg: string) => void;
+  onGoToStatic?: () => void;
 }
 
 export const BrandKitView: React.FC<BrandKitViewProps> = ({
@@ -27,6 +34,7 @@ export const BrandKitView: React.FC<BrandKitViewProps> = ({
   selectedStaticAssetId,
   setSelectedStaticAssetId,
   showToast,
+  onGoToStatic,
 }) => {
   const [filter, setFilter] = useState<"all" | "video" | "static">("all");
   const [newAssetText, setNewAssetText] = useState("");
@@ -36,8 +44,90 @@ export const BrandKitView: React.FC<BrandKitViewProps> = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [editingAsset, setEditingAsset] = useState<BrandAsset | null>(null);
   const [isDraggingFiles, setIsDraggingFiles] = useState(false);
+  const [cardBgMode, setCardBgMode] = useState<"checker" | "dark" | "light">("checker");
   const [logoPreviewColor, setLogoPreviewColor] = useState<"white" | "black">("white");
   const [showTypographyPreview, setShowTypographyPreview] = useState(false);
+
+  // Domyślne Intro / Outro zapisane w localStorage + własne animacje / podkłady audio w IndexedDB
+  const [defaultIntroId, setDefaultIntroId] = useState<string | null>(null);
+  const [defaultOutroId, setDefaultOutroId] = useState<string | null>(null);
+  const [customLogoAnims, setCustomLogoAnims] = useState<StoredAsset[]>([]);
+  const [customBgmTracks, setCustomBgmTracks] = useState<StoredAsset[]>([]);
+  const [playingBgmId, setPlayingBgmId] = useState<string | null>(null);
+  const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    const intro = loadDefaultLogoConfig("intro");
+    const outro = loadDefaultLogoConfig("outro");
+    if (intro) setDefaultIntroId(intro.variantId);
+    if (outro) setDefaultOutroId(outro.variantId);
+    loadCustomMediaAssets("logo_anim").then(setCustomLogoAnims).catch(() => {});
+    loadCustomMediaAssets("audio").then(setCustomBgmTracks).catch(() => {});
+  }, []);
+
+  const handleSetDefaultLogo = (slot: "intro" | "outro", config: StoredLogoConfig) => {
+    saveDefaultLogoConfig(slot, config);
+    if (slot === "intro") {
+      setDefaultIntroId(config.variantId);
+      showToast(`Ustawiono domyślne Intro: ${config.name}`);
+    } else {
+      setDefaultOutroId(config.variantId);
+      showToast(`Ustawiono domyślne Outro: ${config.name}`);
+    }
+  };
+
+  const handleUploadCustomLogoAnim = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      const dataUrl = await fileToDataUrl(f);
+      const item: StoredAsset = {
+        id: `logoanim-${Date.now()}-${i}`,
+        name: f.name.replace(/\.[^/.]+$/, ""),
+        kind: "video",
+        type: "logo_anim",
+        url: dataUrl,
+        durationSec: 2.0,
+      };
+      await saveStoredAsset(item);
+      setCustomLogoAnims((prev) => [...prev, item]);
+    }
+    showToast(`Dodano własną animację Intro/Outro (${files.length})`);
+    e.target.value = "";
+  };
+
+  const handleUploadCustomBgm = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      const dataUrl = await fileToDataUrl(f);
+      const item: StoredAsset = {
+        id: `bgm-${Date.now()}-${i}`,
+        name: f.name.replace(/\.[^/.]+$/, ""),
+        kind: "video",
+        type: "audio",
+        url: dataUrl,
+      };
+      await saveStoredAsset(item);
+      setCustomBgmTracks((prev) => [...prev, item]);
+    }
+    showToast(`Dodano podkład audio do biblioteki (${files.length})`);
+    e.target.value = "";
+  };
+
+  const togglePlayBgm = (id: string, src: string) => {
+    const audio = audioPlayerRef.current;
+    if (!audio) return;
+    if (playingBgmId === id && !audio.paused) {
+      audio.pause();
+      setPlayingBgmId(null);
+      return;
+    }
+    audio.src = src;
+    audio.play().then(() => setPlayingBgmId(id)).catch(() => setPlayingBgmId(null));
+  };
 
   const handleDeleteAsset = async (id: string, name: string) => {
     setAssets((prev) => prev.filter((a) => a.id !== id));
@@ -196,25 +286,50 @@ export const BrandKitView: React.FC<BrandKitViewProps> = ({
               )}
             </div>
 
-            {/* Filter chips */}
-            <div className="flex flex-wrap items-center gap-1.5">
-              {[
-                ["all", "Wszystkie"],
-                ["video", "Do Wideo"],
-                ["static", "Do Grafik"],
-              ].map(([key, label]) => (
-                <button
-                  key={key}
-                  onClick={() => setFilter(key as any)}
-                  className={`px-3 py-1 rounded-full text-xs font-bold border transition-all ${
-                    filter === key
-                      ? "bg-[var(--accent-soft)] border-[var(--accent)] text-[var(--accent)] shadow-xs"
-                      : "bg-[var(--bg-subtle)] border-[var(--border-subtle)] text-[var(--ink-secondary)] hover:border-[var(--border-strong)]"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
+            {/* Filter chips + Card background mode */}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-1.5">
+                {[
+                  ["all", "Wszystkie"],
+                  ["video", "Do Wideo"],
+                  ["static", "Do Grafik"],
+                ].map(([key, label]) => (
+                  <button
+                    key={key}
+                    onClick={() => setFilter(key as any)}
+                    className={`px-3 py-1 rounded-full text-xs font-bold border transition-all cursor-pointer ${
+                      filter === key
+                        ? "bg-[var(--accent-soft)] border-[var(--accent)] text-[var(--accent)] shadow-xs"
+                        : "bg-[var(--bg-subtle)] border-[var(--border-subtle)] text-[var(--ink-secondary)] hover:border-[var(--border-strong)]"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="inline-flex p-0.5 rounded-lg bg-[var(--bg-subtle)] border border-[var(--border-subtle)] gap-0.5" title="Tło podglądu PNG/SVG">
+                {(
+                  [
+                    ["checker", "Szachownica"],
+                    ["dark", "Ciemne"],
+                    ["light", "Jasne"],
+                  ] as const
+                ).map(([bgKey, bgLabel]) => (
+                  <button
+                    key={bgKey}
+                    type="button"
+                    onClick={() => setCardBgMode(bgKey)}
+                    className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-colors cursor-pointer ${
+                      cardBgMode === bgKey
+                        ? "bg-[var(--accent)] text-white"
+                        : "text-[var(--ink-muted)] hover:text-[var(--ink-primary)]"
+                    }`}
+                  >
+                    {bgLabel}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -335,7 +450,25 @@ export const BrandKitView: React.FC<BrandKitViewProps> = ({
                     </div>
 
                     {/* Preview box */}
-                    <div className="h-24 rounded-lg bg-[var(--bg-card)] border border-[var(--border-subtle)] grid place-items-center p-2 overflow-hidden text-center">
+                    <div
+                      className={`h-24 rounded-lg border border-[var(--border-subtle)] grid place-items-center p-2 overflow-hidden text-center ${
+                        cardBgMode === "dark"
+                          ? "bg-[#09080f]"
+                          : cardBgMode === "light"
+                          ? "bg-[#f4f4f8]"
+                          : "bg-[var(--bg-card)]"
+                      }`}
+                      style={
+                        cardBgMode === "checker"
+                          ? {
+                              backgroundImage:
+                                "linear-gradient(45deg, rgba(255,255,255,0.06) 25%, transparent 25%), linear-gradient(-45deg, rgba(255,255,255,0.06) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, rgba(255,255,255,0.06) 75%), linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.06) 75%)",
+                              backgroundSize: "16px 16px",
+                              backgroundPosition: "0 0, 0 8px, 8px -8px, -8px 0px",
+                            }
+                          : undefined
+                      }
+                    >
                       {asset.type === "image" && asset.url ? (
                         <img src={asset.url} alt={asset.name} className="max-h-full max-w-full object-contain" />
                       ) : (
@@ -438,7 +571,7 @@ export const BrandKitView: React.FC<BrandKitViewProps> = ({
           </form>
 
           {/* Active selection summary */}
-          <div className="p-5 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-2">
+          <div className="p-5 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-3">
             <h3 className="text-xs font-extrabold uppercase tracking-wide text-[var(--ink-muted)]">
               Aktywnie przypięte w zakładce Grafiki
             </h3>
@@ -448,6 +581,15 @@ export const BrandKitView: React.FC<BrandKitViewProps> = ({
                 {assets.find((a) => a.id === selectedStaticAssetId)?.name || "Brak"}
               </strong>
             </div>
+            {onGoToStatic && (
+              <button
+                type="button"
+                onClick={onGoToStatic}
+                className="w-full px-3 py-2 rounded-xl text-xs font-bold border border-[var(--accent)]/40 bg-[var(--accent)]/15 text-[var(--ink-primary)] hover:bg-[var(--accent)] hover:text-white transition-all cursor-pointer"
+              >
+                Otwórz w Grafikach →
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -469,34 +611,47 @@ export const BrandKitView: React.FC<BrandKitViewProps> = ({
                 </span>
               </div>
               <p className="text-xs text-[var(--ink-secondary)] mt-0.5">
-                Oficjalne animacje używane w Generatorze AI i Montażu wideo. Możesz podejrzeć wariant lub pobrać plik .MOV z kanałem alfa.
+                Ustaw domyślne Intro / Outro dla Generatora AI i Montażu wideo albo wgraj własną animację (.gif / .mp4 / .mov).
               </p>
             </div>
           </div>
 
-          <div className="inline-flex p-1 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-strong)] gap-1 self-start sm:self-auto">
-            <button
-              type="button"
-              onClick={() => setLogoPreviewColor("white")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                logoPreviewColor === "white"
-                  ? "bg-[var(--accent)] text-white shadow-xs"
-                  : "text-[var(--ink-secondary)] hover:text-[var(--ink-primary)]"
-              }`}
-            >
-              Białe (na ciemne)
-            </button>
-            <button
-              type="button"
-              onClick={() => setLogoPreviewColor("black")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                logoPreviewColor === "black"
-                  ? "bg-[var(--accent)] text-white shadow-xs"
-                  : "text-[var(--ink-secondary)] hover:text-[var(--ink-primary)]"
-              }`}
-            >
-              Czarne (na jasne)
-            </button>
+          <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+            <label className="px-3 py-1.5 rounded-xl text-xs font-bold border border-[var(--border-strong)] bg-[var(--bg-subtle)] text-[var(--ink-primary)] hover:border-[var(--accent)] transition-colors cursor-pointer">
+              <span>＋ Wgraj własne Intro/Outro</span>
+              <input
+                type="file"
+                multiple
+                accept="image/gif,video/mp4,video/quicktime,video/webm"
+                onChange={handleUploadCustomLogoAnim}
+                className="hidden"
+              />
+            </label>
+
+            <div className="inline-flex p-1 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-strong)] gap-1">
+              <button
+                type="button"
+                onClick={() => setLogoPreviewColor("white")}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  logoPreviewColor === "white"
+                    ? "bg-[var(--accent)] text-white shadow-xs"
+                    : "text-[var(--ink-secondary)] hover:text-[var(--ink-primary)]"
+                }`}
+              >
+                Białe
+              </button>
+              <button
+                type="button"
+                onClick={() => setLogoPreviewColor("black")}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  logoPreviewColor === "black"
+                    ? "bg-[var(--accent)] text-white shadow-xs"
+                    : "text-[var(--ink-secondary)] hover:text-[var(--ink-primary)]"
+                }`}
+              >
+                Czarne
+              </button>
+            </div>
           </div>
         </div>
 
@@ -504,6 +659,17 @@ export const BrandKitView: React.FC<BrandKitViewProps> = ({
           {LOGO_VARIANTS.map((variant) => {
             const gifSrc = logoPreviewColor === "white" ? variant.gifWhite : variant.gifBlack;
             const movSrc = logoPreviewColor === "white" ? variant.fileWhite : variant.fileBlack;
+            const isDefIntro = defaultIntroId === variant.id;
+            const isDefOutro = defaultOutroId === variant.id;
+            const colorLabel = logoPreviewColor === "white" ? "Białe" : "Czarne";
+            const cfg: StoredLogoConfig = {
+              variantId: variant.id,
+              colorScheme: logoPreviewColor,
+              filePath: movSrc,
+              gifPath: gifSrc,
+              durationSec: variant.durationSec,
+              name: `${variant.name.split(" (")[0]} (${colorLabel})`,
+            };
             return (
               <div
                 key={variant.id}
@@ -515,7 +681,7 @@ export const BrandKitView: React.FC<BrandKitViewProps> = ({
                       {variant.name}
                     </span>
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[var(--bg-card)] border border-[var(--border-subtle)] text-[#9d85ff] shrink-0">
-                      {variant.type.toUpperCase()} · {variant.durationSec}s
+                      {variant.durationSec}s
                     </span>
                   </div>
 
@@ -537,21 +703,239 @@ export const BrandKitView: React.FC<BrandKitViewProps> = ({
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2 pt-2 border-t border-[var(--border-subtle)]">
-                  <a
-                    href={movSrc}
-                    download
-                    className="flex-1 text-center px-2.5 py-1.5 rounded-lg text-[11px] font-bold border border-[var(--border-strong)] bg-[var(--bg-card)] text-[var(--ink-primary)] hover:border-[var(--accent)] transition-colors"
+                <div className="space-y-2 pt-2 border-t border-[var(--border-subtle)]">
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleSetDefaultLogo("intro", cfg)}
+                      className={`px-2 py-1.5 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer ${
+                        isDefIntro
+                          ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400"
+                          : "bg-[var(--bg-card)] border-[var(--border-subtle)] text-[var(--ink-secondary)] hover:border-[var(--accent)] hover:text-[var(--ink-primary)]"
+                      }`}
+                    >
+                      {isDefIntro ? "✓ Domyślne Intro" : "Ustaw jako Intro"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSetDefaultLogo("outro", cfg)}
+                      className={`px-2 py-1.5 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer ${
+                        isDefOutro
+                          ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400"
+                          : "bg-[var(--bg-card)] border-[var(--border-subtle)] text-[var(--ink-secondary)] hover:border-[var(--accent)] hover:text-[var(--ink-primary)]"
+                      }`}
+                    >
+                      {isDefOutro ? "✓ Domyślne Outro" : "Ustaw jako Outro"}
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={movSrc}
+                      download
+                      className="flex-1 text-center px-2.5 py-1 rounded-lg text-[10px] font-bold border border-[var(--border-strong)] bg-[var(--bg-card)] text-[var(--ink-primary)] hover:border-[var(--accent)] transition-colors"
+                    >
+                      ⬇ Pobierz .MOV
+                    </a>
+                    <a
+                      href={gifSrc}
+                      download
+                      className="px-2.5 py-1 rounded-lg text-[10px] font-bold border border-[var(--border-subtle)] bg-[var(--bg-card)] text-[var(--ink-secondary)] hover:border-[var(--accent)] hover:text-[var(--ink-primary)] transition-colors"
+                    >
+                      .GIF
+                    </a>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+
+          {customLogoAnims.map((anim) => {
+            const src = anim.url || anim.dataUrl || "";
+            const isVideo = src.startsWith("data:video/") || /\.(mp4|mov|webm)$/i.test(anim.name);
+            const isDefIntro = defaultIntroId === anim.id;
+            const isDefOutro = defaultOutroId === anim.id;
+            const cfg: StoredLogoConfig = {
+              variantId: anim.id,
+              colorScheme: "white",
+              filePath: src,
+              gifPath: src,
+              durationSec: anim.durationSec || 2.0,
+              name: `${anim.name} (Własne)`,
+            };
+            return (
+              <div
+                key={anim.id}
+                className="p-4 rounded-xl border border-[var(--accent)]/40 bg-[var(--bg-subtle)] flex flex-col justify-between gap-3"
+              >
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-extrabold text-[var(--ink-primary)] truncate">
+                      {anim.name}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await deleteStoredAsset(anim.id);
+                        setCustomLogoAnims((prev) => prev.filter((item) => item.id !== anim.id));
+                        showToast(`Usunięto własną animację: ${anim.name}`);
+                      }}
+                      className="text-xs text-rose-400 hover:text-rose-300 cursor-pointer"
+                      title="Usuń własną animację"
+                    >
+                      🗑
+                    </button>
+                  </div>
+
+                  <div className="h-24 rounded-lg border border-[var(--border-subtle)] bg-[#09080f] flex items-center justify-center p-2 overflow-hidden">
+                    {isVideo ? (
+                      <video src={src} autoPlay loop muted playsInline className="max-h-full max-w-full object-contain" />
+                    ) : (
+                      <img src={src} alt={anim.name} className="max-h-full max-w-full object-contain" />
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-1.5 pt-2 border-t border-[var(--border-subtle)]">
+                  <button
+                    type="button"
+                    onClick={() => handleSetDefaultLogo("intro", cfg)}
+                    className={`px-2 py-1.5 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer ${
+                      isDefIntro
+                        ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400"
+                        : "bg-[var(--bg-card)] border-[var(--border-subtle)] text-[var(--ink-secondary)] hover:border-[var(--accent)]"
+                    }`}
                   >
-                    ⬇ Pobierz .MOV
-                  </a>
-                  <a
-                    href={gifSrc}
-                    download
-                    className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold border border-[var(--border-subtle)] bg-[var(--bg-card)] text-[var(--ink-secondary)] hover:border-[var(--accent)] hover:text-[var(--ink-primary)] transition-colors"
+                    {isDefIntro ? "✓ Domyślne Intro" : "Ustaw jako Intro"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSetDefaultLogo("outro", cfg)}
+                    className={`px-2 py-1.5 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer ${
+                      isDefOutro
+                        ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400"
+                        : "bg-[var(--bg-card)] border-[var(--border-subtle)] text-[var(--ink-secondary)] hover:border-[var(--accent)]"
+                    }`}
                   >
-                    .GIF
-                  </a>
+                    {isDefOutro ? "✓ Domyślne Outro" : "Ustaw jako Outro"}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Audio / BGM Library with Preview Player */}
+      <div className="p-6 rounded-2xl border bg-[var(--bg-card)] border-[var(--border-subtle)] space-y-4 shadow-sm">
+        <audio
+          ref={audioPlayerRef}
+          onEnded={() => setPlayingBgmId(null)}
+          className="hidden"
+        />
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--border-subtle)] pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[var(--accent)]/15 border border-[var(--accent)]/40 text-[#9d85ff] grid place-items-center text-lg">
+              🎵
+            </div>
+            <div>
+              <h3 className="text-sm font-extrabold uppercase tracking-wide text-[var(--ink-primary)]">
+                Podkłady audio (BGM)
+              </h3>
+              <p className="text-xs text-[var(--ink-secondary)] mt-0.5">
+                Odsłuchaj dostępne podkłady lub wgraj własny plik .MP3 / .M4A / .WAV — pojawi się od razu w Generatorze AI i Montażu.
+              </p>
+            </div>
+          </div>
+
+          <label className="px-3.5 py-2 rounded-xl text-xs font-bold border border-[var(--border-strong)] bg-[var(--bg-subtle)] text-[var(--ink-primary)] hover:border-[var(--accent)] transition-colors cursor-pointer self-start sm:self-auto">
+            <span>＋ Wgraj własny BGM</span>
+            <input
+              type="file"
+              multiple
+              accept="audio/*"
+              onChange={handleUploadCustomBgm}
+              className="hidden"
+            />
+          </label>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {BUILTIN_BGM_TRACKS.map((track) => {
+            const isPlaying = playingBgmId === track.id;
+            return (
+              <div
+                key={track.id}
+                className="p-3.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-subtle)] flex items-center justify-between gap-3"
+              >
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-[var(--ink-primary)] truncate">
+                    {track.name}
+                  </div>
+                  <div className="text-[10px] text-[var(--ink-muted)] mt-0.5">
+                    Wbudowany · {track.durationHint}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => togglePlayBgm(track.id, track.src)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold shrink-0 cursor-pointer transition-colors ${
+                    isPlaying
+                      ? "bg-[var(--accent)] text-white"
+                      : "bg-[var(--bg-card)] border border-[var(--border-strong)] text-[var(--ink-primary)] hover:border-[var(--accent)]"
+                  }`}
+                >
+                  {isPlaying ? "❚❚ Stop" : "▶ Odsłuchaj"}
+                </button>
+              </div>
+            );
+          })}
+
+          {customBgmTracks.map((track) => {
+            const src = track.url || track.dataUrl || "";
+            const isPlaying = playingBgmId === track.id;
+            return (
+              <div
+                key={track.id}
+                className="p-3.5 rounded-xl border border-[var(--accent)]/40 bg-[var(--bg-subtle)] flex items-center justify-between gap-2"
+              >
+                <div className="min-w-0">
+                  <div className="text-xs font-bold text-[var(--ink-primary)] truncate">
+                    {track.name}
+                  </div>
+                  <div className="text-[10px] text-[#9d85ff] mt-0.5">
+                    Własny podkład (zapisany)
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => togglePlayBgm(track.id, src)}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-colors ${
+                      isPlaying
+                        ? "bg-[var(--accent)] text-white"
+                        : "bg-[var(--bg-card)] border border-[var(--border-strong)] text-[var(--ink-primary)] hover:border-[var(--accent)]"
+                    }`}
+                  >
+                    {isPlaying ? "❚❚" : "▶"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (isPlaying && audioPlayerRef.current) {
+                        audioPlayerRef.current.pause();
+                        setPlayingBgmId(null);
+                      }
+                      await deleteStoredAsset(track.id);
+                      setCustomBgmTracks((prev) => prev.filter((item) => item.id !== track.id));
+                      showToast(`Usunięto podkład audio: ${track.name}`);
+                    }}
+                    className="px-2 py-1.5 rounded-lg text-xs text-rose-400 hover:bg-rose-500/10 cursor-pointer"
+                    title="Usuń podkład"
+                  >
+                    🗑
+                  </button>
                 </div>
               </div>
             );

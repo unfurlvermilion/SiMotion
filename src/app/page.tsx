@@ -102,14 +102,16 @@ export default function SiMotionApp() {
         setAssets((prev) => {
           const defaultIds = new Set(["badge", "cta", "frame", "star"]);
           const filteredPrev = prev.filter((a) => defaultIds.has(a.id));
-          const mapped: BrandAsset[] = stored.map((s) => ({
-            id: s.id,
-            name: s.name,
-            kind: s.kind,
-            type: s.type,
-            text: s.text,
-            url: s.url || s.dataUrl,
-          }));
+          const mapped: BrandAsset[] = stored
+            .filter((s): s is typeof s & { type: BrandAsset["type"] } => s.type !== "audio" && s.type !== "logo_anim")
+            .map((s) => ({
+              id: s.id,
+              name: s.name,
+              kind: s.kind,
+              type: s.type,
+              text: s.text,
+              url: s.url || s.dataUrl,
+            }));
           return [...filteredPrev, ...mapped];
         });
       }
@@ -337,6 +339,7 @@ export default function SiMotionApp() {
             selectedStaticAssetId={selectedStaticAssetId}
             setSelectedStaticAssetId={setSelectedStaticAssetId}
             showToast={showToast}
+            onGoToStatic={() => setActiveTab("static")}
           />
         )}
 

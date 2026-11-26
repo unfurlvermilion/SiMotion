@@ -7,6 +7,11 @@ import AnimatedLogoModal, { SelectedLogoConfig, LOGO_VARIANTS } from "./Animated
 import { SocialSafeAreaOverlay } from "./SocialSafeAreaOverlay";
 import { burnSubtitlesToVideo, getVideoExtension } from "@/lib/videoSubtitleBurner";
 import {
+  StoredAsset,
+  loadCustomMediaAssets,
+  loadDefaultLogoConfig,
+} from "@/lib/brandStorage";
+import {
   VIDEO_ENGINE_OPTIONS,
   VideoEngine,
   VideoServerConfig,
@@ -199,11 +204,19 @@ export const StudioTikTokView: React.FC<StudioTikTokViewProps> = ({
   const [videoServerConfig, setVideoServerConfig] = useState<VideoServerConfig | null>(null);
   const [integrationMode, setIntegrationMode] = useState<"sandbox" | "live">("live");
 
+  const [customBgmTracks, setCustomBgmTracks] = useState<StoredAsset[]>([]);
+
   useEffect(() => {
     const cfg = readIntegrationsConfig();
     setAiEngine(normalizeVideoEngine(cfg.seedanceModel));
     setIntegrationMode(cfg.mode);
     fetchVideoServerConfig().then(setVideoServerConfig);
+
+    const defIntro = loadDefaultLogoConfig("intro");
+    if (defIntro) setSelectedIntroLogo(defIntro);
+    const defOutro = loadDefaultLogoConfig("outro");
+    if (defOutro) setSelectedLogo(defOutro);
+    loadCustomMediaAssets("audio").then(setCustomBgmTracks).catch(() => {});
   }, []);
   const [genMode, setGenMode] = useState<"storyboard" | "single">("storyboard");
   const [template, setTemplate] = useState("TikTok try-on · 6 scen");
@@ -2141,6 +2154,11 @@ ${titleNodes}
               <option value="lofi">Atelier Lo-Fi Beats (98 BPM)</option>
               <option value="groove">Deep Fashion Groove (126 BPM)</option>
               <option value="ambient">Minimal Acoustic Ambient (92 BPM)</option>
+              {customBgmTracks.map((track) => (
+                <option key={track.id} value={track.id}>
+                  🎵 {track.name} (Własny)
+                </option>
+              ))}
               <option value="none">Bez muzyki (Tylko lektor)</option>
             </select>
           </div>
@@ -2572,7 +2590,11 @@ ${titleNodes}
 
               <audio
                 ref={bgmAudioRef}
-                src={selectedBgm === "lofi" ? "/audio/atelier_lofi.m4a" : "/audio/runway_house.m4a"}
+                src={
+                  customBgmTracks.find((t) => t.id === selectedBgm)?.url ||
+                  customBgmTracks.find((t) => t.id === selectedBgm)?.dataUrl ||
+                  (selectedBgm === "lofi" ? "/audio/atelier_lofi.m4a" : "/audio/runway_house.m4a")
+                }
                 loop
                 preload="auto"
               />

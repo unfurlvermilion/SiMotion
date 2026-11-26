@@ -5,11 +5,46 @@ export interface StoredAsset {
   id: string;
   name: string;
   kind: "video" | "static" | "both";
-  type: "badge" | "cta" | "frame" | "star" | "image";
+  type: "badge" | "cta" | "frame" | "star" | "image" | "audio" | "logo_anim";
   text?: string;
   url?: string;
-  dataUrl?: string; // Persistent Base64 for images/badges
+  dataUrl?: string; // Persistent Base64 for images/badges/audio/logo_anim
+  durationSec?: number;
   createdAt?: string;
+}
+
+export interface StoredLogoConfig {
+  variantId: string;
+  colorScheme: "black" | "white";
+  filePath: string;
+  gifPath: string;
+  durationSec: number;
+  name: string;
+}
+
+export const BUILTIN_BGM_TRACKS = [
+  { id: "runway", name: "Warm Runway House (122 BPM)", src: "/audio/runway_house.m4a", durationHint: "Dynamiczny" },
+  { id: "lofi", name: "Atelier Lo-Fi Beats (98 BPM)", src: "/audio/atelier_lofi.m4a", durationHint: "Spokojny" },
+] as const;
+
+const DEFAULT_INTRO_KEY = "simotion_default_intro";
+const DEFAULT_OUTRO_KEY = "simotion_default_outro";
+
+export function saveDefaultLogoConfig(slot: "intro" | "outro", config: StoredLogoConfig): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(slot === "intro" ? DEFAULT_INTRO_KEY : DEFAULT_OUTRO_KEY, JSON.stringify(config));
+  } catch {}
+}
+
+export function loadDefaultLogoConfig(slot: "intro" | "outro"): StoredLogoConfig | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(slot === "intro" ? DEFAULT_INTRO_KEY : DEFAULT_OUTRO_KEY);
+    return raw ? (JSON.parse(raw) as StoredLogoConfig) : null;
+  } catch {
+    return null;
+  }
 }
 
 const DB_NAME = "simotion_brand_kit";
@@ -106,4 +141,9 @@ export async function deleteStoredAsset(id: string): Promise<void> {
       localStorage.setItem("simotion_custom_assets", JSON.stringify(filtered));
     } catch {}
   }
+}
+
+export async function loadCustomMediaAssets(type: "audio" | "logo_anim"): Promise<StoredAsset[]> {
+  const all = await loadStoredAssets();
+  return all.filter((item) => item.type === type);
 }
